@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"strings"
 )
 
@@ -13,14 +12,20 @@ type Function struct {
 	parameters      []string
 }
 
-func (function *Function) Run(arguments []*Argument) {
+func (function *Function) String() string {
+	return function.functionName + "(" + strings.Join(function.parameters, ", ") + ")"
+}
 
+func (function *Function) Run(values []*Value) {
+	for key, value := range values {
+		function.scope.AddVariable(CreateVariable(function.parameters[key], value))
+	}
+
+	function.scope.Run()
 }
 
 func CreateFunction(inheritedScope *Scope, content string, functionName string, functionContent string, parameters []string) *Function {
 	scope := CreateScope(functionContent, inheritedScope.variableList, inheritedScope.functionList)
-
-	fmt.Println(functionContent)
 
 	return &Function{scope, content, functionName, functionContent, parameters}
 }

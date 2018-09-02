@@ -85,93 +85,6 @@ func (value *Value) String() string {
 	return value.GetAsString()
 }
 
-func (value *Value) applyAdditionOperator(value2 *Value) *Value {
-	if value.valueType == VALUE_TYPE_INT {
-		if value2.valueType == VALUE_TYPE_INT {
-			return CreateValueFromInt(value.intValue + value2.intValue)
-		} else if value2.valueType == VALUE_TYPE_FLOAT {
-			return CreateValueFromFloat(float64(value.intValue) + value2.floatValue)
-		}
-	} else if value.valueType == VALUE_TYPE_FLOAT {
-		if value2.valueType == VALUE_TYPE_INT {
-			return CreateValueFromFloat(value.floatValue + float64(value2.intValue))
-		} else if value2.valueType == VALUE_TYPE_FLOAT {
-			return CreateValueFromFloat(value.floatValue + value2.floatValue)
-		}
-	}
-
-	return CreateValueFromString(value.GetAsString() + value2.GetAsString())
-}
-
-func (value *Value) applySubstractionOperator(value2 *Value) *Value {
-	if value.valueType == VALUE_TYPE_INT {
-		if value2.valueType == VALUE_TYPE_INT {
-			return CreateValueFromInt(value.intValue - value2.intValue)
-		} else if value2.valueType == VALUE_TYPE_FLOAT {
-			return CreateValueFromFloat(float64(value.intValue) - value2.floatValue)
-		}
-	} else if value.valueType == VALUE_TYPE_FLOAT {
-		if value2.valueType == VALUE_TYPE_INT {
-			return CreateValueFromFloat(value.floatValue - float64(value2.intValue))
-		} else if value2.valueType == VALUE_TYPE_FLOAT {
-			return CreateValueFromFloat(value.floatValue - value2.floatValue)
-		}
-	}
-
-	panic("Invalid operator")
-}
-
-func (value *Value) applyMultiplicationOperator(value2 *Value) *Value {
-	if value.valueType == VALUE_TYPE_INT {
-		if value2.valueType == VALUE_TYPE_INT {
-			return CreateValueFromInt(value.intValue * value2.intValue)
-		} else if value2.valueType == VALUE_TYPE_FLOAT {
-			return CreateValueFromFloat(float64(value.intValue) * value2.floatValue)
-		}
-	} else if value.valueType == VALUE_TYPE_FLOAT {
-		if value2.valueType == VALUE_TYPE_INT {
-			return CreateValueFromFloat(value.floatValue * float64(value2.intValue))
-		} else if value2.valueType == VALUE_TYPE_FLOAT {
-			return CreateValueFromFloat(value.floatValue * value2.floatValue)
-		}
-	}
-
-	panic("Invalid operator")
-}
-
-func (value *Value) applyDivisionOperator(value2 *Value) *Value {
-	if value.valueType == VALUE_TYPE_INT {
-		if value2.valueType == VALUE_TYPE_INT {
-			return CreateValueFromInt(value.intValue / value2.intValue)
-		} else if value2.valueType == VALUE_TYPE_FLOAT {
-			return CreateValueFromFloat(float64(value.intValue) / value2.floatValue)
-		}
-	} else if value.valueType == VALUE_TYPE_FLOAT {
-		if value2.valueType == VALUE_TYPE_INT {
-			return CreateValueFromFloat(value.floatValue / float64(value2.intValue))
-		} else if value2.valueType == VALUE_TYPE_FLOAT {
-			return CreateValueFromFloat(value.floatValue / value2.floatValue)
-		}
-	}
-
-	panic("Invalid operator")
-}
-
-func (value *Value) ApplyOperator(value2 *Value, operator string) *Value {
-	switch operator {
-	case "+":
-		return value.applyAdditionOperator(value2)
-	case "-":
-		return value.applySubstractionOperator(value2)
-	case "*":
-		return value.applyMultiplicationOperator(value2)
-	case "/":
-		return value.applyDivisionOperator(value2)
-	}
-
-	panic("Invalid operator")
-}
-
 func CreateValueFromInt(value int64) *Value {
 	return &Value{valueType: VALUE_TYPE_INT, intValue: value}
 }
@@ -208,7 +121,7 @@ func CreateValue(decleration string) *Value {
 	return CreateUndefinedValue()
 }
 
-func IsValidValue(decleration string) bool {
+func IsValueValid(decleration string) bool {
 	decleration = strings.TrimSpace(decleration)
 
 	if _, ok := convertStringToInt(decleration); ok {
@@ -224,82 +137,8 @@ func IsValidValue(decleration string) bool {
 	return false
 }
 
-func ParseValue(scope *Scope, decleration string) *Value {
-	decleration = strings.TrimSpace(decleration)
+func ParseValue(scope *Scope, content string) *Value {
+	content = strings.TrimSpace(content)
 
-	if IsValidVariableName(decleration) && scope.IsVariableExists(decleration) {
-		return scope.FindVariable(decleration).value
-	} else if IsValidValue(decleration) {
-		return CreateValue(decleration)
-	} else if strings.ContainsAny(decleration, "+-*/") {
-		return ParseStatement(scope, decleration)
-	} else if decleration[0] == '~' && decleration[len(decleration)-1] == '~' {
-		decleration = decleration[1 : len(decleration)-1]
-
-		valueIndex, err := strconv.Atoi(decleration)
-
-		if err != nil {
-			panic(err)
-		}
-
-		Debug("Value", "String Literal Resolved", valueIndex, MainScopeValueList[valueIndex])
-
-		return MainScopeValueList[valueIndex]
-	}
-
-	return CreateUndefinedValue()
-}
-
-func ParseStatement(scope *Scope, decleration string) *Value {
-	parts1 := strings.Split(decleration, "-")
-
-	var value1 *Value
-
-	for key1, part1 := range parts1 {
-		part1 = strings.TrimSpace(part1)
-		parts2 := strings.Split(part1, "+")
-		var value2 *Value
-
-		for key2, part2 := range parts2 {
-			part2 = strings.TrimSpace(part2)
-			parts3 := strings.Split(part2, "/")
-			var value3 *Value
-
-			for key3, part3 := range parts3 {
-				part3 = strings.TrimSpace(part3)
-				parts4 := strings.Split(part3, "*")
-				var value4 *Value
-
-				for key4, part4 := range parts4 {
-					part4 = strings.TrimSpace(part4)
-
-					if key4 == 0 {
-						value4 = ParseValue(scope, part4)
-					} else {
-						value4 = value4.applyMultiplicationOperator(ParseValue(scope, part4))
-					}
-				}
-
-				if key3 == 0 {
-					value3 = value4
-				} else {
-					value3 = value3.applyDivisionOperator(value4)
-				}
-			}
-
-			if key2 == 0 {
-				value2 = value3
-			} else {
-				value2 = value2.applyAdditionOperator(value3)
-			}
-		}
-
-		if key1 == 0 {
-			value1 = value2
-		} else {
-			value1 = value1.applySubstractionOperator(value2)
-		}
-	}
-
-	return value1
+	return CreateValue(content)
 }

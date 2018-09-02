@@ -17,11 +17,15 @@ func RunLineRunner(scope *Scope, line string) {
 				panic("Invalid Variable Name")
 			}
 
-			value := ParseValue(scope, parts[1])
+			value := CreateExpression(scope, parts[1]).Run()
 
-			variable := CreateVariable(variableName, value)
+			if scope.IsVariableExists(variableName) {
+				variable := scope.FindVariable(variableName)
+				variable.SetValue(value)
+			} else {
+				scope.AddVariable(CreateVariable(variableName, value))
+			}
 
-			scope.AddVariable(variable)
 		} else if strings.Count(line, "(") == 1 && strings.Count(line, ")") == 1 {
 			firstIndex := strings.Index(line, "(")
 
@@ -33,7 +37,7 @@ func RunLineRunner(scope *Scope, line string) {
 			for key, argumentString := range argumentStrings {
 				argumentString = strings.TrimSpace(argumentString)
 
-				arguments[key] = ParseValue(scope, argumentString)
+				arguments[key] = CreateExpression(scope, argumentString).Run()
 			}
 
 			if scope.IsFunctionExists(functionName) {

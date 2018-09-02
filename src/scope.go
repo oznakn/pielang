@@ -2,7 +2,6 @@ package main
 
 import (
 	"regexp"
-	"strconv"
 	"strings"
 )
 
@@ -21,30 +20,34 @@ func (scope *Scope) SetAsMainScope() {
 	scope.isMainScope = true
 }
 
+func (scope *Scope) IsVariableExists(variableName string) bool {
+	_, ok := scope.variableList[variableName]
+	return ok
+}
+
 func (scope *Scope) FindVariable(variableName string) *Variable {
 	if variable, ok := scope.variableList[variableName]; ok {
+		Debug("Scope", "Variable found", variableName)
+
 		return variable
 	}
 
 	panic("Undefined Variable")
 }
 
-func (scope *Scope) IsVariableExists(variableName string) bool {
-	_, ok := scope.variableList[variableName]
+func (scope *Scope) IsFunctionExists(functionName string) bool {
+	_, ok := scope.functionList[functionName]
 	return ok
 }
 
 func (scope *Scope) FindFunction(functionName string) *Function {
 	if function, ok := scope.functionList[functionName]; ok {
+		Debug("Scope", "Function found", functionName)
+
 		return function
 	}
 
 	panic("Undefined Function")
-}
-
-func (scope *Scope) IsFunctionExists(functionName string) bool {
-	_, ok := scope.functionList[functionName]
-	return ok
 }
 
 func (scope *Scope) AddVariable(variable *Variable) {
@@ -70,20 +73,7 @@ func (scope *Scope) runForMainScope() {
 		scope.content = scope.content[:len(scope.content)-1]
 	}
 
-	MainScopeValueList = make([]*Value, 0)
-
-	regex = regexp.MustCompile(STRINGS_FIND_REGEX)
-	scope.content = regex.ReplaceAllStringFunc(scope.content,
-		func(decleration string) string {
-			value := CreateValueFromString(decleration[1 : len(decleration)-1])
-
-			MainScopeValueList = append(MainScopeValueList, value)
-			index := len(MainScopeValueList) - 1
-
-			Debug("Scope", "New String Literal", index, ":", value)
-
-			return "~" + strconv.Itoa(index) + "~"
-		})
+	ReplaceStringsWithStringLiterals(scope)
 
 	regex = regexp.MustCompile(FUNCTION_FIRST_LINE_FIND_REGEX)
 
@@ -144,4 +134,16 @@ func CreateMainScope(content string) *Scope {
 	scope := CreateScope(content, nil, nil)
 	scope.SetAsMainScope()
 	return scope
+}
+
+func FindEqualityValueOfString(scope *Scope, content string) *Value {
+	if IsValidVariableName(content) && scope.IsVariableExists(content) {
+		return scope.FindVariable(content).value
+	} else if IsValueValid(content) {
+		return CreateValue(content)
+	} else if stringLiteral := ParseStringLiteral(scope, content); stringLiteral != nil {
+		return stringLiteral.value
+	}
+
+	return CreateValueFromString(content)
 }

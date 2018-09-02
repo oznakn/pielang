@@ -9,6 +9,10 @@ type Variable struct {
 	value        *Value
 }
 
+func (variable *Variable) SetValue(value *Value) {
+	variable.value = value
+}
+
 func (variable *Variable) String() string {
 	return variable.variableName + ": " + variable.value.GetAsString()
 }

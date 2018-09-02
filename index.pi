@@ -1,5 +1,3 @@
-age = 3*3*2
-println("Hello World!");
-println("Merhaba" + " ben Ozan");
-print(age + " ");
-println("Yaşındayım");
+age = (10 ^ 2 + 18) % 100;
+print("Ben Ozan yaşım: ");
+println(age);

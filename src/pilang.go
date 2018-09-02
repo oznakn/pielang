@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"os"
+	"time"
 )
 
 func main() {
@@ -15,7 +17,12 @@ func main() {
 
 	fileContent := ReadFile(fileName)
 
+	start := time.Now()
+
 	scope := CreateMainScope(fileContent)
 	scope.Run()
 	PostLog()
+
+	elapsed := time.Since(start)
+	fmt.Printf("Program finished in %s\n", elapsed)
 }

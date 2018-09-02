@@ -34,3 +34,13 @@ func FindSiblingPosition(content string, startIndex int, char string, siblingCha
 
 	return startIndex - 1
 }
+
+func FindStringInArray(array []string, value string) int {
+	for k, v := range array {
+		if v == value {
+			return k
+		}
+	}
+
+	return -1
+}

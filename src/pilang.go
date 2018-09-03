@@ -24,5 +24,5 @@ func main() {
 	PostLog()
 
 	elapsed := time.Since(start)
-	fmt.Printf("Program finished in %s\n", elapsed)
+	fmt.Println("Program finished in:", elapsed.Seconds()*1000, "ms")
 }

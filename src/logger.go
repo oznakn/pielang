@@ -21,9 +21,11 @@ func joinInterfaces(values []interface{}) string {
 }
 
 func Debug(context string, content ...interface{}) {
-	fmt.Print(">")
-	hiBluePrinter.Print(" [" + context + "] ")
-	bluePrinter.Println(content...)
+	if DEBUG_MODE {
+		fmt.Print(">")
+		hiBluePrinter.Print(" [" + context + "] ")
+		bluePrinter.Println(content...)
+	}
 }
 
 func Log(content ...interface{}) {

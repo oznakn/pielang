@@ -3,6 +3,7 @@ package main
 import (
 	"regexp"
 	"strings"
+	"time"
 )
 
 var MainScopeValueList []*Value
@@ -63,17 +64,31 @@ func (scope *Scope) AddFunction(function *Function) {
 func (scope *Scope) runForMainScope() {
 	var regex *regexp.Regexp
 
+	var startTime = time.Now()
+
 	regex = regexp.MustCompile(COMMENT_FIND_REGEX)
 	scope.content = regex.ReplaceAllString(scope.content, `$1$2`)
 
+	Debug("MainScope", "Cleared comments in", time.Since(startTime).Seconds()*1000)
+	startTime = time.Now()
+
 	regex = regexp.MustCompile(NEWLINE_FIND_REGEX)
 	scope.content = regex.ReplaceAllString(scope.content, `$1;$2`)
+
+	Debug("MainScope", "Cleared new lines in", time.Since(startTime).Seconds()*1000)
+	startTime = time.Now()
 
 	if scope.content[len(scope.content)-1] == ';' {
 		scope.content = scope.content[:len(scope.content)-1]
 	}
 
+	Debug("MainScope", "Removed last semicolon in", time.Since(startTime).Seconds()*1000)
+	startTime = time.Now()
+
 	ReplaceStringsWithStringLiterals(scope)
+
+	Debug("MainScope", "Replaces String literals in", time.Since(startTime).Seconds()*1000)
+	startTime = time.Now()
 
 	regex = regexp.MustCompile(FUNCTION_FIRST_LINE_FIND_REGEX)
 
@@ -87,6 +102,8 @@ func (scope *Scope) runForMainScope() {
 
 		scope.AddFunction(ParseFunction(scope, content))
 	}
+
+	Debug("MainScope", "Parsed functions in", time.Since(startTime).Seconds()*1000)
 }
 
 func (scope *Scope) Run() {

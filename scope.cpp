@@ -10,11 +10,9 @@
 #include "stringliteral.h"
 #include "logger.h"
 
-using namespace std;
+Scope::Scope(std::string content) : Scope(content, nullptr, nullptr) {}
 
-Scope::Scope(string content) : Scope(content, nullptr, nullptr) {}
-
-Scope::Scope(string content, VariableMap* inheritedVariableMap, FunctionMap* inheritedFunctionMap) {
+Scope::Scope(std::string content, VariableMap* inheritedVariableMap, FunctionMap* inheritedFunctionMap) {
     // this->mInitialContent = content;
     this->mContent = content;
 
@@ -43,17 +41,17 @@ void Scope::setAsMainScope() {
 }
 
 void Scope::findAndReplaceStringLiterals() {
-    size_t firstIndex = string::npos;
-    size_t lastIndex = string::npos;
+    size_t firstIndex = std::string::npos;
+    size_t lastIndex = std::string::npos;
 
     const size_t stringCharLength = 1;
     const size_t escapeCharLength = 1;
 
-    while ((firstIndex = this->mContent.find(Options::STRING_CHAR, lastIndex + stringCharLength)) != string::npos) {
+    while ((firstIndex = this->mContent.find(Options::STRING_CHAR, lastIndex + stringCharLength)) != std::string::npos) {
         size_t additionalPosition = 0;
         lastIndex = this->mContent.find(Options::STRING_CHAR, firstIndex + additionalPosition + stringCharLength);
 
-        while (lastIndex != string::npos && this->mContent.at(lastIndex-1) == Options::STRING_ESCAPE_CHAR) {
+        while (lastIndex != std::string::npos && this->mContent.at(lastIndex-1) == Options::STRING_ESCAPE_CHAR) {
             additionalPosition += stringCharLength + (escapeCharLength*2);
 
             this->mContent.replace(lastIndex-1, escapeCharLength, "");
@@ -61,8 +59,8 @@ void Scope::findAndReplaceStringLiterals() {
             lastIndex = this->mContent.find(Options::STRING_CHAR, firstIndex + additionalPosition + stringCharLength);
         }
 
-        if (lastIndex != string::npos) {
-            string middle = StringUtils::substring(this->mContent, firstIndex + stringCharLength, lastIndex);
+        if (lastIndex != std::string::npos) {
+            std::string middle = StringUtils::substring(this->mContent, firstIndex + stringCharLength, lastIndex);
 
             StringLiteral* stringLiteral = new StringLiteral(middle);
 
@@ -71,45 +69,51 @@ void Scope::findAndReplaceStringLiterals() {
     }
 }
 
+void Scope::findAndReplaceMultipleSpacesWithOne() {
+    this->mContent = StringUtils::replaceMultipleSpacesWithOne(this->mContent);
+}
+
 void Scope::findAndDeleteComments() {
-    size_t firstIndex = string::npos;
-    size_t lastIndex = string::npos;
+    size_t firstIndex;
+    size_t lastIndex;
 
     const size_t startStringLength = Options::MULTI_COMMENT_START_STRING.length();
     const size_t endStringLength = Options::MULTI_COMMENT_END_STRING.length();
 
-    while ((firstIndex = this->mContent.find(Options::MULTI_COMMENT_START_STRING)) != string::npos) {
+    while ((firstIndex = this->mContent.find(Options::MULTI_COMMENT_START_STRING)) != std::string::npos) {
         lastIndex = this->mContent.find(Options::MULTI_COMMENT_END_STRING, firstIndex + startStringLength);
 
-        if (lastIndex != string::npos) {
+        if (lastIndex != std::string::npos) {
             this->mContent = StringUtils::cutMiddle(this->mContent, firstIndex, lastIndex + endStringLength);
         }
     }
 }
 
 void Scope::combineLines() {
-    size_t index = string::npos;
+    size_t index;
 
     const size_t endOfLineStringLength = Options::END_OF_LINE.length();
     const size_t endOfLineWithOptionalCharStringLength = Options::END_OF_LINE_WITH_OPTIONAL_CHAR.length();
     const size_t windowsEndOfLineStringLength = Options::WINDOWS_END_OF_LINE.length();
     const size_t windowsEndOfLineWithOptionalCharStringLength = Options::WINDOWS_END_OF_LINE_WITH_OPTIONAL_CHAR.length();
 
-    while ((index = this->mContent.find(Options::WINDOWS_END_OF_LINE_WITH_OPTIONAL_CHAR)) != string::npos) {
+    while ((index = this->mContent.find(Options::WINDOWS_END_OF_LINE_WITH_OPTIONAL_CHAR)) != std::string::npos) {
         this->mContent.replace(index, windowsEndOfLineWithOptionalCharStringLength, Options::END_OF_LINE_OPTIONAL_CHAR_AS_STRING);
     }
 
-    while ((index = this->mContent.find(Options::END_OF_LINE_WITH_OPTIONAL_CHAR)) != string::npos) {
+    while ((index = this->mContent.find(Options::END_OF_LINE_WITH_OPTIONAL_CHAR)) != std::string::npos) {
         this->mContent.replace(index, endOfLineWithOptionalCharStringLength, Options::END_OF_LINE_OPTIONAL_CHAR_AS_STRING);
     }
 
-    while ((index = this->mContent.find(Options::WINDOWS_END_OF_LINE)) != string::npos) {
+    while ((index = this->mContent.find(Options::WINDOWS_END_OF_LINE)) != std::string::npos) {
         this->mContent.replace(index, windowsEndOfLineStringLength, Options::END_OF_LINE_OPTIONAL_CHAR_AS_STRING);
     }
 
-    while ((index = this->mContent.find(Options::END_OF_LINE)) != string::npos) {
+    while ((index = this->mContent.find(Options::END_OF_LINE)) != std::string::npos) {
         this->mContent.replace(index, endOfLineStringLength, Options::END_OF_LINE_OPTIONAL_CHAR_AS_STRING);
     }
+
+    this->mContent = StringUtils::replaceMultipleCharsWithOne(this->mContent, Options::END_OF_LINE_OPTIONAL_CHAR);
 
     if (this->mContent.at(this->mContent.length() - 1) != Options::END_OF_LINE_OPTIONAL_CHAR) {
         this->mContent += Options::END_OF_LINE_OPTIONAL_CHAR;
@@ -130,23 +134,27 @@ void Scope::findAndReplaceFirstFunction(size_t startIndex) {
 }
 
 void Scope::runLines() {
-    size_t index;
+    size_t index, tempIndex;
+    std::string tempString;
     size_t lastIndex = 0;
 
-    while ((index = this->mContent.find(Options::END_OF_LINE_OPTIONAL_CHAR_AS_STRING, lastIndex)) != string::npos) {
-        string line = StringUtils::trim(StringUtils::substring(this->mContent, lastIndex, index));
+    while ((index = this->mContent.find(Options::END_OF_LINE_OPTIONAL_CHAR_AS_STRING, lastIndex)) != std::string::npos) {
+        std::string line = StringUtils::trim(StringUtils::substring(this->mContent, lastIndex, index));
+        // Logger::debug("Scope", "Executing Line: " + line);
 
         if (lastIndex == index) {
             lastIndex++;
             continue;
-        }
-
-        if (line.find(Options::FUNCTION_WORD_STRING) == 0) {
+        } else if (line.find(Options::FUNCTION_WORD_STRING) == 0) {
             this->findAndReplaceFirstFunction(lastIndex);
             continue;
+        } else if ((tempIndex = line.find(Options::EQUALITY_CHAR)) != std::string::npos &&
+            Variable::isValidVariableName((tempString = StringUtils::substring(line, 0, tempIndex)))) {
+
         }
 
-        this->mContent = StringUtils::replaceMiddle(this->mContent, "", lastIndex, index + 1);
+        this->mContent = StringUtils::replaceMiddle(this->mContent, "", lastIndex - 1, index + 1);
+        Logger::debug("Scope", "Execution Result: " + this->mContent);
 
         lastIndex = index + 1;
     }
@@ -155,6 +163,7 @@ void Scope::runLines() {
 void Scope::run() {
     if (this->mIsMainScope) {
         this->findAndReplaceStringLiterals();
+        this->findAndReplaceMultipleSpacesWithOne();
         this->findAndDeleteComments();
         this->combineLines();
     }

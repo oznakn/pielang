@@ -4,14 +4,14 @@
 
 #include "termcolor.hpp"
 
-void Logger::debug(string ctx, string s) {
-    cout << termcolor::bold << termcolor::cyan  << "[" + ctx + "] " << termcolor::reset << termcolor::blue << s << termcolor::reset << endl;
+void Logger::debug(std::string ctx, std::string s) {
+    std::cout << termcolor::bold << termcolor::cyan  << "[" + ctx + "] " << termcolor::reset << termcolor::blue << s << termcolor::reset << std::endl;
 }
 
-void Logger::print(string s) {
-    cout << s;
+void Logger::print(std::string s) {
+    std::cout << s;
 }
 
-void Logger::println(string s) {
-    cout << s << endl;
+void Logger::println(std::string s) {
+    std::cout << s << std::endl;
 }

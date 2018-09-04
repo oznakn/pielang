@@ -7,21 +7,20 @@
 #include "variable.h"
 #include "function.h"
 
-using namespace std;
-
-typedef unordered_map<string, Variable*> VariableMap;
-typedef unordered_map<string, Function*> FunctionMap;
+typedef std::unordered_map<std::string, Variable*> VariableMap;
+typedef std::unordered_map<std::string, Function*> FunctionMap;
 
 class Scope {
 private:
-    // string mInitialContent;
-    string mContent;
+    // std::string mInitialContent;
+    std::string mContent;
 
     VariableMap* mVariableMap;
     FunctionMap* mFunctionMap;
 
     bool mIsMainScope = false;
 
+    void findAndReplaceMultipleSpacesWithOne();
     void findAndReplaceStringLiterals();
     void findAndDeleteComments();
     void combineLines();
@@ -30,8 +29,8 @@ private:
     void runLines();
 
 public:
-    Scope(string);
-    Scope(string, VariableMap*, FunctionMap*);
+    Scope(std::string);
+    Scope(std::string, VariableMap*, FunctionMap*);
 
     VariableMap* getVariableMap();
     FunctionMap* getFunctionMap();

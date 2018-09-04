@@ -4,24 +4,22 @@
 #include <string>
 #include <vector>
 
-using namespace std;
-
 class Scope;
 
 class Function {
 private:
-    string mFunctionName;
-    string mContent;
+    std::string mFunctionName;
+    std::string mContent;
     Scope* mScope;
-    vector<string>* mParameterList;
+    std::vector<std::string>* mParameterList;
 
-    void init(string, string, vector<string>*, Scope*);
+    void init(std::string, std::string, std::vector<std::string>*, Scope*);
 
 public:
-    Function(string, Scope*);
-    Function(string, string, vector<string>*, Scope*);
+    Function(std::string, Scope*);
+    Function(std::string, std::string, std::vector<std::string>*, Scope*);
 
-    string getFunctionName();
+    std::string getFunctionName();
 };
 
 #endif //PILANG_FUNCTION_H

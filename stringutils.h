@@ -4,20 +4,24 @@
 #include <string>
 #include <vector>
 
-using namespace std;
-
 class StringUtils {
 public:
-    static bool contains(string, string);
-    static size_t count(string, char);
-    static size_t count(string, string);
-    static string substring(string, size_t, size_t);
-    static string cutMiddle(string, size_t, size_t);
-    static string replaceMiddle(string, string, size_t, size_t);
-    static string ltrim(string);
-    static string rtrim(string);
-    static string trim(string);
-    static vector<string>* split(string, string);
+    static bool isSpaceLike(char);
+    static bool isNotSpaceLike(char);
+    static bool isBothSpaceLike(char, char);
+    static bool isBothNotSpaceLike(char, char);
+    static bool contains(std::string, std::string);
+    static size_t count(std::string, char);
+    static size_t count(std::string, std::string);
+    static std::string substring(std::string, size_t, size_t);
+    static std::string cutMiddle(std::string, size_t, size_t);
+    static std::string replaceMiddle(std::string, std::string, size_t, size_t);
+    static std::string ltrim(std::string);
+    static std::string rtrim(std::string);
+    static std::string trim(std::string);
+    static std::vector<std::string>* split(std::string, std::string);
+    static std::string replaceMultipleSpacesWithOne(std::string);
+    static std::string replaceMultipleCharsWithOne(std::string, char c);
 };
 
 

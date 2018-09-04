@@ -4,22 +4,20 @@
 #include <string>
 #include <vector>
 
-using namespace std;
-
 class StringLiteral {
 private:
-    static vector<StringLiteral*>* stringLiteralList;
+    static std::vector<StringLiteral*>* stringLiteralList;
 
-    string mValue;
+    std::string mValue;
     size_t mIndex;
 
 public:
     static StringLiteral* getStringLiteral(size_t);
 
-    StringLiteral(string);
-    string getValue();
+    StringLiteral(std::string);
+    std::string getValue();
     size_t getIndex();
-    string getAsString();
+    std::string getAsString();
 };
 
 #endif //PILANG_STRINGLITERAL_H

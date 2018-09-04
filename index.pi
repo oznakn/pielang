@@ -1,0 +1,13 @@
+function ozan(a, b) {
+    print(a)
+}
+
+/* Selamlar */
+/*
+    Sanırım iyisiniz
+*/
+
+print("Ozan1");
+print("Ozan2")
+ozan = 15;
+print("Ozan");

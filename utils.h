@@ -3,11 +3,9 @@
 
 #include <string>
 
-using namespace std;
-
 class Utils {
 public:
-    static size_t findSiblingPosition(string, size_t, char, char);
+    static size_t findSiblingPosition(std::string, size_t, char, char);
 };
 
 #endif //PILANG_UTILS_H

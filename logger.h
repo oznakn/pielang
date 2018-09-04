@@ -3,13 +3,11 @@
 
 #include <string>
 
-using namespace std;
-
 class Logger {
 public:
-    static void debug(string, string);
-    static void print(string);
-    static void println(string);
+    static void debug(std::string, std::string);
+    static void print(std::string);
+    static void println(std::string);
 };
 
 

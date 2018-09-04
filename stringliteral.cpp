@@ -2,9 +2,10 @@
 
 #include <string>
 #include <vector>
+
 #include "options.h"
 
-vector<StringLiteral*>* StringLiteral::stringLiteralList = new vector<StringLiteral*>;
+std::vector<StringLiteral*>* StringLiteral::stringLiteralList = new std::vector<StringLiteral*>;
 
 StringLiteral* StringLiteral::getStringLiteral(size_t index) {
     if (index < StringLiteral::stringLiteralList->size()) {
@@ -14,7 +15,7 @@ StringLiteral* StringLiteral::getStringLiteral(size_t index) {
     return nullptr;
 }
 
-StringLiteral::StringLiteral(string value) {
+StringLiteral::StringLiteral(std::string value) {
     this->mValue = value;
 
     StringLiteral::stringLiteralList->push_back(this);
@@ -22,7 +23,7 @@ StringLiteral::StringLiteral(string value) {
     this->mIndex = StringLiteral::stringLiteralList->size() - 1;
 }
 
-string StringLiteral::getValue() {
+std::string StringLiteral::getValue() {
     return this->mValue;
 }
 
@@ -30,6 +31,6 @@ size_t StringLiteral::getIndex() {
     return this->mIndex;
 }
 
-string StringLiteral::getAsString() {
-    return Options::STRING_LITERAL_CHAR + to_string(this->getIndex()) + Options::STRING_LITERAL_CHAR;
+std::string StringLiteral::getAsString() {
+    return Options::STRING_LITERAL_CHAR + std::to_string(this->getIndex()) + Options::STRING_LITERAL_CHAR;
 }

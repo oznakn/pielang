@@ -5,9 +5,7 @@
 
 #include "stringutils.h"
 
-using namespace std;
-
-size_t Utils::findSiblingPosition(string content, size_t startIndex, char normalChar, char siblingChar) {
+size_t Utils::findSiblingPosition(std::string content, size_t startIndex, char normalChar, char siblingChar) {
     size_t index, siblingIndex, lastIndex;
 
     size_t i = 1;
@@ -18,8 +16,8 @@ size_t Utils::findSiblingPosition(string content, size_t startIndex, char normal
         siblingIndex = content.find(siblingChar, startIndex);
 
 
-        if (siblingIndex != string::npos && index > siblingIndex) {
-            if (index == string::npos) {
+        if (siblingIndex != std::string::npos && index > siblingIndex) {
+            if (index == std::string::npos) {
                 index = 1;
             }
 
@@ -27,8 +25,8 @@ size_t Utils::findSiblingPosition(string content, size_t startIndex, char normal
             i -= StringUtils::count(StringUtils::substring(content, startIndex, lastIndex), siblingChar);
             startIndex = lastIndex;
         }
-        else if (index != string::npos) {
-            if (siblingIndex == string::npos) {
+        else if (index != std::string::npos) {
+            if (siblingIndex == std::string::npos) {
                 siblingIndex = 1;
             }
 

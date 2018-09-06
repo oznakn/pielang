@@ -97,3 +97,13 @@ std::string StringUtils::replaceMultipleCharsWithOne(std::string s, const char c
 
     return s;
 }
+
+std::string StringUtils::duplicateWithCount(std::string s, size_t i) {
+    std::string result(s);
+
+    for (i--; i >= 0; i--) {
+        result += s;
+    }
+
+    return result;
+}

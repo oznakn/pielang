@@ -9,6 +9,7 @@
 #include <cstdio>
 #include <cerrno>
 
+#include "system.h"
 #include "scope.h"
 #include "stringutils.h"
 
@@ -44,17 +45,19 @@ int main() {
     clock_t begin = clock();
 
     std::string fileName = findWorkingDir() + "/index.pi";
-
     std::string fileContent = readFile(fileName);
 
-    Scope* scope = new Scope(fileContent);
+    System::init();
 
+    Scope* scope = new Scope(fileContent);
     scope->setAsMainScope();
     scope->run();
 
     clock_t end = clock();
 
     std::cout << std::endl << "Program finished in: " << (double(end - begin) / 1000) << std::endl;
+
+    delete scope;
 
     return 0;
 }

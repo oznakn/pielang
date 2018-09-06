@@ -9,11 +9,16 @@
 #include "utils.h"
 #include "stringliteral.h"
 #include "logger.h"
+#include "function.h"
+#include "variable.h"
+#include "value.h"
+#include "expression.h"
+#include "system.h"
+#include "systemfunction.h"
 
 Scope::Scope(std::string content) : Scope(content, nullptr, nullptr) {}
 
 Scope::Scope(std::string content, VariableMap* inheritedVariableMap, FunctionMap* inheritedFunctionMap) {
-    // this->mInitialContent = content;
     this->mContent = content;
 
     this->mVariableMap = new VariableMap;
@@ -28,6 +33,20 @@ Scope::Scope(std::string content, VariableMap* inheritedVariableMap, FunctionMap
     }
 }
 
+Scope::~Scope() {
+    for (std::pair<std::string, Variable*> element : *this->mVariableMap) {
+        delete element.second;
+    }
+
+    for (std::pair<std::string, Function*> element : *this->mFunctionMap) {
+        delete element.second;
+    }
+
+    // delete &this->mContent;
+    delete this->mVariableMap;
+    delete this->mFunctionMap;
+}
+
 VariableMap* Scope::getVariableMap() {
     return this->mVariableMap;
 }
@@ -40,8 +59,12 @@ void Scope::setAsMainScope() {
     this->mIsMainScope = true;
 }
 
+void Scope::runFunction(std::string, std::vector<Value*> argumentList) {
+
+}
+
 void Scope::findAndReplaceStringLiterals() {
-    size_t firstIndex = std::string::npos;
+    size_t firstIndex;
     size_t lastIndex = std::string::npos;
 
     const size_t stringCharLength = 1;
@@ -62,7 +85,7 @@ void Scope::findAndReplaceStringLiterals() {
         if (lastIndex != std::string::npos) {
             std::string middle = StringUtils::substring(this->mContent, firstIndex + stringCharLength, lastIndex);
 
-            StringLiteral* stringLiteral = new StringLiteral(middle);
+            StringLiteral* stringLiteral = new StringLiteral(new Value(middle));
 
             this->mContent = StringUtils::replaceMiddle(this->mContent, stringLiteral->getAsString(), firstIndex, lastIndex + stringCharLength);
         }
@@ -136,28 +159,71 @@ void Scope::findAndReplaceFirstFunction(size_t startIndex) {
 void Scope::runLines() {
     size_t index, tempIndex;
     std::string tempString;
-    size_t lastIndex = 0;
 
-    while ((index = this->mContent.find(Options::END_OF_LINE_OPTIONAL_CHAR_AS_STRING, lastIndex)) != std::string::npos) {
-        std::string line = StringUtils::trim(StringUtils::substring(this->mContent, lastIndex, index));
-        // Logger::debug("Scope", "Executing Line: " + line);
+    while ((index = this->mContent.find(Options::END_OF_LINE_OPTIONAL_CHAR_AS_STRING, 0)) != std::string::npos) {
+        std::string line = StringUtils::trim(StringUtils::substring(this->mContent, 0, index));
+        Logger::debug("Scope", "Exacuting line: " + line);
 
-        if (lastIndex == index) {
-            lastIndex++;
-            continue;
-        } else if (line.find(Options::FUNCTION_WORD_STRING) == 0) {
-            this->findAndReplaceFirstFunction(lastIndex);
+        if (line.find(Options::FUNCTION_WORD_STRING) == 0) {
+            this->findAndReplaceFirstFunction(0);
             continue;
         } else if ((tempIndex = line.find(Options::EQUALITY_CHAR)) != std::string::npos &&
             Variable::isValidVariableName((tempString = StringUtils::substring(line, 0, tempIndex)))) {
+            tempString = StringUtils::trim(tempString);
 
+            auto expression = new Expression(this, StringUtils::substring(line, tempIndex + 1, line.length())); // 1 => length of '='
+            auto value = expression->run();
+            auto variable = new Variable(tempString, value);
+
+            Logger::debug("Scope", "New Variable: " + tempString + " => " + variable->getValue()->getAsString());
+
+            this->mVariableMap->insert(std::make_pair(tempString, variable));
+        } else {
+            tempIndex = line.find(Options::START_PARENTHESIS_CHAR);
+            size_t tempIndex2 = line.find_last_of(Options::END_PARENTHESIS_CHAR);
+
+            auto argumentStringList = StringUtils::split(StringUtils::substring(line, tempIndex + 1, tempIndex2), ",");
+            auto argumentList = new std::vector<Value*>;
+
+            for (size_t i = 0; i < argumentStringList->size(); i++) {
+                auto expression = new Expression(this, argumentStringList->at(i));
+                argumentList->push_back(expression->run());
+                delete expression;
+            }
+
+            tempString = StringUtils::trim(StringUtils::substring(line, 0, tempIndex));
+            Logger::debug("Scope", "tempString: " + tempString);
+
+            if (this->hasFunction(tempString)) {
+                auto function = this->getFunction(tempString);
+                function->run(argumentList);
+            }
+            else if (System::hasSystemFunction(tempString)) {
+                auto systemFunction = System::getSystemFunction(tempString);
+                Logger::debug("Scope", "anan");
+                systemFunction->run(argumentList);
+            }
         }
 
-        this->mContent = StringUtils::replaceMiddle(this->mContent, "", lastIndex - 1, index + 1);
-        Logger::debug("Scope", "Execution Result: " + this->mContent);
-
-        lastIndex = index + 1;
+        this->mContent = StringUtils::replaceMiddle(this->mContent, "", 0, index + 1);
+        Logger::debug("Scope", "After Execution: " + this->mContent);
     }
+}
+
+Value* Scope::parseValue(std::string s) {
+    s = StringUtils::trim(s);
+
+    if (Variable::isValidVariableName(s) && this->mVariableMap->find(s) != this->mVariableMap->end()) {
+        return this->mVariableMap->at(s)->getValue();
+    }
+    else if (StringLiteral::isValidStringLiteral(s)) {
+        return StringLiteral::findStringLiteral(s)->getValue();
+    }
+    else if (Value::isParseable(s)) {
+        return Value::parseStringToValue(s);
+    }
+
+    return new Value();
 }
 
 void Scope::run() {
@@ -171,4 +237,51 @@ void Scope::run() {
     Logger::debug("Scope", "Last version of content: " + this->mContent);
 
     this->runLines();
+}
+
+
+bool Scope::hasVariable(std::string variableName) {
+    return this->mVariableMap->find(variableName) != this->mVariableMap->end();
+}
+
+
+Variable* Scope::getVariable(std::string variableName) {
+    return this->mVariableMap->at(variableName);
+}
+
+void Scope::addVariable(std::string variableName, Variable* variable) {
+    this->mVariableMap->insert(std::make_pair(variableName, variable));
+}
+
+void Scope::removeVariable(std::string variableName) {
+    if (this->mVariableMap->find(variableName) != this->mVariableMap->end()) {
+        Variable* variable = this->mVariableMap->at(variableName);
+
+        this->mVariableMap->erase(variableName);
+
+        delete variable;
+    }
+}
+
+bool Scope::hasFunction(std::string functionName) {
+    return this->mFunctionMap->find(functionName) != this->mFunctionMap->end();
+}
+
+
+Function* Scope::getFunction(std::string functionName) {
+    return this->mFunctionMap->at(functionName);
+}
+
+void Scope::addFunction(std::string functionName, Function* function) {
+    this->mFunctionMap->insert(std::make_pair(functionName, function));
+}
+
+void Scope::removeFunction(std::string functionName) {
+    if (this->mFunctionMap->find(functionName) != this->mFunctionMap->end()) {
+        Function* function = this->mFunctionMap->at(functionName);
+
+        this->mFunctionMap->erase(functionName);
+
+        delete function;
+    }
 }

@@ -26,15 +26,14 @@ public:
     const static ValueType VALUE_TYPE_FLOAT = 3;
     const static ValueType VALUE_TYPE_STRING = 4;
 
-    static bool isParsableBool(std::string);
-    static bool isParsableInt(std::string);
-    static bool isParsableFloat(std::string);
-    static bool isParsableString(std::string);
+    static bool isParseableBool(std::string);
+    static bool isParseableInt(std::string);
+    static bool isParseableFloat(std::string);
+    static bool isParseable(std::string);
 
     static Value* parseStringToBool(std::string);
     static Value* parseStringToInt(std::string);
     static Value* parseStringToFloat(std::string);
-    static Value* parseStringToString(std::string);
     static Value* parseStringToValue(std::string);
 
     Value();
@@ -47,6 +46,13 @@ public:
 
     void linkWithVariable(Variable*);
     void unlinkWithVariable(Variable*);
+    std::string getAsString(bool = false);
+
+    ValueType getValueType();
+    bool getBoolValue();
+    size_t getIntValue();
+    float getFloatValue();
+    std::string getStringValue();
 };
 
 

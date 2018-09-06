@@ -4,6 +4,14 @@
 #include <vector>
 
 #include "options.h"
+#include "stringutils.h"
+#include "value.h"
+
+bool StringLiteral::isValidStringLiteral(std::string s) {
+    s = StringUtils::trim(s);
+
+    return (s.at(0) == Options::STRING_LITERAL_CHAR && s.at(s.length() - 1) == Options::STRING_LITERAL_CHAR);
+}
 
 std::vector<StringLiteral*>* StringLiteral::stringLiteralList = new std::vector<StringLiteral*>;
 
@@ -15,15 +23,20 @@ StringLiteral* StringLiteral::getStringLiteral(size_t index) {
     return nullptr;
 }
 
-StringLiteral::StringLiteral(std::string value) {
-    this->mValue = value;
+StringLiteral* StringLiteral::findStringLiteral(std::string s) {
+    size_t index = std::stoul(StringUtils::substring(s, 1, s.length() - 1));
 
-    StringLiteral::stringLiteralList->push_back(this);
-
-    this->mIndex = StringLiteral::stringLiteralList->size() - 1;
+    return StringLiteral::getStringLiteral(index);
 }
 
-std::string StringLiteral::getValue() {
+StringLiteral::StringLiteral(Value* value) {
+    this->mValue = value;
+    this->mIndex = StringLiteral::stringLiteralList->size();
+
+    StringLiteral::stringLiteralList->push_back(this);
+}
+
+Value* StringLiteral::getValue() {
     return this->mValue;
 }
 

@@ -5,15 +5,15 @@
 #include "options.h"
 #include "stringutils.h"
 
-bool Value::isParsableBool(std::string s) {
+bool Value::isParseableBool(std::string s) {
     s = StringUtils::trim(s);
     return s == Options::BOOL_TRUE_STRING || s == Options::BOOL_FALSE_STRING;
 }
 
-bool Value::isParsableInt(std::string s) {
+bool Value::isParseableInt(std::string s) {
     s = StringUtils::trim(s);
     for (size_t i = 0; i < s.length() ;i++) {
-        if (!std::isdigit(s.at(i))) {
+        if (!std::isdigit(s.at(i)) && s.at(i) != '-') {
             return false;
         }
     }
@@ -21,10 +21,10 @@ bool Value::isParsableInt(std::string s) {
     return true;
 }
 
-bool Value::isParsableFloat(std::string s) {
+bool Value::isParseableFloat(std::string s) {
     s = StringUtils::trim(s);
     for (size_t i = 0; i < s.length() ;i++) {
-        if (!std::isdigit(s.at(i)) && s.at(i) != '.') {
+        if (!std::isdigit(s.at(i)) && s.at(i) != '-' && s.at(i) != '.') {
             return false;
         }
     }
@@ -32,9 +32,8 @@ bool Value::isParsableFloat(std::string s) {
     return true;
 }
 
-bool Value::isParsableString(std::string s) {
-    s = StringUtils::trim(s);
-    return s.at(0) == Options::STRING_CHAR && s.at(s.length() - 1) == Options::STRING_CHAR;
+bool Value::isParseable(std::string s) {
+    return Value::isParseableBool(s) || Value::isParseableInt(s) || Value::isParseableFloat(s) ;
 }
 
 Value* Value::parseStringToBool(std::string s) {
@@ -56,47 +55,47 @@ Value* Value::parseStringToFloat(std::string s) {
     return new Value(std::stof(s));
 }
 
-Value* Value::parseStringToString(std::string s) {
-    return new Value(StringUtils::substring(s, 1, s.length() - 1));
-}
-
 Value* Value::parseStringToValue(std::string s) {
-    if (Value::isParsableBool(s)) {
+    if (Value::isParseableBool(s)) {
         return Value::parseStringToBool(s);
     }
-    else if (Value::isParsableInt(s)) {
+    else if (Value::isParseableInt(s)) {
         return Value::parseStringToInt(s);
     }
-    else if (Value::isParsableFloat(s)) {
+    else if (Value::isParseableFloat(s)) {
         return Value::parseStringToFloat(s);
-    }
-    else if (Value::isParsableString(s)) {
-        return Value::parseStringToString(s);
     }
 
     return nullptr;
 }
 
-Value::Value() {}
+Value::Value() {
+    this->mLinkedVariableList = new std::vector<Variable*>;
+}
 
 Value::Value(bool b) {
     this->mValueType = Value::VALUE_TYPE_BOOL;
     this->mBoolValue = b;
+    this->mLinkedVariableList = new std::vector<Variable*>;
 }
 
 Value::Value(size_t i) {
     this->mValueType = Value::VALUE_TYPE_INT;
     this->mIntValue = i;
+
+    this->mLinkedVariableList = new std::vector<Variable*>;
 }
 
 Value::Value(float f) {
     this->mValueType = Value::VALUE_TYPE_FLOAT;
     this->mFloatValue = f;
+    this->mLinkedVariableList = new std::vector<Variable*>;
 }
 
 Value::Value(std::string s) {
     this->mValueType = Value::VALUE_TYPE_STRING;
     this->mStringValue = s;
+    this->mLinkedVariableList = new std::vector<Variable*>;
 }
 
 Value::~Value() {
@@ -104,6 +103,9 @@ Value::~Value() {
 }
 
 void Value::linkWithVariable(Variable* variable) {
+    if (this->mLinkedVariableList == NULL) {
+        this->mLinkedVariableList = new std::vector<Variable*>;
+    }
     this->mLinkedVariableList->push_back(variable);
 }
 
@@ -119,3 +121,36 @@ void Value::unlinkWithVariable(Variable* variable) {
         delete this;
     }
 }
+
+std::string Value::getAsString(bool printStringCharsToo) {
+    switch (this->mValueType) {
+        case Value::VALUE_TYPE_BOOL: return this->mBoolValue ? "true" : "false";
+        case Value::VALUE_TYPE_INT: return std::to_string(this->mIntValue);
+        case Value::VALUE_TYPE_FLOAT: return std::to_string(this->mFloatValue);
+        case Value::VALUE_TYPE_STRING:
+            if (!printStringCharsToo) return this->mStringValue;
+            return Options::STRING_CHAR + this->mStringValue + Options::STRING_CHAR;
+        default: return "undefined";
+    }
+}
+
+ValueType Value::getValueType() {
+    return this->mValueType;
+}
+
+bool Value::getBoolValue() {
+    return this->mBoolValue;
+}
+
+size_t Value::getIntValue() {
+    return this->mIntValue;
+}
+
+float Value::getFloatValue() {
+    return this->mFloatValue;
+}
+
+std::string Value::getStringValue() {
+    return this->mStringValue;
+}
+

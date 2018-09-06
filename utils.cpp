@@ -38,3 +38,14 @@ size_t Utils::findSiblingPosition(std::string content, size_t startIndex, char n
 
     return startIndex - 1;
 }
+
+
+size_t Utils::findStringInVector(std::vector<std::string>* contents, std::string s) {
+    for (size_t i = 0; i < contents->size(); i++) {
+        if (contents->at(i) == s) {
+            return i;
+        }
+    }
+
+    return -1;
+}

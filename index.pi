@@ -1,13 +1,2 @@
-function ozan(a, b) {
-    print(a)
-}
-
-/* Selamlar */
-/*
-    Sanırım iyisiniz
-*/
-
-print("Ozan1");
-print("Ozan2")
-ozan = 15;
-print("Ozan");
+ozan = 15 + 15
+print("selam" + "selam" + 15 + " " + ozan)

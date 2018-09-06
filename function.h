@@ -5,6 +5,7 @@
 #include <vector>
 
 class Scope;
+class Value;
 
 class Function {
 private:
@@ -20,6 +21,7 @@ public:
     Function(std::string, std::string, std::vector<std::string>*, Scope*);
 
     std::string getFunctionName();
+    Value* run(std::vector<Value*>*);
 };
 
 #endif //PILANG_FUNCTION_H

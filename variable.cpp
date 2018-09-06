@@ -2,6 +2,7 @@
 
 #include <string.h>
 
+#include "value.h"
 #include "stringutils.h"
 
 bool Variable::isValidVariableName(std::string s) {
@@ -22,4 +23,27 @@ bool Variable::isValidVariableName(std::string s) {
     }
 
     return true;
+}
+
+Variable::Variable(std::string variableName, Value* value) {
+    this->mVariableName = variableName;
+    this->mValue = value;
+
+    this->mValue->linkWithVariable(this);
+}
+
+Variable::~Variable() {
+    this->mValue->unlinkWithVariable(this);
+}
+
+Value* Variable::getValue() {
+    return this->mValue;
+}
+
+void Variable::changeValue(Value* value) {
+    this->mValue->unlinkWithVariable(this);
+
+    this->mValue = value;
+
+    this->mValue->linkWithVariable(this);
 }

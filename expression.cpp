@@ -11,10 +11,10 @@
 #include "value.h"
 
 Value* splitAndFindValue(Scope* scope, std::string content, std::vector<std::string>* delimeters) {
-    std::vector<std::string>* values = StringUtils::split(content, delimeters->at(0));
+    std::string delimeter = delimeters->at(0);
+    std::vector<std::string>* values = StringUtils::split(content, delimeter);
 
     if (delimeters->size() > 1) {
-        std::string delimeter = delimeters->at(0);
         Value* resultValue = nullptr;
 
         for (size_t i = 0; i < values->size(); i++) {
@@ -32,7 +32,6 @@ Value* splitAndFindValue(Scope* scope, std::string content, std::vector<std::str
             }
         }
 
-        // delete &delimeter;
         delete values;
 
         return resultValue;
@@ -45,7 +44,7 @@ Value* splitAndFindValue(Scope* scope, std::string content, std::vector<std::str
         return scope->parseValue(item);
     }
     else {
-        auto operation = new Operation(scope, values);
+        auto operation = new Operation(scope, values, delimeter);
 
         auto value = operation->run();
 
@@ -70,7 +69,7 @@ Value* Expression::run() {
     while((index = this->mContent.find(Options::START_PARENTHESIS_CHAR)) != std::string::npos) {
         lastIndex = Utils::findSiblingPosition(this->mContent, index, Options::START_PARENTHESIS_CHAR, Options::END_PARENTHESIS_CHAR);
 
-        std::string content = StringUtils::substring(this->mContent, index - 1, lastIndex); // 1 => to remove around paranthesis
+        std::string content = StringUtils::substring(this->mContent, index + 1, lastIndex); // 1 => to remove around paranthesis
 
         Expression* expression = new Expression(this->mScope, content);
 

@@ -37,6 +37,8 @@ public:
     Operation(Scope*, Value*, Value*, OperationType);
     Operation(Scope*, Value*, Value*, std::string);
     Operation(Scope*, std::vector<std::string>*);
+    Operation(Scope*, std::vector<std::string>*, OperationType);
+    Operation(Scope*, std::vector<std::string>*, std::string);
     ~Operation();
 
     Value* run();

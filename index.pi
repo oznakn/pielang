@@ -1,2 +1,2 @@
-ozan = 15 + 15
-print("selam" + "selam" + 15 + " " + ozan)
+age = 10^2+50%2
+print("Sonuç: " + age)

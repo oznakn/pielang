@@ -65,12 +65,12 @@ void Scope::runFunction(std::string, std::vector<Value*> argumentList) {
 
 void Scope::findAndReplaceStringLiterals() {
     size_t firstIndex;
-    size_t lastIndex = std::string::npos;
+    size_t lastIndex = 0;
 
     const size_t stringCharLength = 1;
     const size_t escapeCharLength = 1;
 
-    while ((firstIndex = this->mContent.find(Options::STRING_CHAR, lastIndex + stringCharLength)) != std::string::npos) {
+    while ((firstIndex = this->mContent.find(Options::STRING_CHAR, lastIndex)) != std::string::npos) {
         size_t additionalPosition = 0;
         lastIndex = this->mContent.find(Options::STRING_CHAR, firstIndex + additionalPosition + stringCharLength);
 

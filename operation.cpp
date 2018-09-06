@@ -35,9 +35,24 @@ Operation::Operation(Scope* scope, Value* firstValue, Value* lastValue, std::str
     this->mOperationType = Operation::parseOperationType(operationTypeString);
 }
 
+
+Operation::Operation(Scope* scope, std::vector<std::string>* contents, OperationType operationType) {
+    this->mFirstValue = scope->parseValue(contents->at(0));
+    this->mLastValue = scope->parseValue(contents->at(2));
+
+    this->mOperationType = operationType;
+
+}
+
+Operation::Operation(Scope* scope, std::vector<std::string>* contents, std::string operationTypeString) {
+    this->mFirstValue = scope->parseValue(contents->at(0));
+    this->mLastValue = scope->parseValue(contents->at(1));
+
+    this->mOperationType = Operation::parseOperationType(operationTypeString);
+}
+
 Operation::Operation(Scope* scope, std::vector<std::string>* contents) {
     this->mScope = scope;
-
     this->mFirstValue = scope->parseValue(contents->at(0));
     this->mLastValue = scope->parseValue(contents->at(2));
 
@@ -85,16 +100,16 @@ Value* Operation::runSubstractionOperation() {
 
 Value* Operation::runMultiplicationOperation() {
     if (this->mFirstValue->getValueType() == Value::VALUE_TYPE_INT && this->mLastValue->getValueType() == Value::VALUE_TYPE_INT) {
-        return new Value(this->mFirstValue->getIntValue() - this->mLastValue->getIntValue());
+        return new Value(this->mFirstValue->getIntValue() * this->mLastValue->getIntValue());
     }
     else if (this->mFirstValue->getValueType() == Value::VALUE_TYPE_INT && this->mLastValue->getValueType() == Value::VALUE_TYPE_FLOAT) {
-        return new Value(this->mFirstValue->getIntValue() - this->mLastValue->getFloatValue());
+        return new Value(this->mFirstValue->getIntValue() * this->mLastValue->getFloatValue());
     }
     else if (this->mFirstValue->getValueType() == Value::VALUE_TYPE_FLOAT && this->mLastValue->getValueType() == Value::VALUE_TYPE_INT) {
-        return new Value(this->mFirstValue->getFloatValue() - this->mLastValue->getIntValue());
+        return new Value(this->mFirstValue->getFloatValue() * this->mLastValue->getIntValue());
     }
     else if (this->mFirstValue->getValueType() == Value::VALUE_TYPE_FLOAT && this->mLastValue->getValueType() == Value::VALUE_TYPE_FLOAT) {
-        return new Value(this->mFirstValue->getFloatValue() - this->mLastValue->getFloatValue());
+        return new Value(this->mFirstValue->getFloatValue() * this->mLastValue->getFloatValue());
     }
 
     else if (this->mFirstValue->getValueType() == Value::VALUE_TYPE_STRING && this->mLastValue->getValueType() == Value::VALUE_TYPE_INT) {

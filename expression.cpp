@@ -11,59 +11,6 @@
 #include "value.h"
 #include "logger.h"
 
-bool canRunOperatorByTurn(std::string s, std::string o) {
-}
-
-Value* splitAndFindValue(Scope* scope, std::string content, std::vector<std::string>* delimeters) {
-    if (delimeters->empty()) {
-        delete delimeters;
-
-        return scope->parseValue(content);
-    }
-
-    std::string delimeter = delimeters->at(0);
-    std::vector<std::string>* values = StringUtils::split(content, delimeter);
-
-    if (delimeters->size() > 1) {
-        Value* resultValue = nullptr;
-
-        for (size_t i = 0; i < values->size(); i++) {
-            Value* value = splitAndFindValue(scope, values->at(i), new std::vector<std::string>(delimeters->begin()+1, delimeters->end()));
-
-            if (resultValue == nullptr) {
-                resultValue = value;
-            }
-            else {
-                auto operation = new Operation(scope, resultValue, value, delimeter);
-
-                resultValue = operation->run();
-
-                delete operation;
-            }
-        }
-
-        delete values;
-
-        return resultValue;
-    }
-    else if (values->size() == 1) {
-        std::string item = values->at(0);
-
-        delete values;
-
-        return scope->parseValue(item);
-    }
-    else {
-        auto operation = new Operation(scope, values, delimeter);
-
-        auto value = operation->run();
-
-        delete operation;
-
-        return value;
-    }
-}
-
 Expression::Expression(Scope* scope, std::string content) {
     this->mScope = scope;
     this->mContent = content;
@@ -73,43 +20,160 @@ Expression::~Expression() {
 
 }
 
+int getOperatorAssociative(char& c) {
+    switch (c) {
+        case '-': return 1;
+        case '+': return 1;
+        case '%': return 1;
+        case '/': return 1;
+        case '*': return 1;
+        case '^': return -1;
+        default: return 0;
+    }
+}
+
+
+int getOperatorAssociative(std::string& s) {
+    return getOperatorAssociative(s.at(0));
+}
+
+int getOperatorPrecedence(char& c) {
+    switch (c) {
+        case '-': return 2;
+        case '+': return 2;
+        case '%': return 2;
+        case '/': return 3;
+        case '*': return 3;
+        case '^': return 4;
+
+        default: return -1;
+    }
+}
+
+int getOperatorPrecedence(std::string& s) {
+    return getOperatorPrecedence(s.at(0));
+}
+
+bool isOperator(char& c) {
+    return getOperatorPrecedence(c) > 0;
+}
+
+bool isOperator(std::string& s) {
+    return isOperator(s.at(0));
+}
+
+bool Expression::isTopOfOperatorStackIsFunction() {
+    return false;
+}
+
+bool Expression::isTopOfOperatorStackIsGreaterPrecedenceOperator(char& c) {
+    return getOperatorPrecedence(this->mOperatorStack->at(0)) > getOperatorPrecedence(c);
+}
+
+bool Expression::isTopOfOperatorStackIsLessOrEqualPrecedenceOperator(char& c) {
+    return !Expression::isTopOfOperatorStackIsGreaterPrecedenceOperator(c);
+}
+
+// Shunting-yard algorithm
+void Expression::runOnToken(std::string& token) {
+    if (isOperator(token)) {
+        while(!this->mOperatorStack->empty() &&
+                (
+                    getOperatorPrecedence(this->mOperatorStack->at(0)) > getOperatorPrecedence(token) ||
+                    (getOperatorPrecedence(this->mOperatorStack->at(0)) == getOperatorPrecedence(token) && getOperatorAssociative(token) > 0)
+                )
+            ) {
+
+            this->mOutputStack->push_back(this->mOperatorStack->at(0));
+            this->mOperatorStack->erase(this->mOperatorStack->begin());
+        }
+
+        this->mOperatorStack->insert(this->mOperatorStack->begin(), token);
+    }
+    else if (token == "(") {
+        this->mOperatorStack->insert(this->mOperatorStack->begin(), token);
+    }
+    else if (token == ")") {
+        while(!this->mOperatorStack->empty() && this->mOperatorStack->at(0) != "(") {
+            this->mOutputStack->push_back(this->mOperatorStack->at(0));
+            this->mOperatorStack->erase(this->mOperatorStack->begin());
+        }
+        this->mOperatorStack->erase(this->mOperatorStack->begin());
+    }
+    else {
+        this->mOutputStack->push_back(token);
+    }
+}
+
 Value* Expression::run() {
-    size_t index, lastIndex;
+    std::string token = "";
 
-    while((index = this->mContent.find(Options::START_PARENTHESIS_CHAR)) != std::string::npos) {
-        lastIndex = Utils::findSiblingPosition(this->mContent, index, Options::START_PARENTHESIS_CHAR, Options::END_PARENTHESIS_CHAR);
+    // Tokenize algorithm
+    for (char c : this->mContent) {
+        if (c == ' ') {
+            if (!token.empty()) {
+                this->runOnToken(token);
+                token = "";
+            }
+        }
+        else if (isalnum(c) || c == '.' || c == '~')  { // TODO
+            token += c;
+        }
+        else if (isOperator(c)) {
+            if (!token.empty()) {
+                this->runOnToken(token);
+                token = "";
+            }
+            token = c;
+            this->runOnToken(token);
+            token = "";
+        }
+        else if (c == '(' || c == ')') {
+            if (!token.empty()) {
+                this->runOnToken(token);
+            }
 
-        std::string content = StringUtils::substring(this->mContent, index + 1, lastIndex); // 1 => to remove around paranthesis
-
-        Expression* expression = new Expression(this->mScope, content);
-
-        this->mContent = StringUtils::replaceMiddle(this->mContent, expression->run()->getAsString(true), index, lastIndex + 1);
-
-        delete expression;
+            token = c;
+            this->runOnToken(token);
+            token = "";
+        }
     }
 
-    auto delimeters = new std::vector<std::string>;
-
-    if (this->mContent.find('-') != std::string::npos) {
-        delimeters->push_back("-");
-    }
-    if (this->mContent.find('+') != std::string::npos) {
-        delimeters->push_back("+");
-    }
-    if (this->mContent.find('%') != std::string::npos) {
-        delimeters->push_back("%");
-    }
-    if (this->mContent.find('/') != std::string::npos) {
-        delimeters->push_back("/");
-    }
-    if (this->mContent.find('*') != std::string::npos) {
-        delimeters->push_back("*");
-    }
-    if (this->mContent.find('^') != std::string::npos) {
-        delimeters->push_back("^");
+    if (!token.empty()) {
+        this->runOnToken(token);
     }
 
-    auto value = splitAndFindValue(this->mScope, this->mContent, delimeters);
+    while(!this->mOperatorStack->empty()) {
+        this->mOutputStack->push_back(this->mOperatorStack->at(0));
+        this->mOperatorStack->erase(this->mOperatorStack->begin());
+    }
 
-    return value;
+
+    // Reverse Polish Notation
+    auto stack = new std::vector<std::string>;
+    for(std::string s : *this->mOutputStack) {
+        if (isOperator(s)) {
+            std::string value2 = stack->at(stack->size() - 1);
+            stack->erase(stack->begin() + stack->size() - 1);
+
+            std::string value1 = stack->at(stack->size() - 1);
+            stack->erase(stack->begin() + stack->size() - 1);
+
+            Operation* operation = new Operation(this->mScope, this->mScope->parseValue(value1),  this->mScope->parseValue(value2), s);
+            stack->push_back(operation->run()->getAsString(true));
+            delete operation;
+        }
+        else {
+            stack->push_back(s);
+        }
+    }
+
+    if (stack->empty()) {
+        return new Value();
+    }
+
+    auto resultValue = this->mScope->parseValue(stack->at(0));
+    delete stack;
+
+    return resultValue;
 }

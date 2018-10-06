@@ -48,7 +48,7 @@ Value* Value::parseStringToBool(std::string s) {
 }
 
 Value* Value::parseStringToInt(std::string s) {
-    return new Value(std::stoul(s));
+    return new Value((int) std::stoul(s)); // TODO
 }
 
 Value* Value::parseStringToFloat(std::string s) {
@@ -79,7 +79,7 @@ Value::Value(bool b) {
     this->mLinkedVariableList = new std::vector<Variable*>;
 }
 
-Value::Value(size_t i) {
+Value::Value(int i) {
     this->mValueType = Value::VALUE_TYPE_INT;
     this->mIntValue = i;
 
@@ -142,7 +142,7 @@ bool Value::getBoolValue() {
     return this->mBoolValue;
 }
 
-size_t Value::getIntValue() {
+int Value::getIntValue() {
     return this->mIntValue;
 }
 

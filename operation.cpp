@@ -137,16 +137,16 @@ Value* Operation::runDivisionOperation() {
 
 Value* Operation::runPowerOperation() {
     if (this->mFirstValue->getValueType() == Value::VALUE_TYPE_INT && this->mLastValue->getValueType() == Value::VALUE_TYPE_INT) {
-        return new Value((size_t) std::pow(this->mFirstValue->getIntValue(), this->mLastValue->getIntValue()));
+        return new Value((int) std::pow(this->mFirstValue->getIntValue(), this->mLastValue->getIntValue()));
     }
     else if (this->mFirstValue->getValueType() == Value::VALUE_TYPE_INT && this->mLastValue->getValueType() == Value::VALUE_TYPE_FLOAT) {
-        return new Value((size_t) std::pow(this->mFirstValue->getIntValue(), this->mLastValue->getFloatValue()));
+        return new Value((int) std::pow(this->mFirstValue->getIntValue(), this->mLastValue->getFloatValue()));
     }
     else if (this->mFirstValue->getValueType() == Value::VALUE_TYPE_FLOAT && this->mLastValue->getValueType() == Value::VALUE_TYPE_INT) {
-        return new Value((size_t) std::pow(this->mFirstValue->getFloatValue(), this->mLastValue->getIntValue()));
+        return new Value((int) std::pow(this->mFirstValue->getFloatValue(), this->mLastValue->getIntValue()));
     }
     else if (this->mFirstValue->getValueType() == Value::VALUE_TYPE_FLOAT && this->mLastValue->getValueType() == Value::VALUE_TYPE_FLOAT) {
-        return new Value((size_t) std::pow(this->mFirstValue->getFloatValue(), this->mLastValue->getFloatValue()));
+        return new Value((int) std::pow(this->mFirstValue->getFloatValue(), this->mLastValue->getFloatValue()));
     }
 
     return new Value();

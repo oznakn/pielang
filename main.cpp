@@ -10,6 +10,8 @@
 #include "logger.h"
 #include "system.h"
 #include "scope.h"
+#include "value.h"
+#include "expression.h"
 #include "stringutils.h"
 
 std::string readFile(std::string & fileName) {
@@ -30,7 +32,7 @@ std::string readFile(std::string & fileName) {
 
 std::string findWorkingDir() {
     std::string dir = __FILE__;
-    size_t index = dir.find_last_of('/');
+    size_t index = dir.find_last_of('\\');
 
     if (index != std::string::npos) {
         return StringUtils::replaceMiddle(dir, "", index, dir.length());
@@ -42,7 +44,8 @@ std::string findWorkingDir() {
 int main() {
     Logger::startTimer("Program");
 
-    std::string fileName = findWorkingDir() + "/index.pi";
+    std::string fileName = findWorkingDir() + "\\index.pi";
+    std::cout << fileName << std::endl;
     std::string fileContent = readFile(fileName);
 
     System::init();

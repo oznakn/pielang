@@ -12,7 +12,7 @@ class Scope;
 class Value {
 private:
     bool mBoolValue;
-    size_t mIntValue;
+    int mIntValue;
     float mFloatValue;
     std::string mStringValue;
 
@@ -38,7 +38,7 @@ public:
 
     Value();
     Value(bool);
-    Value(size_t);
+    Value(int);
     Value(float);
     Value(std::string);
 
@@ -50,7 +50,7 @@ public:
 
     ValueType getValueType();
     bool getBoolValue();
-    size_t getIntValue();
+    int getIntValue();
     float getFloatValue();
     std::string getStringValue();
 

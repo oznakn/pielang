@@ -28,7 +28,7 @@ int getOperatorAssociative(char& c) {
         case '/': return 1;
         case '*': return 1;
         case '^': return -1;
-        default: return 0;
+        default: return 1; // for functions
     }
 }
 
@@ -46,7 +46,7 @@ int getOperatorPrecedence(char& c) {
         case '*': return 3;
         case '^': return 4;
 
-        default: return -1;
+        default: return 5; // means operator is a function
     }
 }
 
@@ -55,7 +55,16 @@ int getOperatorPrecedence(std::string& s) {
 }
 
 bool isOperator(char& c) {
-    return getOperatorPrecedence(c) > 0;
+    switch (c) {
+        case '-': return true;
+        case '+': return true;
+        case '%': return true;
+        case '/': return true;
+        case '*': return true;
+        case '^': return true;
+
+        default: return false;
+    }
 }
 
 bool isOperator(std::string& s) {
@@ -101,6 +110,7 @@ void Expression::runOnToken(std::string& token) {
         this->mOperatorStack->erase(this->mOperatorStack->begin());
     }
     else {
+        // ad to operator stack if it is a function
         this->mOutputStack->push_back(token);
     }
 }
@@ -110,7 +120,7 @@ Value* Expression::run() {
 
     // Tokenize algorithm
     for (char c : this->mContent) {
-        if (c == ' ') {
+        if (c == ' ' || c == ',') {
             if (!token.empty()) {
                 this->runOnToken(token);
                 token = "";

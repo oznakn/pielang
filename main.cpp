@@ -35,17 +35,16 @@ std::string findWorkingDir() {
     size_t index = dir.find_last_of('\\');
 
     if (index != std::string::npos) {
-        return StringUtils::replaceMiddle(dir, "", index, dir.length());
+        return StringUtils::replaceMiddle(dir, "", index, dir.length()) + "\\";
     }
 
-    return dir;
+    return "";
 }
 
 int main() {
     Logger::startTimer("Program");
 
-    std::string fileName = findWorkingDir() + "\\index.pi";
-    std::cout << fileName << std::endl;
+    std::string fileName = findWorkingDir() + "index.pi";
     std::string fileContent = readFile(fileName);
 
     System::init();

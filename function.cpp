@@ -43,7 +43,7 @@ void Function::init(std::string content, std::string functionName, std::vector<s
     this->mFunctionName = functionName;
     this->mParameterList = parameterList;
 
-    this->mScope = new Scope(this->mContent, inheritedScope->getVariableMap(), inheritedScope->getFunctionMap());
+    this->mScope = new Scope(this->mContent, inheritedScope);
 }
 
 std::string Function::getFunctionName() {
@@ -61,4 +61,6 @@ Value* Function::run(std::vector<Value*>* argumentList) {
     for (size_t i = 0; i < argumentList->size(); i++) {
         this->mScope->removeVariable(this->mParameterList->at(i));
     }
+
+    return nullptr;
 }

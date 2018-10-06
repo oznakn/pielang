@@ -13,6 +13,13 @@ std::unordered_map<std::string, SystemFunction*>* System::systemFunctionMap = ne
 void System::init() {
     class PrintSystemFunction : public SystemFunction {
         Value* run(std::vector<Value*>* arguments) override {
+            Logger::print(arguments->at(0)->getAsString());
+            return new Value();
+        }
+    };
+
+    class PrintlnSystemFunction : public SystemFunction {
+        Value* run(std::vector<Value*>* arguments) override {
             Logger::println(arguments->at(0)->getAsString());
             return new Value();
         }
@@ -20,7 +27,11 @@ void System::init() {
 
     System::systemFunctionMap->insert(std::make_pair(
             "print", new PrintSystemFunction()
-            ));
+    ));
+
+    System::systemFunctionMap->insert(std::make_pair(
+            "println", new PrintlnSystemFunction()
+    ));
 }
 
 bool System::hasSystemFunction(std::string s) {

@@ -17,7 +17,7 @@ private:
     OperationType mOperationType;
 
     Value* runAdditionOperation();
-    Value* runSubstractionOperation();
+    Value* runSubtractionOperation();
     Value* runMultiplicationOperation();
     Value* runDivisionOperation();
     Value* runPowerOperation();
@@ -26,13 +26,13 @@ private:
 public:
     const static OperationType OPERATION_TYPE_NONE = 0;
     const static OperationType OPERATION_TYPE_ADDITION = 1;
-    const static OperationType OPERATION_TYPE_SUBSTRACTION = 2;
+    const static OperationType OPERATION_TYPE_SUBTRACTION = 2;
     const static OperationType OPERATION_TYPE_MULTIPLICATION = 3;
     const static OperationType OPERATION_TYPE_DIVISION = 4;
     const static OperationType OPERATION_TYPE_POWER = 5;
     const static OperationType OPERATION_TYPE_MOD = 6;
 
-    static OperationType parseOperationType(std::string);
+    static OperationType parseOperationType(std::string&);
 
     Operation(Scope*, Value*, Value*, OperationType);
     Operation(Scope*, Value*, Value*, std::string);

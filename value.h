@@ -53,6 +53,8 @@ public:
     size_t getIntValue();
     float getFloatValue();
     std::string getStringValue();
+
+    void deleteIfNotLinked();
 };
 
 

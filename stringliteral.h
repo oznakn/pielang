@@ -10,7 +10,7 @@ class StringLiteral {
 private:
     static std::vector<StringLiteral*>* stringLiteralList;
 
-    Value* mValue;
+    std::string mString;
     size_t mIndex;
 
 public:
@@ -18,7 +18,7 @@ public:
     static StringLiteral* getStringLiteral(size_t);
     static StringLiteral* findStringLiteral(std::string);
 
-    StringLiteral(Value*);
+    StringLiteral(std::string);
     Value* getValue();
     size_t getIndex();
     std::string getAsString();

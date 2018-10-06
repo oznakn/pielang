@@ -1,2 +1,2 @@
-age = 10^2+50%2
-print("Sonuç: " + age)
+age = (100 + 30) * 3 + 5 * 2;
+println(age)

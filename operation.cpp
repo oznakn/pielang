@@ -7,11 +7,11 @@
 #include "value.h"
 #include "stringutils.h"
 
-OperationType Operation::parseOperationType(std::string s) {
+OperationType Operation::parseOperationType(std::string & s) {
     s = StringUtils::trim(s);
 
     if (s == "+") return Operation::OPERATION_TYPE_ADDITION;
-    if (s == "-") return Operation::OPERATION_TYPE_SUBSTRACTION;
+    if (s == "-") return Operation::OPERATION_TYPE_SUBTRACTION;
     if (s == "*") return Operation::OPERATION_TYPE_MULTIPLICATION;
     if (s == "/") return Operation::OPERATION_TYPE_DIVISION;
     if (s == "^") return Operation::OPERATION_TYPE_POWER;
@@ -34,7 +34,6 @@ Operation::Operation(Scope* scope, Value* firstValue, Value* lastValue, std::str
 
     this->mOperationType = Operation::parseOperationType(operationTypeString);
 }
-
 
 Operation::Operation(Scope* scope, std::vector<std::string>* contents, OperationType operationType) {
     this->mFirstValue = scope->parseValue(contents->at(0));
@@ -60,8 +59,8 @@ Operation::Operation(Scope* scope, std::vector<std::string>* contents) {
 }
 
 Operation::~Operation() {
-    delete this->mFirstValue;
-    delete this->mLastValue;
+    this->mFirstValue->deleteIfNotLinked();
+    this->mLastValue->deleteIfNotLinked();
 }
 
 Value* Operation::runAdditionOperation() {
@@ -81,7 +80,7 @@ Value* Operation::runAdditionOperation() {
     return new Value(this->mFirstValue->getAsString() + this->mLastValue->getAsString());
 }
 
-Value* Operation::runSubstractionOperation() {
+Value* Operation::runSubtractionOperation() {
     if (this->mFirstValue->getValueType() == Value::VALUE_TYPE_INT && this->mLastValue->getValueType() == Value::VALUE_TYPE_INT) {
         return new Value(this->mFirstValue->getIntValue() - this->mLastValue->getIntValue());
     }
@@ -164,7 +163,7 @@ Value* Operation::runModOperation() {
 Value* Operation::run() {
     switch (this->mOperationType) {
         case Operation::OPERATION_TYPE_ADDITION: return this->runAdditionOperation();
-        case Operation::OPERATION_TYPE_SUBSTRACTION: return this->runSubstractionOperation();
+        case Operation::OPERATION_TYPE_SUBTRACTION: return this->runSubtractionOperation();
         case Operation::OPERATION_TYPE_MULTIPLICATION: return this->runMultiplicationOperation();
         case Operation::OPERATION_TYPE_DIVISION: return this->runDivisionOperation();
         case Operation::OPERATION_TYPE_POWER: return this->runPowerOperation();

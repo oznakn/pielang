@@ -14,7 +14,7 @@ typedef std::unordered_map<std::string, Function*> FunctionMap;
 
 class Scope {
 private:
-    // std::string mInitialContent;
+    Scope* mInheritedScope = nullptr;
     std::string mContent;
 
     VariableMap* mVariableMap;
@@ -30,11 +30,9 @@ private:
     void findAndReplaceFirstFunction(size_t);
     void runLines();
 
-    void runFunction(std::string, std::vector<Value*>);
-
 public:
     Scope(std::string);
-    Scope(std::string, VariableMap*, FunctionMap*);
+    Scope(std::string, Scope*);
     ~Scope();
 
     VariableMap* getVariableMap();

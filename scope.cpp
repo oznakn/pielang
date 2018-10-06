@@ -16,20 +16,16 @@
 #include "system.h"
 #include "systemfunction.h"
 
-Scope::Scope(std::string content) : Scope(content, nullptr, nullptr) {}
+Scope::Scope(std::string content) : Scope(content, nullptr) {}
 
-Scope::Scope(std::string content, VariableMap* inheritedVariableMap, FunctionMap* inheritedFunctionMap) {
+Scope::Scope(std::string content, Scope* inheritedScope) {
     this->mContent = content;
 
     this->mVariableMap = new VariableMap;
     this->mFunctionMap = new FunctionMap;
 
-    if (inheritedVariableMap != nullptr) {
-        this->mVariableMap->insert(inheritedVariableMap->begin(), inheritedVariableMap->end());
-    }
-
-    if (inheritedFunctionMap != nullptr) {
-        this->mFunctionMap->insert(inheritedFunctionMap->begin(), inheritedFunctionMap->end());
+    if (inheritedScope != nullptr) {
+        this->mInheritedScope = inheritedScope;
     }
 }
 
@@ -59,10 +55,6 @@ void Scope::setAsMainScope() {
     this->mIsMainScope = true;
 }
 
-void Scope::runFunction(std::string, std::vector<Value*> argumentList) {
-
-}
-
 void Scope::findAndReplaceStringLiterals() {
     size_t firstIndex;
     size_t lastIndex = 0;
@@ -85,7 +77,7 @@ void Scope::findAndReplaceStringLiterals() {
         if (lastIndex != std::string::npos) {
             std::string middle = StringUtils::substring(this->mContent, firstIndex + stringCharLength, lastIndex);
 
-            StringLiteral* stringLiteral = new StringLiteral(new Value(middle));
+            StringLiteral* stringLiteral = new StringLiteral(middle);
 
             this->mContent = StringUtils::replaceMiddle(this->mContent, stringLiteral->getAsString(), firstIndex, lastIndex + stringCharLength);
         }
@@ -162,12 +154,12 @@ void Scope::runLines() {
 
     while ((index = this->mContent.find(Options::END_OF_LINE_OPTIONAL_CHAR_AS_STRING, 0)) != std::string::npos) {
         std::string line = StringUtils::trim(StringUtils::substring(this->mContent, 0, index));
-        Logger::debug("Scope", "Exacuting line: " + line);
 
         if (line.find(Options::FUNCTION_WORD_STRING) == 0) {
             this->findAndReplaceFirstFunction(0);
             continue;
-        } else if ((tempIndex = line.find(Options::EQUALITY_CHAR)) != std::string::npos &&
+        }
+        else if ((tempIndex = line.find(Options::EQUALITY_CHAR)) != std::string::npos &&
             Variable::isValidVariableName((tempString = StringUtils::substring(line, 0, tempIndex)))) {
             tempString = StringUtils::trim(tempString);
 
@@ -175,10 +167,9 @@ void Scope::runLines() {
             auto value = expression->run();
             auto variable = new Variable(tempString, value);
 
-            Logger::debug("Scope", "New Variable: " + tempString + " => " + variable->getValue()->getAsString());
-
-            this->mVariableMap->insert(std::make_pair(tempString, variable));
-        } else {
+            this->addVariable(tempString, variable);
+        }
+        else {
             tempIndex = line.find(Options::START_PARENTHESIS_CHAR);
             size_t tempIndex2 = line.find_last_of(Options::END_PARENTHESIS_CHAR);
 
@@ -192,7 +183,6 @@ void Scope::runLines() {
             }
 
             tempString = StringUtils::trim(StringUtils::substring(line, 0, tempIndex));
-            Logger::debug("Scope", "tempString: " + tempString);
 
             if (this->hasFunction(tempString)) {
                 auto function = this->getFunction(tempString);
@@ -200,21 +190,19 @@ void Scope::runLines() {
             }
             else if (System::hasSystemFunction(tempString)) {
                 auto systemFunction = System::getSystemFunction(tempString);
-                Logger::debug("Scope", "anan");
                 systemFunction->run(argumentList);
             }
         }
 
         this->mContent = StringUtils::replaceMiddle(this->mContent, "", 0, index + 1);
-        Logger::debug("Scope", "After Execution: " + this->mContent);
     }
 }
 
 Value* Scope::parseValue(std::string s) {
     s = StringUtils::trim(s);
 
-    if (Variable::isValidVariableName(s) && this->mVariableMap->find(s) != this->mVariableMap->end()) {
-        return this->mVariableMap->at(s)->getValue();
+    if (Variable::isValidVariableName(s) && this->hasVariable(s)) {
+        return this->getVariable(s)->getValue();
     }
     else if (StringLiteral::isValidStringLiteral(s)) {
         return StringLiteral::findStringLiteral(s)->getValue();
@@ -234,18 +222,18 @@ void Scope::run() {
         this->combineLines();
     }
 
-    Logger::debug("Scope", "Last version of content: " + this->mContent);
-
     this->runLines();
 }
 
-
 bool Scope::hasVariable(std::string variableName) {
-    return this->mVariableMap->find(variableName) != this->mVariableMap->end();
+    return (this->mInheritedScope != nullptr && this->mInheritedScope->getVariableMap()->find(variableName) != this->mInheritedScope->getVariableMap()->end()) || this->mVariableMap->find(variableName) != this->mVariableMap->end();
 }
 
-
 Variable* Scope::getVariable(std::string variableName) {
+    if (this->mInheritedScope != nullptr && this->mInheritedScope->getVariableMap()->find(variableName) != this->mInheritedScope->getVariableMap()->end()) {
+        return this->mInheritedScope->getVariableMap()->at(variableName);
+    }
+
     return this->mVariableMap->at(variableName);
 }
 
@@ -264,11 +252,14 @@ void Scope::removeVariable(std::string variableName) {
 }
 
 bool Scope::hasFunction(std::string functionName) {
-    return this->mFunctionMap->find(functionName) != this->mFunctionMap->end();
+    return (this->mInheritedScope != nullptr && this->mInheritedScope->getFunctionMap()->find(functionName) != this->mInheritedScope->getFunctionMap()->end()) || this->mFunctionMap->find(functionName) != this->mFunctionMap->end();
 }
 
-
 Function* Scope::getFunction(std::string functionName) {
+    if (this->mInheritedScope != nullptr && this->mInheritedScope->getFunctionMap()->find(functionName) != this->mInheritedScope->getFunctionMap()->end()) {
+        return this->mInheritedScope->getFunctionMap()->at(functionName);
+    }
+
     return this->mFunctionMap->at(functionName);
 }
 

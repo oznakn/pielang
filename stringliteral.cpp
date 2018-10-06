@@ -29,15 +29,15 @@ StringLiteral* StringLiteral::findStringLiteral(std::string s) {
     return StringLiteral::getStringLiteral(index);
 }
 
-StringLiteral::StringLiteral(Value* value) {
-    this->mValue = value;
+StringLiteral::StringLiteral(std::string s) {
+    this->mString = s;
     this->mIndex = StringLiteral::stringLiteralList->size();
 
     StringLiteral::stringLiteralList->push_back(this);
 }
 
 Value* StringLiteral::getValue() {
-    return this->mValue;
+    return new Value(this->mString);
 }
 
 size_t StringLiteral::getIndex() {

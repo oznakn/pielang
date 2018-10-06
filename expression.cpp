@@ -9,8 +9,18 @@
 #include "operation.h"
 #include "scope.h"
 #include "value.h"
+#include "logger.h"
+
+bool canRunOperatorByTurn(std::string s, std::string o) {
+}
 
 Value* splitAndFindValue(Scope* scope, std::string content, std::vector<std::string>* delimeters) {
+    if (delimeters->empty()) {
+        delete delimeters;
+
+        return scope->parseValue(content);
+    }
+
     std::string delimeter = delimeters->at(0);
     std::vector<std::string>* values = StringUtils::split(content, delimeter);
 
@@ -79,12 +89,27 @@ Value* Expression::run() {
     }
 
     auto delimeters = new std::vector<std::string>;
-    delimeters->push_back("-");
-    delimeters->push_back("+");
-    delimeters->push_back("%");
-    delimeters->push_back("/");
-    delimeters->push_back("*");
-    delimeters->push_back("^");
 
-    return splitAndFindValue(this->mScope, this->mContent, delimeters);
+    if (this->mContent.find('-') != std::string::npos) {
+        delimeters->push_back("-");
+    }
+    if (this->mContent.find('+') != std::string::npos) {
+        delimeters->push_back("+");
+    }
+    if (this->mContent.find('%') != std::string::npos) {
+        delimeters->push_back("%");
+    }
+    if (this->mContent.find('/') != std::string::npos) {
+        delimeters->push_back("/");
+    }
+    if (this->mContent.find('*') != std::string::npos) {
+        delimeters->push_back("*");
+    }
+    if (this->mContent.find('^') != std::string::npos) {
+        delimeters->push_back("^");
+    }
+
+    auto value = splitAndFindValue(this->mScope, this->mContent, delimeters);
+
+    return value;
 }

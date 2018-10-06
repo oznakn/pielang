@@ -154,3 +154,8 @@ std::string Value::getStringValue() {
     return this->mStringValue;
 }
 
+void Value::deleteIfNotLinked() {
+    if (this->mLinkedVariableList->empty()) {
+        delete this;
+    }
+}

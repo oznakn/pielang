@@ -4,26 +4,24 @@
  */
 
 #include <iostream>
-#include <ctime>
 #include <string>
-#include <cstdio>
-#include <cerrno>
+#include <fstream>
 
+#include "logger.h"
 #include "system.h"
 #include "scope.h"
 #include "stringutils.h"
 
-std::string readFile(std::string fileName) {
-    std::FILE *file = std::fopen(fileName.c_str(), "rb");
-
-    if (file) {
+std::string readFile(std::string & fileName) {
+    std::ifstream in(fileName, std::ios::in | std::ios::binary);
+    if (in)
+    {
         std::string contents;
-        fseek(file, 0, SEEK_END);
-        contents.resize(std::ftell(file));
-        rewind(file);
-        fread(&contents[0], 1, contents.size(), file);
-        fclose(file);
-
+        in.seekg(0, std::ios::end);
+        contents.resize(in.tellg());
+        in.seekg(0, std::ios::beg);
+        in.read(&contents[0], contents.size());
+        in.close();
         return(contents);
     }
 
@@ -42,7 +40,7 @@ std::string findWorkingDir() {
 }
 
 int main() {
-    clock_t begin = clock();
+    Logger::startTimer("Program");
 
     std::string fileName = findWorkingDir() + "/index.pi";
     std::string fileContent = readFile(fileName);
@@ -52,12 +50,10 @@ int main() {
     Scope* scope = new Scope(fileContent);
     scope->setAsMainScope();
     scope->run();
-
-    clock_t end = clock();
-
-    std::cout << std::endl << "Program finished in: " << (double(end - begin) / 1000) << std::endl;
-
     delete scope;
+
+    std::cout << std::endl;
+    Logger::endTimer("Program");
 
     return 0;
 }

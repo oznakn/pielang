@@ -14,67 +14,84 @@
 #include "logger.h"
 #include "systemfunction.h"
 
-Value* importCallback(ValueList* arguments) {
-    Logger::println("Imported: " + arguments->at(0)->getAsString());
-    return new Value();
-}
-
-Value* printCallback(ValueList* arguments) {
-    Logger::print(arguments->at(0)->getAsString());
-    return new Value();
-}
-
-Value* printlnCallback(ValueList* arguments) {
-    Logger::println(arguments->at(0)->getAsString());
-    return new Value();
-}
-
-Value* getTimeCallback(ValueList* arguments) {
-    return new Value(((float)(clock()*1000)/CLOCKS_PER_SEC));
-}
-
-Value* sinCallback(ValueList* arguments) {
-    return new Value((float)(sin((double) arguments->at(0)->getFloatValue())));
-}
-
-Value* cosCallback(ValueList* arguments) {
-    return new Value((float)(cos((double) arguments->at(0)->getFloatValue())));
-
-}
-
-Value* tanCallback(ValueList* arguments) {
-    return new Value((float)(tan((double) arguments->at(0)->getFloatValue())));
-}
-
-Value* cotCallback(ValueList* arguments) {
-    return new Value((float)(1/ tan((double) arguments->at(0)->getFloatValue())));
-}
-
-Value* nNumberCallback(ValueList* arguments) {
-    float value = arguments->at(0)->getFloatValue();
-    int sfCount = arguments->at(1)->getIntValue();
-
-    int factor = (float) pow(10, sfCount);
-    value = ((float) round(value*factor)) / factor;
-
-    return new Value(value);
-}
-
 Scope* System::mainScope = nullptr;
 
 void System::init(Scope* mainScope) {
     System::mainScope = mainScope;
 
-    mainScope->createSystemFunction("import",  importCallback);
-    mainScope->createSystemFunction("print",  printCallback);
-    mainScope->createSystemFunction("println",  printlnCallback);
-    mainScope->createSystemFunction("get_time", getTimeCallback);
-    mainScope->createSystemFunction("n_number", nNumberCallback);
+    mainScope->createVariable("undefined", Value::undefined);
+
+    mainScope->createSystemFunction("import",  [](ValueList* arguments) {
+        Logger::println("Imported: " + arguments->at(0)->getAsString());
+        return Value::undefined;
+    });
+
+    mainScope->createSystemFunction("print",  [](ValueList* arguments) {
+        std::string result;
+        size_t size = arguments->size();
+
+        for (size_t i = 0; i < size; i++) {
+            result += arguments->at(i)->getAsString();
+
+            if (i < size - 1) result += " ";
+        }
+
+        Logger::print(result);
+        return Value::undefined;
+    });
+
+    mainScope->createSystemFunction("println", [](ValueList* arguments) {
+        std::string result;
+        size_t size = arguments->size();
+
+        for (size_t i = 0; i < size; i++) {
+            result += arguments->at(i)->getAsString();
+
+            if (i < size - 1) result += " ";
+        }
+
+        Logger::println(result);
+        return Value::undefined;
+    });
+
+    mainScope->createSystemFunction("get_time", [](ValueList* arguments) {
+        return new Value(((float)(clock()*1000)/CLOCKS_PER_SEC));
+    });
+
+    mainScope->createSystemFunction("n_number", [](ValueList* arguments) {
+        float value = arguments->at(0)->getFloatValue();
+        int sfCount = arguments->at(1)->getIntValue();
+
+        int factor = (float) pow(10, sfCount);
+        value = ((float) round(value*factor)) / factor;
+
+        return new Value(value);
+    });
+
 
     Object* mathObject = mainScope->createObject("math");
     mathObject->createVariable("PI", new Value(3.14f));
-    mathObject->createSystemFunction("sin", sinCallback);
-    mathObject->createSystemFunction("cos", cosCallback);
-    mathObject->createSystemFunction("tan", tanCallback);
-    mathObject->createSystemFunction("cot", cotCallback);
+
+    mathObject->createSystemFunction("sin", [](ValueList* arguments) {
+        return new Value((float)(sin((double) arguments->at(0)->getFloatValue())));
+    });
+
+    mathObject->createSystemFunction("cos", [](ValueList* arguments) {
+        return new Value((float)(cos((double) arguments->at(0)->getFloatValue())));
+    });
+
+    mathObject->createSystemFunction("tan", [](ValueList* arguments) {
+        return new Value((float)(tan((double) arguments->at(0)->getFloatValue())));
+    });
+
+    mathObject->createSystemFunction("cot", [](ValueList* arguments) {
+        return new Value((float)(1/ tan((double) arguments->at(0)->getFloatValue())));
+    });
+}
+
+void System::initForScope(Scope* scope) {
+    scope->createSystemFunction("return", [scope] (ValueList* arguments) -> Value* {
+        scope->setScopeResult(arguments->at(0));
+        return Value::undefined;
+    });
 }

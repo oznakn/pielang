@@ -35,76 +35,109 @@ Expression::~Expression() {
 }
 
 int Expression::getOperatorAssociative(std::string s) {
-    if (s == "-") return 1;
-    if (s == "+") return 1;
-    if (s == "%") return 1;
-    if (s == "/") return 1;
-    if (s == "*") return 1;
     if (s == "^") return -1;
+    if (s == "**") return -1;
+    if (s == "*") return 1;
+    if (s == "/") return 1;
+    if (s == "%") return 1;
+    if (s == "+") return 1;
+    if (s == "-") return 1;
+    if (s == "<") return 1;
+    if (s == "<=") return 1;
+    if (s == ">") return 1;
+    if (s == ">=") return 1;
+    if (s == "==") return 1;
+    if (s == "!=") return 1;
     if (s == ",") return 1;
 
     return 1;
 }
 
 int Expression::getOperatorPrecedence(std::string s) {
-    if (s == "-") return 2;
-    if (s == "+") return 2;
-    if (s == "%") return 2;
-    if (s == "/") return 3;
-    if (s == "*") return 3;
-    if (s == "^") return 4;
+    if (s == "^") return 9;
+    if (s == "**") return 9;
+    if (s == "*") return 8;
+    if (s == "/") return 8;
+    if (s == "%") return 8;
+    if (s == "+") return 7;
+    if (s == "-") return 7;
+    if (s == "<") return 6;
+    if (s == "<=") return 6;
+    if (s == ">") return 6;
+    if (s == ">=") return 6;
+    if (s == "==") return 5;
+    if (s == "!=") return 5;
     if (s == ",") return 1;
 
-    return 5;
+    return 0; // functions TODO
+}
+
+bool Expression::isUnaryOperator(std::string s) {
+    return s == "!" ||
+           s == "+" ||
+           s == "-";
+}
+
+bool Expression::isPartOfUnaryOperator(std::string s) {
+    return Expression::isUnaryOperator(s); // no need if there is one char operator
 }
 
 bool Expression::isOperator(std::string s) {
-    return s == "-" ||
-           s == "+" ||
-           s == "%" ||
-           s == "/" ||
-           s == "*" ||
-           s == "^" ||
-           s == ",";
+    return Expression::isUnaryOperator(s) ||
+            s == "^" ||
+            s == "**" ||
+            s == "*" ||
+            s == "/" ||
+            s == "%" ||
+            s == "+" ||
+            s == "-" ||
+            s == "<" ||
+            s == "<=" ||
+            s == ">" ||
+            s == ">=" ||
+            s == "==" ||
+            s == "!=" ||
+            s == ",";
 }
 
-bool Expression::isPartOfOperator(std::string s) {
-    return s == "-" ||
-           s == "+" ||
-           s == "%" ||
-           s == "/" ||
-           s == "*" ||
-           s == "**" ||
-           s == "^" ||
-           s == ",";
+bool Expression::isPartOfOperator(std::string s) { // no need if there is one char operator
+    return Expression::isUnaryOperator(s) || Expression::isOperator(s) || Expression::isPartOfUnaryOperator(s) ||
+           StringUtils::contains("**", s) ||
+           StringUtils::contains("<=", s) ||
+           StringUtils::contains(">=", s) ||
+           StringUtils::contains("==", s) ||
+           StringUtils::contains("!=", s);
 }
 
 // Shunting-yard algorithm
-void Expression::runOnToken(std::string token) {
+void Expression::runOnToken(std::string token, bool isUnary) {
     if (Expression::isOperator(token)) {
         while(!this->mOperatorStack->empty() &&
-                this->mOperatorStack->at(0) != "(" &&
-                (
-                    !Expression::isOperator(this->mOperatorStack->at(0)) ||
-                    Expression::getOperatorPrecedence(this->mOperatorStack->at(0)) > Expression::getOperatorPrecedence(token) ||
-                    (Expression::getOperatorPrecedence(this->mOperatorStack->at(0)) == Expression::getOperatorPrecedence(token) && Expression::getOperatorAssociative(token) > 0)
-                )
-            ) {
+              !Expression::isUnaryOperator(token) && // not an unary operator
+              this->mOperatorStack->at(0) != Options::START_PARENTHESIS_STRING &&
+              (
+                      !Expression::isOperator(this->mOperatorStack->at(0)) ||
+                      Expression::getOperatorPrecedence(this->mOperatorStack->at(0)) > Expression::getOperatorPrecedence(token) ||
+                      (Expression::getOperatorPrecedence(this->mOperatorStack->at(0)) == Expression::getOperatorPrecedence(token) && Expression::getOperatorAssociative(token) > 0)
+              )
+                ) {
 
             this->mOutputStack->push_back(this->mOperatorStack->at(0));
             this->mOperatorStack->erase(this->mOperatorStack->begin());
         }
+
+        if (isUnary) token = '.' + token;
 
         this->mOperatorStack->insert(this->mOperatorStack->begin(), token);
     }
     else if (this->mScope->hasFunction(token)) {
         this->mOperatorStack->insert(this->mOperatorStack->begin(), token);
     }
-    else if (token == "(") {
+    else if (token == Options::START_PARENTHESIS_STRING) {
         this->mOperatorStack->insert(this->mOperatorStack->begin(), token);
     }
-    else if (token == ")") {
-        while(!this->mOperatorStack->empty() && this->mOperatorStack->at(0) != "(") {
+    else if (token == Options::END_PARENTHESIS_STRING) {
+        while(!this->mOperatorStack->empty() && this->mOperatorStack->at(0) != Options::START_PARENTHESIS_STRING) {
             this->mOutputStack->push_back(this->mOperatorStack->at(0));
             this->mOperatorStack->erase(this->mOperatorStack->begin());
         }
@@ -112,31 +145,54 @@ void Expression::runOnToken(std::string token) {
     }
     else {
         this->mOutputStack->push_back(token);
+
+        if (!this->mOperatorStack->empty() && this->mOperatorStack->at(0).at(0) == '.') { // means unary operator
+            this->mOutputStack->push_back(this->mOperatorStack->at(0));
+            this->mOperatorStack->erase(this->mOperatorStack->begin());
+        }
     }
 }
 
 Value* Expression::run() {
     std::string token;
+    std::string lastToken = "\0";
+
+    /*
+        else if (c != ' ' && (isPartOfOperator(s) == isPartOfOperator(token) && isPartOfOperator(token) == isPartOfOperator(token + s))) {
+            token += s;
+        }
+        else if (c != ' ' && !isPartOfOperator(s) && !isPartOfOperator(token) && (isalnum(c) || c == '~' || c == '.' || c == '_')) {
+            token += s;
+        }
+     */
 
     // Tokenize algorithm
     for (char c : this->mContent) {
         auto s = std::string(1, c);
 
-        if (c == '(' || c == ')') {
+        if (c == Options::START_PARENTHESIS_CHAR || c == Options::END_PARENTHESIS_CHAR) {
             if (!token.empty()) this->runOnToken(token);
             token = "";
-
+            lastToken = s;
             this->runOnToken(s);
         }
-        else if (isPartOfOperator(s) == isPartOfOperator(token)) {
+        else if (c != ' ' &&
+                    (
+                        (isPartOfOperator(token) && isPartOfOperator(token + s)) ||
+                        (!isPartOfOperator(token) && !isPartOfOperator(token + s) && !isPartOfOperator(s))
+                    )
+                ) {
             token += s;
         }
         else {
-            if (!token.empty()) this->runOnToken(token);
+            if (!token.empty()) {
+                this->runOnToken(token, Expression::isUnaryOperator(token) && (lastToken == Options::START_PARENTHESIS_STRING || lastToken == "\0" || Expression::isOperator(lastToken)));
+                lastToken = token;
+            }
             token = "";
 
-            if (c != ' '){
-                token = s;
+            if (c != ' ') {
+                token += s;
             }
         }
     }
@@ -156,7 +212,17 @@ Value* Expression::run() {
     // Reverse Polish Notation
     auto stack = new ValueList;
     for(std::string s : *this->mOutputStack) {
-        if (isOperator(s)) {
+        if (s.at(0) == '.') { // TODO
+            Operation* operation = new Operation(this->mScope,
+                                                 stack->at(stack->size() - 1),
+                                                 s);
+
+            stack->erase(stack->begin() + stack->size() - 1);
+            stack->push_back(operation->run());
+
+            delete operation;
+        }
+        else if (isOperator(s)) {
             Operation* operation = new Operation(this->mScope,
                     stack->at(stack->size() - 2),
                     stack->at(stack->size() - 1),
@@ -181,11 +247,17 @@ Value* Expression::run() {
     delete this->mOutputStack;
 
     if (stack->empty()) {
-        return new Value();
+        return Value::undefined;
     }
 
     auto resultValue = stack->at(0);
     delete stack;
+
+    while (resultValue->getValueType() == Value::VALUE_TYPE_COMBINED) {
+        if (resultValue->getValueList()->empty()) return Value::undefined;
+
+        resultValue = resultValue->getValueList()->at(0);
+    }
 
     return resultValue;
 }

@@ -29,10 +29,20 @@ Scope::Scope(std::string content, Scope* inheritedScope) {
     if (inheritedScope != nullptr) {
         this->mInheritedScope = inheritedScope;
     }
+
+    System::initForScope(this);
 }
 
 Scope::~Scope() {
     delete this->mScopeObject;
+}
+
+void Scope::setScopeResult(Value* value) {
+    this->mScopeResult = value;
+}
+
+Value* Scope::getScopeResult() {
+    return this->mScopeResult;
 }
 
 VariableMap* Scope::getVariableMap() {
@@ -49,21 +59,19 @@ void Scope::setAsMainScope() {
 
 void Scope::findAndReplaceStringLiterals() {
     size_t firstIndex;
-    size_t lastIndex = 0;
+    size_t lastIndex;
 
     const size_t stringCharLength = 1;
     const size_t escapeCharLength = 1;
 
-    while ((firstIndex = this->mContent.find(Options::STRING_CHAR, lastIndex)) != std::string::npos) {
+    while ((firstIndex = this->mContent.find(Options::STRING_CHAR)) != std::string::npos) {
         size_t additionalPosition = 0;
         lastIndex = this->mContent.find(Options::STRING_CHAR, firstIndex + additionalPosition + stringCharLength);
 
-        while (lastIndex != std::string::npos && this->mContent.at(lastIndex-1) == Options::STRING_ESCAPE_CHAR) {
-            additionalPosition += stringCharLength + (escapeCharLength*2);
+        while (lastIndex != std::string::npos && this->mContent.at(lastIndex - 1) == Options::STRING_ESCAPE_CHAR) {
+            this->mContent.replace(lastIndex - 1, escapeCharLength, "");
 
-            this->mContent.replace(lastIndex-1, escapeCharLength, "");
-
-            lastIndex = this->mContent.find(Options::STRING_CHAR, firstIndex + additionalPosition + stringCharLength);
+            lastIndex = this->mContent.find(Options::STRING_CHAR, lastIndex);
         }
 
         if (lastIndex != std::string::npos) {
@@ -84,11 +92,22 @@ void Scope::findAndDeleteComments() {
     size_t firstIndex;
     size_t lastIndex;
 
-    const size_t startStringLength = Options::MULTI_COMMENT_START_STRING.length();
-    const size_t endStringLength = Options::MULTI_COMMENT_END_STRING.length();
+    size_t startStringLength = Options::MULTI_COMMENT_START_STRING.length();
+    size_t endStringLength = Options::MULTI_COMMENT_END_STRING.length();
 
     while ((firstIndex = this->mContent.find(Options::MULTI_COMMENT_START_STRING)) != std::string::npos) {
         lastIndex = this->mContent.find(Options::MULTI_COMMENT_END_STRING, firstIndex + startStringLength);
+
+        if (lastIndex != std::string::npos) {
+            this->mContent = StringUtils::cutMiddle(this->mContent, firstIndex, lastIndex + endStringLength);
+        }
+    }
+
+    startStringLength = Options::COMMENT_START_STRING.length();
+    endStringLength = Options::END_OF_LINE_OPTIONAL_CHAR_AS_STRING.length();
+
+    while ((firstIndex = this->mContent.find(Options::COMMENT_START_STRING)) != std::string::npos) {
+        lastIndex = this->mContent.find(Options::END_OF_LINE_OPTIONAL_CHAR_AS_STRING, firstIndex + startStringLength);
 
         if (lastIndex != std::string::npos) {
             this->mContent = StringUtils::cutMiddle(this->mContent, firstIndex, lastIndex + endStringLength);
@@ -168,7 +187,12 @@ void Scope::runLines() {
             auto expression = new Expression(this, StringUtils::substring(line, tempIndex + 1, line.length())); // 1 => length of '='
             auto value = expression->run();
 
-            this->createVariable(tempString,  value);
+            if (this->hasVariable(tempString)) {
+                this->getVariable(tempString)->changeValue(value->createNotLinkedInstance());
+            }
+            else {
+                this->createVariable(tempString,  value->createNotLinkedInstance());
+            }
         }
         else {
             auto expression = new Expression(this, line);
@@ -192,30 +216,34 @@ Value* Scope::parseValue(std::string s) {
         return Value::parseStringToValue(s);
     }
 
-    return new Value();
+    return Value::undefined;
 }
 
 void Scope::run() {
     if (this->mIsMainScope) {
         this->findAndReplaceStringLiterals();
         this->findAndReplaceMultipleSpacesWithOne();
-        this->findAndDeleteComments();
         this->combineLines();
+        this->findAndDeleteComments();
     }
 
     this->runLines();
 }
 
 bool Scope::hasVariable(std::string variableName) {
-    return (this->mInheritedScope != nullptr && this->mInheritedScope->hasVariable(variableName)) || this->mScopeObject->hasVariable(variableName);
+    return this->mScopeObject->hasVariable(variableName) ||
+        (this->mInheritedScope != nullptr && this->mInheritedScope->hasVariable(variableName));
 }
 
 Variable* Scope::getVariable(std::string variableName) {
-    if (this->mInheritedScope != nullptr && this->mInheritedScope->getVariableMap()->find(variableName) != this->mInheritedScope->getVariableMap()->end()) {
+    if (this->mScopeObject->hasVariable(variableName)) {
+        return this->mScopeObject->getVariable(variableName);
+    }
+    else if (this->mInheritedScope != nullptr && this->mInheritedScope->getVariableMap()->find(variableName) != this->mInheritedScope->getVariableMap()->end()) {
         return this->mInheritedScope->getVariableMap()->at(variableName);
     }
 
-    return this->mScopeObject->getVariable(variableName);
+    return nullptr; // TODO
 }
 
 void Scope::addVariable(std::string variableName, Variable* variable) {
@@ -231,16 +259,20 @@ Variable* Scope::createVariable(std::string variableName, Value* value) {
 }
 
 bool Scope::hasFunction(std::string functionName) {
-    return (this->mInheritedScope != nullptr && this->mInheritedScope->hasFunction(functionName)) ||
-            (this->mScopeObject->hasFunction(functionName));
+    return this->mScopeObject->hasFunction(functionName) ||
+        (this->mInheritedScope != nullptr && this->mInheritedScope->hasFunction(functionName));
 }
 
 Function* Scope::getFunction(std::string functionName) {
+    if (this->mScopeObject->hasFunction(functionName)) {
+        return this->mScopeObject->getFunction(functionName);
+    }
+
     if (this->mInheritedScope != nullptr && this->mInheritedScope->getFunctionMap()->find(functionName) != this->mInheritedScope->getFunctionMap()->end()) {
         return this->mInheritedScope->getFunctionMap()->at(functionName);
     }
 
-    return this->mScopeObject->getFunction(functionName);
+    return nullptr;
 }
 
 void Scope::addFunction(std::string functionName, Function* function) {
@@ -251,7 +283,7 @@ void Scope::removeFunction(std::string functionName) {
    this->mScopeObject->removeFunction(functionName);
 }
 
-Function* Scope::createSystemFunction(std::string functionName, FunctionCallback* functionCallback) {
+Function* Scope::createSystemFunction(std::string functionName, FunctionCallback functionCallback) {
     return this->mScopeObject->createSystemFunction(functionName, functionCallback);
 }
 

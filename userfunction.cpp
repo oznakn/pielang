@@ -67,5 +67,5 @@ Value* UserFunction::run(ValueList* argumentList) {
         this->mScope->removeVariable(this->mParameterList->at(i));
     }
 
-    return nullptr;
+    return this->mScope->getScopeResult();
 }

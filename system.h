@@ -11,6 +11,7 @@ class System {
 public:
     static Scope* mainScope;
     static void init(Scope*);
+    static void initForScope(Scope*);
 };
 
 

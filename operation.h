@@ -12,17 +12,26 @@ typedef size_t OperationType;
 class Operation {
 private:
     Scope* mScope;
-    Value* mFirstValue;
-    Value* mLastValue;
+    Value* mFirstValue = nullptr;
+    Value* mLastValue = nullptr;
     OperationType mOperationType;
 
-    Value* runAdditionOperation();
-    Value* runSubtractionOperation();
+    Value* runPowerOperation();
     Value* runMultiplicationOperation();
     Value* runDivisionOperation();
-    Value* runPowerOperation();
     Value* runModOperation();
+    Value* runAdditionOperation();
+    Value* runSubtractionOperation();
+    Value* runSmallerOperation();
+    Value* runSmallerEqualOperation();
+    Value* runBiggerOperation();
+    Value* runBiggerEqualOperation();
+    Value* runEqualOperation();
+    Value* runNotEqualOperation();
     Value* runCombinationOperation();
+    Value* runUnaryNotOperation();
+    Value* runUnaryPlusOperation();
+    Value* runUnaryMinusOperation();
 
 public:
     const static OperationType OPERATION_TYPE_NONE = 0;
@@ -32,11 +41,20 @@ public:
     const static OperationType OPERATION_TYPE_DIVISION = 4;
     const static OperationType OPERATION_TYPE_POWER = 5;
     const static OperationType OPERATION_TYPE_MOD = 6;
-    const static OperationType OPERATION_TYPE_COMBINATION = 7;
+    const static OperationType OPERATION_TYPE_SMALLER = 7;
+    const static OperationType OPERATION_TYPE_SMALLER_EQUAL = 8;
+    const static OperationType OPERATION_TYPE_BIGGER = 9;
+    const static OperationType OPERATION_TYPE_BIGGER_EQUAL = 10;
+    const static OperationType OPERATION_TYPE_EQUAL = 11;
+    const static OperationType OPERATION_TYPE_NOT_EQUAL = 12;
+    const static OperationType OPERATION_TYPE_COMBINATION = 13;
+    const static OperationType OPERATION_TYPE_UNARY_NOT = 14;
+    const static OperationType OPERATION_TYPE_UNARY_PLUS = 15;
+    const static OperationType OPERATION_TYPE_UNARY_MINUS = 16;
 
     static OperationType parseOperationType(std::string&);
 
-    Operation(Scope*, Value*, Value*, OperationType);
+    Operation(Scope*, Value*, std::string);
     Operation(Scope*, Value*, Value*, std::string);
     ~Operation();
 

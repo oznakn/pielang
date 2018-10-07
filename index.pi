@@ -1,2 +1,1 @@
-println(math.sin(30**math.PI/180))
-println("anan" + "anan")
+println("Merhaba ben \"Ozan\"")

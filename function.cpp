@@ -16,7 +16,7 @@ std::string Function::getFunctionName() {
 }
 
 Value* Function::run(std::vector<Value *> *) {
-    return new Value();
+    return Value::undefined;
 }
 
 const void Function::linkWithObject(Object* object) {

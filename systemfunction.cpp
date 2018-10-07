@@ -5,7 +5,7 @@
 
 #include "value.h"
 
-SystemFunction::SystemFunction(std::string functionName, FunctionCallback* functionCallback) {
+SystemFunction::SystemFunction(std::string functionName, FunctionCallback functionCallback) {
     this->mFunctionName = functionName;
     this->mFunctionCallback = functionCallback;
 }

@@ -6,6 +6,7 @@
 #include <unordered_map>
 
 struct Options {
+    const static std::string COMMENT_START_STRING;
     const static std::string MULTI_COMMENT_START_STRING;
     const static std::string MULTI_COMMENT_END_STRING;
     const static char EQUALITY_CHAR;
@@ -27,6 +28,10 @@ struct Options {
     const static char END_PARENTHESIS_CHAR;
     const static char START_BLOCK_CHAR;
     const static char END_BLOCK_CHAR;
+    const static std::string START_PARENTHESIS_STRING;
+    const static std::string END_PARENTHESIS_STRING;
+    const static std::string START_BLOCK_STRING;
+    const static std::string END_BLOCK_STRING;
     const static std::string BOOL_TRUE_STRING;
     const static std::string BOOL_FALSE_STRING;
 };

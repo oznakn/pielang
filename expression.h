@@ -12,13 +12,15 @@ private:
     static int getOperatorPrecedence(std::string);
     static bool isOperator(std::string);
     static bool isPartOfOperator(std::string);
+    static bool isUnaryOperator(std::string);
+    static bool isPartOfUnaryOperator(std::string);
 
     Scope* mScope;
     std::string mContent;
     StringList* mOutputStack;
     StringList* mOperatorStack;
 
-    void runOnToken(std::string);
+    void runOnToken(std::string, bool = false);
 
 public:
     Expression(Scope*, std::string);

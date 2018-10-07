@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <functional>
 
 class Value;
 class Function;
@@ -25,6 +26,6 @@ typedef std::unordered_map<std::string, Variable*> VariableMap;
 typedef std::unordered_map<std::string, Function*> FunctionMap;
 typedef std::unordered_map<std::string, Object*> ObjectMap;
 
-typedef Value* (FunctionCallback)(ValueList*);
+typedef std::function<Value*(ValueList*)> FunctionCallback;
 
 #endif //PILANG_DEFINITIONS_H

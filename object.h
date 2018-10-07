@@ -40,7 +40,7 @@ public:
     bool hasFunction(std::string);
     void addFunction(std::string, Function*);
     void removeFunction(std::string);
-    Function* createSystemFunction(std::string, FunctionCallback*);
+    Function* createSystemFunction(std::string, FunctionCallback);
 
     Object* getObject(std::string);
     bool hasObject(std::string);

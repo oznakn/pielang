@@ -1,10 +1,13 @@
 #include "value.h"
 
+#include <iostream>
 #include <string>
 
 #include "definitions.h"
 #include "options.h"
 #include "stringutils.h"
+
+Value* Value::undefined = new Value;
 
 bool Value::isParseableBool(std::string s) {
     s = StringUtils::trim(s);
@@ -113,30 +116,19 @@ Value::~Value() {
     }
 
     delete this->mValueList;
-    delete this->mLinkedVariableList;
     delete this->mLinkedValueList;
 }
 
 void Value::linkWithVariable(Variable* variable) {
-    if (this->mLinkedVariableList == nullptr) {
-        this->mLinkedVariableList = new VariableList;
-    }
+    if (this->mLinkedVariable != nullptr) std::cout << "Hoaydaa1" << std::endl;
 
-    this->mLinkedVariableList->push_back(variable);
+    this->mLinkedVariable = variable;
 }
 
 void Value::unlinkWithVariable(Variable* variable) {
-    if (this->mLinkedVariableList != nullptr) {
-        for (size_t i = 0; i < this->mLinkedVariableList->size(); i++) {
-            if (this->mLinkedVariableList->at(0) == variable) {
-                this->mLinkedVariableList->erase(this->mLinkedVariableList->begin() + i);
+    this->mLinkedVariable = nullptr;
 
-                break;
-            }
-        }
-
-        this->deleteIfNotLinked();
-    }
+    this->deleteIfNotLinked();
 }
 
 void Value::linkWithValue(Value* mLinkedValueList) {
@@ -182,14 +174,17 @@ std::string Value::getAsString(bool printStringCharsToo) {
             return Options::STRING_CHAR + this->mStringValue + Options::STRING_CHAR;
         }
 
-        case Value::VALUE_TYPE_TUPLE: {
-            std::string result = "";
-            if (this->mValueList != nullptr) {
-                for (auto value : *this->mValueList) {
-                    result += value->getAsString(false) + ",";
-                }
+        case Value::VALUE_TYPE_COMBINED: {
+            std::string result;
+            size_t size = this->mValueList->size();
+
+            for (size_t i = 0; i < size; i++) {
+                result += this->mValueList->at(i)->getAsString();
+
+                if (i < size - 1) result += " , "; // TODO
             }
-            return result;
+
+            return "(" + result + ")"; // TODO
         }
 
         default: {
@@ -219,7 +214,7 @@ std::string Value::getStringValue() {
 }
 
 void Value::deleteIfNotLinked() {
-    if ((this->mLinkedVariableList == nullptr || this->mLinkedVariableList->empty()) &&
+    if ((this->mLinkedVariable== nullptr) &&
         (this->mLinkedValueList == nullptr || this->mLinkedValueList->empty())) {
 
         delete this;
@@ -227,8 +222,8 @@ void Value::deleteIfNotLinked() {
 }
 
 void Value::addValue(Value* value) {
-    if (this->mValueType != VALUE_TYPE_TUPLE) {
-        this->mValueType = VALUE_TYPE_TUPLE;
+    if (this->mValueList == nullptr) {
+        this->mValueType = Value::VALUE_TYPE_COMBINED;
 
         this->mValueList = new ValueList;
     }
@@ -242,11 +237,46 @@ ValueList* Value::getValueList() {
 }
 
 ValueList* Value::getAsValueList() {
-    if (this->mValueType != VALUE_TYPE_TUPLE) {
-        auto valueList = new ValueList;
-        valueList->push_back(this);
-        return valueList;
+    auto valueList = new ValueList;
+
+    if (this->mValueType == VALUE_TYPE_COMBINED) {
+        for (auto value : *this->mValueList) {
+            valueList->push_back(value->createNotLinkedInstance());
+        }
+    }
+    else {
+        valueList->push_back(this->createNotLinkedInstance()); // TODO
     }
 
-    return this->getValueList();
+    return valueList;
+}
+
+Value* Value::createNotLinkedInstance() {
+    if (this->mLinkedVariable == nullptr) return this;
+
+    if (this->mValueType == Value::VALUE_TYPE_BOOL) {
+        return new Value(this->mBoolValue);
+    }
+    else if (this->mValueType == Value::VALUE_TYPE_INT || this->mValueType == Value::VALUE_TYPE_FLOAT) {
+        return new Value(this->mFloatValue);
+    }
+    else if (this->mValueType == Value::VALUE_TYPE_STRING) {
+        return new Value(this->mStringValue);
+    }
+    else if (this->mValueType == Value::VALUE_TYPE_COMBINED) {
+        auto newValue = new Value;
+
+        for (auto value : *this->mValueList) {
+            newValue->addValue(value);
+        }
+
+        return newValue;
+    }
+
+    std::cout << "Hoaydaa2" << std::endl;
+    return Value::undefined;
+}
+
+Variable* Value::getLinkedVariable() {
+    return this->mLinkedVariable;
 }

@@ -11,12 +11,12 @@
 class SystemFunction: public Function {
 private:
     std::string mFunctionName;
-    FunctionCallback* mFunctionCallback;
+    FunctionCallback mFunctionCallback;
 
 public:
-    SystemFunction(std::string, FunctionCallback*);
-    std::string getFunctionName();
-    Value* run(ValueList*);
+    SystemFunction(std::string, FunctionCallback);
+    std::string getFunctionName() override;
+    virtual Value* run(ValueList*) override;
 };
 
 #endif //PILANG_SYSTEMFUNCTION_H

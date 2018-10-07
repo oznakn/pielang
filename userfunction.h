@@ -19,10 +19,10 @@ private:
 public:
     UserFunction(std::string, Scope*);
     UserFunction(std::string, std::string, StringList*, Scope*);
-    ~UserFunction();
+    ~UserFunction() override;
 
-    std::string getFunctionName();
-    Value* run(ValueList*);
+    std::string getFunctionName() override;
+    Value* run(ValueList*) override;
 };
 
 #endif //PILANG_USERFUNCTION_H

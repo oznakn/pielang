@@ -152,7 +152,7 @@ void Object::removeFunction(std::string functionName) {
     }
 }
 
-Function* Object::createSystemFunction(std::string functionName, FunctionCallback* functionCallback) {
+Function* Object::createSystemFunction(std::string functionName, FunctionCallback functionCallback) {
     auto systemFunction = new SystemFunction(functionName, functionCallback);
 
     this->addFunction(functionName, systemFunction);

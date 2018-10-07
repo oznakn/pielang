@@ -13,6 +13,8 @@ private:
 
     Object* mScopeObject;
 
+    Value* mScopeResult;
+
     bool mIsMainScope = false;
 
     void findAndReplaceMultipleSpacesWithOne();
@@ -27,6 +29,9 @@ public:
     Scope(std::string);
     Scope(std::string, Scope*);
     ~Scope();
+
+    void setScopeResult(Value*);
+    Value* getScopeResult();
 
     VariableMap* getVariableMap();
     FunctionMap* getFunctionMap();
@@ -46,7 +51,7 @@ public:
     bool hasFunction(std::string);
     void addFunction(std::string, Function*);
     void removeFunction(std::string);
-    Function* createSystemFunction(std::string, FunctionCallback*);
+    Function* createSystemFunction(std::string, FunctionCallback);
 
     Object* getObject(std::string);
     bool hasObject(std::string);

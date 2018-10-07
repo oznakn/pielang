@@ -17,7 +17,7 @@ private:
     ValueType mValueType = VALUE_TYPE_UNDEFINED;
     ValueList* mValueList = nullptr;
 
-    VariableList* mLinkedVariableList = nullptr;
+    Variable* mLinkedVariable = nullptr;
     ValueList* mLinkedValueList = nullptr;
 
 public:
@@ -26,7 +26,7 @@ public:
     const static ValueType VALUE_TYPE_INT = 2;
     const static ValueType VALUE_TYPE_FLOAT = 3;
     const static ValueType VALUE_TYPE_STRING = 4;
-    const static ValueType VALUE_TYPE_TUPLE = 5;
+    const static ValueType VALUE_TYPE_COMBINED = 5;
 
     static bool isParseableBool(std::string);
     static bool isParseableInt(std::string);
@@ -37,6 +37,8 @@ public:
     static Value* parseStringToInt(std::string);
     static Value* parseStringToFloat(std::string);
     static Value* parseStringToValue(std::string);
+
+    static Value* undefined;
 
     Value();
     Value(bool);
@@ -64,6 +66,9 @@ public:
     std::string getStringValue();
 
     void deleteIfNotLinked();
+
+    Value* createNotLinkedInstance();
+    Variable* getLinkedVariable();
 };
 
 

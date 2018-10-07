@@ -1,2 +1,1 @@
-age = test(a, b, c) + 5;
-println(age)
+aa = math.a(15)

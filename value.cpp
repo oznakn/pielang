@@ -48,7 +48,7 @@ Value* Value::parseStringToBool(std::string s) {
 }
 
 Value* Value::parseStringToInt(std::string s) {
-    return new Value((int) std::stoul(s)); // TODO
+    return new Value((float) std::stoul(s));
 }
 
 Value* Value::parseStringToFloat(std::string s) {
@@ -69,68 +69,109 @@ Value* Value::parseStringToValue(std::string s) {
     return nullptr;
 }
 
-Value::Value() {
-    this->mLinkedVariableList = new std::vector<Variable*>;
-}
+Value::Value() {}
 
 Value::Value(bool b) {
     this->mValueType = Value::VALUE_TYPE_BOOL;
     this->mBoolValue = b;
-    this->mLinkedVariableList = new std::vector<Variable*>;
-}
-
-Value::Value(int i) {
-    this->mValueType = Value::VALUE_TYPE_INT;
-    this->mIntValue = i;
-
-    this->mLinkedVariableList = new std::vector<Variable*>;
 }
 
 Value::Value(float f) {
     this->mValueType = Value::VALUE_TYPE_FLOAT;
     this->mFloatValue = f;
-    this->mLinkedVariableList = new std::vector<Variable*>;
+
+    if ((int)(f * 10) % 10 == 0) {
+        this->mValueType = Value::VALUE_TYPE_INT;
+    }
 }
 
 Value::Value(std::string s) {
     this->mValueType = Value::VALUE_TYPE_STRING;
     this->mStringValue = s;
-    this->mLinkedVariableList = new std::vector<Variable*>;
 }
 
 Value::~Value() {
+    delete this->mValueList;
     delete this->mLinkedVariableList;
+    delete this->mLinkedValueList;
 }
 
 void Value::linkWithVariable(Variable* variable) {
-    if (this->mLinkedVariableList == NULL) {
+    if (this->mLinkedVariableList == nullptr) {
         this->mLinkedVariableList = new std::vector<Variable*>;
     }
+
     this->mLinkedVariableList->push_back(variable);
 }
 
 void Value::unlinkWithVariable(Variable* variable) {
-    for (size_t i = 0; i < this->mLinkedVariableList->size(); i++) {
-        if (this->mLinkedVariableList->at(0) == variable) {
-            this->mLinkedVariableList->erase(this->mLinkedVariableList->begin() + i);
-            break;
+    if (this->mLinkedVariableList != nullptr) {
+        for (size_t i = 0; i < this->mLinkedVariableList->size(); i++) {
+            if (this->mLinkedVariableList->at(0) == variable) {
+                this->mLinkedVariableList->erase(this->mLinkedVariableList->begin() + i);
+
+                break;
+            }
         }
+
+        this->deleteIfNotLinked();
+    }
+}
+
+void Value::linkWithValue(Value* mLinkedValueList) {
+    if (this->mLinkedValueList == nullptr) {
+        this->mLinkedValueList = new std::vector<Value*>;
     }
 
-    if (this->mLinkedVariableList->empty()) {
-        delete this;
+    this->mLinkedValueList->push_back(mLinkedValueList);
+}
+
+void Value::unlinkWithValue(Value* value) {
+    if (this->mLinkedValueList != nullptr) {
+        for (size_t i = 0; i < this->mLinkedValueList->size(); i++) {
+            if (this->mLinkedValueList->at(0) == value) {
+                this->mLinkedValueList->erase(this->mLinkedValueList->begin() + i);
+
+                break;
+            }
+        }
+
+        this->deleteIfNotLinked();
     }
 }
 
 std::string Value::getAsString(bool printStringCharsToo) {
     switch (this->mValueType) {
-        case Value::VALUE_TYPE_BOOL: return this->mBoolValue ? "true" : "false";
-        case Value::VALUE_TYPE_INT: return std::to_string(this->mIntValue);
-        case Value::VALUE_TYPE_FLOAT: return std::to_string(this->mFloatValue);
-        case Value::VALUE_TYPE_STRING:
+        case Value::VALUE_TYPE_BOOL: {
+            return this->mBoolValue ? "true" : "false";
+        }
+
+        case Value::VALUE_TYPE_INT: {
+            return std::to_string((int) this->mFloatValue);
+        }
+
+        case Value::VALUE_TYPE_FLOAT: {
+            return std::to_string(this->mFloatValue);
+        }
+
+        case Value::VALUE_TYPE_STRING: {
             if (!printStringCharsToo) return this->mStringValue;
             return Options::STRING_CHAR + this->mStringValue + Options::STRING_CHAR;
-        default: return "undefined";
+        }
+
+        case Value::VALUE_TYPE_TUPLE: {
+            std::string result = "";
+            if (this->mValueList != nullptr) {
+                for (auto value : *this->mValueList) {
+                    result += value->getAsString(false) + ",";
+                }
+            }
+            return result;
+        }
+
+        default: {
+            return "undefined";
+        }
     }
 }
 
@@ -143,7 +184,7 @@ bool Value::getBoolValue() {
 }
 
 int Value::getIntValue() {
-    return this->mIntValue;
+    return (int) this->mFloatValue;
 }
 
 float Value::getFloatValue() {
@@ -155,7 +196,40 @@ std::string Value::getStringValue() {
 }
 
 void Value::deleteIfNotLinked() {
-    if (this->mLinkedVariableList->empty()) {
+    if ((this->mLinkedVariableList == nullptr || this->mLinkedVariableList->empty()) &&
+        (this->mLinkedValueList == nullptr || this->mLinkedValueList->empty())) {
+
+        if (this->mValueList != nullptr) {
+            for (auto value : *this->mValueList) {
+                value->unlinkWithValue(this);
+            }
+        }
+
         delete this;
     }
+}
+
+void Value::addValue(Value* value) {
+    if (this->mValueType != VALUE_TYPE_TUPLE) {
+        this->mValueType = VALUE_TYPE_TUPLE;
+
+        this->mValueList = new std::vector<Value*>;
+    }
+
+    this->mValueList->push_back(value);
+    value->linkWithValue(this);
+}
+
+std::vector<Value*>* Value::getValueList() {
+    return this->mValueList;
+}
+
+std::vector<Value*>* Value::getAsValueList() {
+    if (this->mValueType != VALUE_TYPE_TUPLE) {
+        auto valueList = new std::vector<Value*>;
+        valueList->push_back(this);
+        return valueList;
+    }
+
+    return this->getValueList();
 }

@@ -5,17 +5,11 @@
 #include <vector>
 #include <unordered_map>
 
-class SystemFunction;
+class Scope;
 
 class System {
-private:
-    // std::unordered_map<std::string, Variable*>* mSystemVariableMap;
-    static std::unordered_map<std::string, SystemFunction*>* systemFunctionMap;
-
 public:
-    static void init();
-    static bool hasSystemFunction(std::string);
-    static SystemFunction* getSystemFunction(std::string);
+    static void init(Scope*);
 };
 
 #endif //PILANG_SYSTEM_H

@@ -12,12 +12,13 @@ class Scope;
 class Value {
 private:
     bool mBoolValue;
-    int mIntValue;
     float mFloatValue;
     std::string mStringValue;
 
     ValueType mValueType = VALUE_TYPE_UNDEFINED;
-    std::vector<Variable*>* mLinkedVariableList;
+    std::vector<Variable*>* mLinkedVariableList = nullptr;
+    std::vector<Value*>* mLinkedValueList = nullptr;
+    std::vector<Value*>* mValueList = nullptr;
 
 public:
     const static ValueType VALUE_TYPE_UNDEFINED = 0;
@@ -25,6 +26,7 @@ public:
     const static ValueType VALUE_TYPE_INT = 2;
     const static ValueType VALUE_TYPE_FLOAT = 3;
     const static ValueType VALUE_TYPE_STRING = 4;
+    const static ValueType VALUE_TYPE_TUPLE = 5;
 
     static bool isParseableBool(std::string);
     static bool isParseableInt(std::string);
@@ -44,8 +46,14 @@ public:
 
     ~Value();
 
+    void addValue(Value*);
+    std::vector<Value*>* getValueList();
+    std::vector<Value*>* getAsValueList();
+
     void linkWithVariable(Variable*);
     void unlinkWithVariable(Variable*);
+    void linkWithValue(Value*);
+    void unlinkWithValue(Value*);
     std::string getAsString(bool = false);
 
     ValueType getValueType();

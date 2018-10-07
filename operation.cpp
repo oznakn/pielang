@@ -16,6 +16,7 @@ OperationType Operation::parseOperationType(std::string & s) {
     if (s == "/") return Operation::OPERATION_TYPE_DIVISION;
     if (s == "^") return Operation::OPERATION_TYPE_POWER;
     if (s == "%") return Operation::OPERATION_TYPE_MOD;
+    if (s == ",") return Operation::OPERATION_TYPE_COMBINATION;
 
     return OPERATION_TYPE_NONE;
 }
@@ -35,45 +36,14 @@ Operation::Operation(Scope* scope, Value* firstValue, Value* lastValue, std::str
     this->mOperationType = Operation::parseOperationType(operationTypeString);
 }
 
-Operation::Operation(Scope* scope, std::vector<std::string>* contents, OperationType operationType) {
-    this->mFirstValue = scope->parseValue(contents->at(0));
-    this->mLastValue = scope->parseValue(contents->at(2));
-
-    this->mOperationType = operationType;
-
-}
-
-Operation::Operation(Scope* scope, std::vector<std::string>* contents, std::string operationTypeString) {
-    this->mFirstValue = scope->parseValue(contents->at(0));
-    this->mLastValue = scope->parseValue(contents->at(1));
-
-    this->mOperationType = Operation::parseOperationType(operationTypeString);
-}
-
-Operation::Operation(Scope* scope, std::vector<std::string>* contents) {
-    this->mScope = scope;
-    this->mFirstValue = scope->parseValue(contents->at(0));
-    this->mLastValue = scope->parseValue(contents->at(2));
-
-    this->mOperationType = Operation::parseOperationType(contents->at(1));
-}
-
 Operation::~Operation() {
     this->mFirstValue->deleteIfNotLinked();
     this->mLastValue->deleteIfNotLinked();
 }
 
 Value* Operation::runAdditionOperation() {
-    if (this->mFirstValue->getValueType() == Value::VALUE_TYPE_INT && this->mLastValue->getValueType() == Value::VALUE_TYPE_INT) {
-        return new Value(this->mFirstValue->getIntValue() + this->mLastValue->getIntValue());
-    }
-    else if (this->mFirstValue->getValueType() == Value::VALUE_TYPE_INT && this->mLastValue->getValueType() == Value::VALUE_TYPE_FLOAT) {
-        return new Value(this->mFirstValue->getIntValue() + this->mLastValue->getFloatValue());
-    }
-    else if (this->mFirstValue->getValueType() == Value::VALUE_TYPE_FLOAT && this->mLastValue->getValueType() == Value::VALUE_TYPE_INT) {
-        return new Value(this->mFirstValue->getFloatValue() + this->mLastValue->getIntValue());
-    }
-    else if (this->mFirstValue->getValueType() == Value::VALUE_TYPE_FLOAT && this->mLastValue->getValueType() == Value::VALUE_TYPE_FLOAT) {
+    if ((this->mFirstValue->getValueType() == Value::VALUE_TYPE_INT || this->mFirstValue->getValueType() == Value::VALUE_TYPE_FLOAT) &&
+        (this->mLastValue->getValueType() == Value::VALUE_TYPE_INT || this->mLastValue->getValueType() == Value::VALUE_TYPE_FLOAT)) {
         return new Value(this->mFirstValue->getFloatValue() + this->mLastValue->getFloatValue());
     }
 
@@ -81,83 +51,68 @@ Value* Operation::runAdditionOperation() {
 }
 
 Value* Operation::runSubtractionOperation() {
-    if (this->mFirstValue->getValueType() == Value::VALUE_TYPE_INT && this->mLastValue->getValueType() == Value::VALUE_TYPE_INT) {
-        return new Value(this->mFirstValue->getIntValue() - this->mLastValue->getIntValue());
-    }
-    else if (this->mFirstValue->getValueType() == Value::VALUE_TYPE_INT && this->mLastValue->getValueType() == Value::VALUE_TYPE_FLOAT) {
-        return new Value(this->mFirstValue->getIntValue() - this->mLastValue->getFloatValue());
-    }
-    else if (this->mFirstValue->getValueType() == Value::VALUE_TYPE_FLOAT && this->mLastValue->getValueType() == Value::VALUE_TYPE_INT) {
-        return new Value(this->mFirstValue->getFloatValue() - this->mLastValue->getIntValue());
-    }
-    else if (this->mFirstValue->getValueType() == Value::VALUE_TYPE_FLOAT && this->mLastValue->getValueType() == Value::VALUE_TYPE_FLOAT) {
+    if ((this->mFirstValue->getValueType() == Value::VALUE_TYPE_INT || this->mFirstValue->getValueType() == Value::VALUE_TYPE_FLOAT) &&
+        (this->mLastValue->getValueType() == Value::VALUE_TYPE_INT || this->mLastValue->getValueType() == Value::VALUE_TYPE_FLOAT)) {
         return new Value(this->mFirstValue->getFloatValue() - this->mLastValue->getFloatValue());
     }
 
-    return new Value();
+    return new Value;
 }
 
 Value* Operation::runMultiplicationOperation() {
-    if (this->mFirstValue->getValueType() == Value::VALUE_TYPE_INT && this->mLastValue->getValueType() == Value::VALUE_TYPE_INT) {
-        return new Value(this->mFirstValue->getIntValue() * this->mLastValue->getIntValue());
-    }
-    else if (this->mFirstValue->getValueType() == Value::VALUE_TYPE_INT && this->mLastValue->getValueType() == Value::VALUE_TYPE_FLOAT) {
-        return new Value(this->mFirstValue->getIntValue() * this->mLastValue->getFloatValue());
-    }
-    else if (this->mFirstValue->getValueType() == Value::VALUE_TYPE_FLOAT && this->mLastValue->getValueType() == Value::VALUE_TYPE_INT) {
-        return new Value(this->mFirstValue->getFloatValue() * this->mLastValue->getIntValue());
-    }
-    else if (this->mFirstValue->getValueType() == Value::VALUE_TYPE_FLOAT && this->mLastValue->getValueType() == Value::VALUE_TYPE_FLOAT) {
+    if ((this->mFirstValue->getValueType() == Value::VALUE_TYPE_INT || this->mFirstValue->getValueType() == Value::VALUE_TYPE_FLOAT) &&
+        (this->mLastValue->getValueType() == Value::VALUE_TYPE_INT || this->mLastValue->getValueType() == Value::VALUE_TYPE_FLOAT)) {
         return new Value(this->mFirstValue->getFloatValue() * this->mLastValue->getFloatValue());
     }
 
-    else if (this->mFirstValue->getValueType() == Value::VALUE_TYPE_STRING && this->mLastValue->getValueType() == Value::VALUE_TYPE_INT) {
-        return new Value(StringUtils::duplicateWithCount(this->mFirstValue->getStringValue(), this->mLastValue->getIntValue()));
-    }
-
-    return new Value();
+    return new Value;
 }
 
 Value* Operation::runDivisionOperation() {
-    if (this->mFirstValue->getValueType() == Value::VALUE_TYPE_INT && this->mLastValue->getValueType() == Value::VALUE_TYPE_INT) {
-        return new Value(this->mFirstValue->getIntValue() / this->mLastValue->getIntValue());
-    }
-    else if (this->mFirstValue->getValueType() == Value::VALUE_TYPE_INT && this->mLastValue->getValueType() == Value::VALUE_TYPE_FLOAT) {
-        return new Value(this->mFirstValue->getIntValue() / this->mLastValue->getFloatValue());
-    }
-    else if (this->mFirstValue->getValueType() == Value::VALUE_TYPE_FLOAT && this->mLastValue->getValueType() == Value::VALUE_TYPE_INT) {
-        return new Value(this->mFirstValue->getFloatValue() / this->mLastValue->getIntValue());
-    }
-    else if (this->mFirstValue->getValueType() == Value::VALUE_TYPE_FLOAT && this->mLastValue->getValueType() == Value::VALUE_TYPE_FLOAT) {
+    if ((this->mFirstValue->getValueType() == Value::VALUE_TYPE_INT || this->mFirstValue->getValueType() == Value::VALUE_TYPE_FLOAT) &&
+        (this->mLastValue->getValueType() == Value::VALUE_TYPE_INT || this->mLastValue->getValueType() == Value::VALUE_TYPE_FLOAT)) {
         return new Value(this->mFirstValue->getFloatValue() / this->mLastValue->getFloatValue());
     }
 
-    return new Value();
+    return new Value;
 }
 
 Value* Operation::runPowerOperation() {
-    if (this->mFirstValue->getValueType() == Value::VALUE_TYPE_INT && this->mLastValue->getValueType() == Value::VALUE_TYPE_INT) {
-        return new Value((int) std::pow(this->mFirstValue->getIntValue(), this->mLastValue->getIntValue()));
-    }
-    else if (this->mFirstValue->getValueType() == Value::VALUE_TYPE_INT && this->mLastValue->getValueType() == Value::VALUE_TYPE_FLOAT) {
-        return new Value((int) std::pow(this->mFirstValue->getIntValue(), this->mLastValue->getFloatValue()));
-    }
-    else if (this->mFirstValue->getValueType() == Value::VALUE_TYPE_FLOAT && this->mLastValue->getValueType() == Value::VALUE_TYPE_INT) {
-        return new Value((int) std::pow(this->mFirstValue->getFloatValue(), this->mLastValue->getIntValue()));
-    }
-    else if (this->mFirstValue->getValueType() == Value::VALUE_TYPE_FLOAT && this->mLastValue->getValueType() == Value::VALUE_TYPE_FLOAT) {
-        return new Value((int) std::pow(this->mFirstValue->getFloatValue(), this->mLastValue->getFloatValue()));
+    if ((this->mFirstValue->getValueType() == Value::VALUE_TYPE_INT || this->mFirstValue->getValueType() == Value::VALUE_TYPE_FLOAT) &&
+        (this->mLastValue->getValueType() == Value::VALUE_TYPE_INT || this->mLastValue->getValueType() == Value::VALUE_TYPE_FLOAT)) {
+        return new Value(std::pow(this->mFirstValue->getFloatValue(), this->mLastValue->getFloatValue()));
     }
 
-    return new Value();
+    return new Value;
 }
 
 Value* Operation::runModOperation() {
-    if (this->mFirstValue->getValueType() == Value::VALUE_TYPE_INT && this->mLastValue->getValueType() == Value::VALUE_TYPE_INT) {
-        return new Value(this->mFirstValue->getIntValue() % this->mLastValue->getIntValue());
+    if ((this->mFirstValue->getValueType() == Value::VALUE_TYPE_INT) &&
+        (this->mLastValue->getValueType() == Value::VALUE_TYPE_INT)) {
+        return new Value((float) (this->mFirstValue->getIntValue() % this->mLastValue->getIntValue()));
     }
 
-    return new Value();
+    return new Value;
+}
+
+Value* Operation::runCombinationOperation() {
+    auto value = new Value;
+
+    if (this->mLastValue->getValueType() == Value::VALUE_TYPE_TUPLE) {
+        value->addValue(this->mFirstValue->getValueList()->at(0));
+    }
+    else {
+        value->addValue(this->mFirstValue);
+    }
+
+    if (this->mLastValue->getValueType() == Value::VALUE_TYPE_TUPLE) {
+        value->addValue(this->mLastValue->getValueList()->at(0));
+    }
+    else {
+        value->addValue(this->mLastValue);
+    }
+
+    return value;
 }
 
 Value* Operation::run() {
@@ -168,6 +123,7 @@ Value* Operation::run() {
         case Operation::OPERATION_TYPE_DIVISION: return this->runDivisionOperation();
         case Operation::OPERATION_TYPE_POWER: return this->runPowerOperation();
         case Operation::OPERATION_TYPE_MOD: return this->runModOperation();
-        default: return new Value();
+        case Operation::OPERATION_TYPE_COMBINATION: return this->runCombinationOperation();
+        default: return new Value;
     }
 }

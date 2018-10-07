@@ -10,6 +10,7 @@
 #include "stringliteral.h"
 #include "logger.h"
 #include "function.h"
+#include "userfunction.h"
 #include "variable.h"
 #include "value.h"
 #include "expression.h"
@@ -111,9 +112,15 @@ void Scope::combineLines() {
     const size_t endOfLineWithOptionalCharStringLength = Options::END_OF_LINE_WITH_OPTIONAL_CHAR.length();
     const size_t windowsEndOfLineStringLength = Options::WINDOWS_END_OF_LINE.length();
     const size_t windowsEndOfLineWithOptionalCharStringLength = Options::WINDOWS_END_OF_LINE_WITH_OPTIONAL_CHAR.length();
+    const size_t classicMacEndOfLineStringLength = Options::CLASSIC_MAC_END_OF_LINE.length();
+    const size_t classicMacEndOfLineWithOptionalCharStringLength = Options::CLASSIC_MAC_END_OF_LINE_WITH_OPTIONAL_CHAR.length();
 
     while ((index = this->mContent.find(Options::WINDOWS_END_OF_LINE_WITH_OPTIONAL_CHAR)) != std::string::npos) {
         this->mContent.replace(index, windowsEndOfLineWithOptionalCharStringLength, Options::END_OF_LINE_OPTIONAL_CHAR_AS_STRING);
+    }
+
+    while ((index = this->mContent.find(Options::CLASSIC_MAC_END_OF_LINE_WITH_OPTIONAL_CHAR)) != std::string::npos) {
+        this->mContent.replace(index, classicMacEndOfLineWithOptionalCharStringLength, Options::END_OF_LINE_OPTIONAL_CHAR_AS_STRING);
     }
 
     while ((index = this->mContent.find(Options::END_OF_LINE_WITH_OPTIONAL_CHAR)) != std::string::npos) {
@@ -122,6 +129,10 @@ void Scope::combineLines() {
 
     while ((index = this->mContent.find(Options::WINDOWS_END_OF_LINE)) != std::string::npos) {
         this->mContent.replace(index, windowsEndOfLineStringLength, Options::END_OF_LINE_OPTIONAL_CHAR_AS_STRING);
+    }
+
+    while ((index = this->mContent.find(Options::CLASSIC_MAC_END_OF_LINE)) != std::string::npos) {
+        this->mContent.replace(index, classicMacEndOfLineStringLength, Options::END_OF_LINE_OPTIONAL_CHAR_AS_STRING);
     }
 
     while ((index = this->mContent.find(Options::END_OF_LINE)) != std::string::npos) {
@@ -141,7 +152,7 @@ void Scope::findAndReplaceFirstFunction(size_t startIndex) {
     startBlockIndex = this->mContent.find(Options::START_BLOCK_CHAR, startIndex);
     endBlockIndex = Utils::findSiblingPosition(this->mContent, startBlockIndex, Options::START_BLOCK_CHAR, Options::END_BLOCK_CHAR);
 
-    Function* function = new Function(StringUtils::substring(this->mContent, startIndex, endBlockIndex), this);
+    auto function = new UserFunction(StringUtils::substring(this->mContent, startIndex, endBlockIndex), this);
 
     this->mFunctionMap->insert(make_pair(function->getFunctionName(), function));
 
@@ -165,33 +176,12 @@ void Scope::runLines() {
 
             auto expression = new Expression(this, StringUtils::substring(line, tempIndex + 1, line.length())); // 1 => length of '='
             auto value = expression->run();
-            auto variable = new Variable(tempString, value);
 
-            this->addVariable(tempString, variable);
+            this->createVariable(tempString,  value);
         }
         else {
-            tempIndex = line.find(Options::START_PARENTHESIS_CHAR);
-            size_t tempIndex2 = line.find_last_of(Options::END_PARENTHESIS_CHAR);
-
-            auto argumentStringList = StringUtils::split(StringUtils::substring(line, tempIndex + 1, tempIndex2), ",");
-            auto argumentList = new std::vector<Value*>;
-
-            for (size_t i = 0; i < argumentStringList->size(); i++) {
-                auto expression = new Expression(this, argumentStringList->at(i));
-                argumentList->push_back(expression->run());
-                delete expression;
-            }
-
-            tempString = StringUtils::trim(StringUtils::substring(line, 0, tempIndex));
-
-            if (this->hasFunction(tempString)) {
-                auto function = this->getFunction(tempString);
-                function->run(argumentList);
-            }
-            else if (System::hasSystemFunction(tempString)) {
-                auto systemFunction = System::getSystemFunction(tempString);
-                systemFunction->run(argumentList);
-            }
+            auto expression = new Expression(this, line);
+            expression->run();
         }
 
         this->mContent = StringUtils::replaceMiddle(this->mContent, "", 0, index + 1);
@@ -251,8 +241,17 @@ void Scope::removeVariable(std::string variableName) {
     }
 }
 
+Variable* Scope::createVariable(std::string variableName, Value* value) {
+    auto variable = new Variable(variableName, value);
+
+    this->addVariable(variableName, variable);
+
+    return variable;
+}
+
 bool Scope::hasFunction(std::string functionName) {
-    return (this->mInheritedScope != nullptr && this->mInheritedScope->getFunctionMap()->find(functionName) != this->mInheritedScope->getFunctionMap()->end()) || this->mFunctionMap->find(functionName) != this->mFunctionMap->end();
+    return (this->mInheritedScope != nullptr && this->mInheritedScope->getFunctionMap()->find(functionName) != this->mInheritedScope->getFunctionMap()->end()) ||
+            (this->mFunctionMap->find(functionName) != this->mFunctionMap->end());
 }
 
 Function* Scope::getFunction(std::string functionName) {
@@ -275,4 +274,10 @@ void Scope::removeFunction(std::string functionName) {
 
         delete function;
     }
+}
+
+Function* Scope::createSystemFunction(std::string functionName, size_t parameterCount, Value *(*callbackFunction)(std::vector<Value *>*)) {
+    auto systemFunction = new SystemFunction(functionName, parameterCount, callbackFunction);
+    this->addFunction(functionName, systemFunction);
+    return systemFunction;
 }

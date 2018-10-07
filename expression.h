@@ -18,20 +18,24 @@ private:
     const static TokenType TOKEN_TYPE_START_PARENTHESIS = 4;
     const static TokenType TOKEN_TYPE_END_PARENTHESIS = 5;
 
+    static int getOperatorAssociative(char&);
+    static int getOperatorAssociative(std::string&);
+    static int getOperatorPrecedence(char&);
+    static int getOperatorPrecedence(std::string&);
+    static bool isOperator(char&);
+    static bool isOperator(std::string&);
+
     Scope* mScope;
     std::string mContent;
-    std::vector<std::string>* mOutputStack = new std::vector<std::string>; // TODO
-    std::vector<std::string>* mOperatorStack = new std::vector<std::string>;
+    std::vector<std::string>* mOutputStack;
+    std::vector<std::string>* mOperatorStack;
 
-    bool isTopOfOperatorStackIsFunction();
-    bool isTopOfOperatorStackIsGreaterPrecedenceOperator(char&);
-    bool isTopOfOperatorStackIsLessOrEqualPrecedenceOperator(char&);
+    void runOnToken(std::string&);
 
 public:
     Expression(Scope*, std::string);
     ~Expression();
 
-    void runOnToken(std::string&);
     Value* run();
 };
 

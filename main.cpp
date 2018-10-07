@@ -11,6 +11,7 @@
 #include "system.h"
 #include "scope.h"
 #include "value.h"
+#include "variable.h"
 #include "expression.h"
 #include "stringutils.h"
 
@@ -47,11 +48,14 @@ int main() {
     std::string fileName = findWorkingDir() + "index.pi";
     std::string fileContent = readFile(fileName);
 
-    System::init();
+
 
     Scope* scope = new Scope(fileContent);
     scope->setAsMainScope();
+    System::init(scope);
+
     scope->run();
+
     delete scope;
 
     std::cout << std::endl;

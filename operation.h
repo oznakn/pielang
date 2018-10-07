@@ -22,6 +22,7 @@ private:
     Value* runDivisionOperation();
     Value* runPowerOperation();
     Value* runModOperation();
+    Value* runCombinationOperation();
 
 public:
     const static OperationType OPERATION_TYPE_NONE = 0;
@@ -31,14 +32,12 @@ public:
     const static OperationType OPERATION_TYPE_DIVISION = 4;
     const static OperationType OPERATION_TYPE_POWER = 5;
     const static OperationType OPERATION_TYPE_MOD = 6;
+    const static OperationType OPERATION_TYPE_COMBINATION = 7;
 
     static OperationType parseOperationType(std::string&);
 
     Operation(Scope*, Value*, Value*, OperationType);
     Operation(Scope*, Value*, Value*, std::string);
-    Operation(Scope*, std::vector<std::string>*);
-    Operation(Scope*, std::vector<std::string>*, OperationType);
-    Operation(Scope*, std::vector<std::string>*, std::string);
     ~Operation();
 
     Value* run();

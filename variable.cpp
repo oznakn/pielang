@@ -14,7 +14,7 @@ bool Variable::isValidVariableName(std::string s) {
         }
         else if (s.length() > 1) {
             for (size_t i = 1; i < s.length(); i++) {
-                if (!std::isalnum(s.at(i))) return false;
+                if (!std::isalnum(s.at(i)) && s.at(i) != '_') return false;
             }
         }
     }

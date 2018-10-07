@@ -17,8 +17,10 @@ const std::string Options::END_OF_LINE_OPTIONAL_CHAR_AS_STRING = std::string(1, 
 
 const std::string Options::END_OF_LINE = "\n";
 const std::string Options::WINDOWS_END_OF_LINE = "\n\r";
+const std::string Options::CLASSIC_MAC_END_OF_LINE = "\r";
 const std::string Options::END_OF_LINE_WITH_OPTIONAL_CHAR = Options::END_OF_LINE_OPTIONAL_CHAR_AS_STRING + Options::END_OF_LINE;
 const std::string Options::WINDOWS_END_OF_LINE_WITH_OPTIONAL_CHAR = Options::END_OF_LINE_OPTIONAL_CHAR_AS_STRING + Options::WINDOWS_END_OF_LINE;
+const std::string Options::CLASSIC_MAC_END_OF_LINE_WITH_OPTIONAL_CHAR = Options::END_OF_LINE_OPTIONAL_CHAR_AS_STRING + Options::CLASSIC_MAC_END_OF_LINE;
 
 const std::string Options::FUNCTION_WORD_STRING = "function";
 

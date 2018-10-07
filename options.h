@@ -18,6 +18,8 @@ struct Options {
     const static std::string END_OF_LINE_WITH_OPTIONAL_CHAR;
     const static std::string WINDOWS_END_OF_LINE;
     const static std::string WINDOWS_END_OF_LINE_WITH_OPTIONAL_CHAR;
+    const static std::string CLASSIC_MAC_END_OF_LINE;
+    const static std::string CLASSIC_MAC_END_OF_LINE_WITH_OPTIONAL_CHAR;
     const static std::string FUNCTION_WORD_STRING;
     const static char START_PARENTHESIS_CHAR;
     const static char END_PARENTHESIS_CHAR;

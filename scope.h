@@ -39,6 +39,7 @@ public:
     FunctionMap* getFunctionMap();
 
     Value* parseValue(std::string);
+    std::vector<Value*>* parsePluralValue(std::string);
     void setAsMainScope();
     void run();
 
@@ -46,11 +47,13 @@ public:
     bool hasVariable(std::string);
     void addVariable(std::string, Variable*);
     void removeVariable(std::string);
+    Variable* createVariable(std::string, Value*);
 
     Function* getFunction(std::string);
     bool hasFunction(std::string);
     void addFunction(std::string, Function*);
     void removeFunction(std::string);
+    Function* createSystemFunction(std::string, size_t, Value* (*CallbackFunction)(std::vector<Value*>*));
 };
 
 

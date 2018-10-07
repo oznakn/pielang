@@ -1,3 +1,2 @@
-import "math"
-
-println(math.sin(30*math.PI/180))
+println(math.sin(30**math.PI/180))
+println("anan" + "anan")

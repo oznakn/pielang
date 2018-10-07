@@ -8,12 +8,10 @@
 
 class Expression {
 private:
-    static int getOperatorAssociative(char&);
-    static int getOperatorAssociative(std::string&);
-    static int getOperatorPrecedence(char&);
-    static int getOperatorPrecedence(std::string&);
-    static bool isOperator(char&);
-    static bool isOperator(std::string&);
+    static int getOperatorAssociative(std::string);
+    static int getOperatorPrecedence(std::string);
+    static bool isOperator(std::string);
+    static bool isPartOfOperator(std::string);
 
     Scope* mScope;
     std::string mContent;

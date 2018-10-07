@@ -19,6 +19,7 @@
  * https://philcurnow.wordpress.com/2015/01/24/conversion-of-expressions-from-infix-to-postfix-notation-in-c-part-2-unary-operators/
  * https://www.wikizero.pro/index.php?q=aHR0cHM6Ly9lbi53aWtpcGVkaWEub3JnL3dpa2kvU2h1bnRpbmcteWFyZF9hbGdvcml0aG0
  * https://www.wikizero.pro/index.php?q=aHR0cHM6Ly9lbi53aWtpcGVkaWEub3JnL3dpa2kvUmV2ZXJzZV9Qb2xpc2hfbm90YXRpb24
+ * https://codeburst.io/conversion-of-infix-expression-to-postfix-expression-using-stack-data-structure-3faf9c212ab8
  * */
 
 Expression::Expression(Scope* scope, std::string content) {
@@ -33,57 +34,49 @@ Expression::~Expression() {
 
 }
 
-int Expression::getOperatorAssociative(char& c) {
-    switch (c) {
-        case '-': return 1;
-        case '+': return 1;
-        case '%': return 1;
-        case '/': return 1;
-        case '*': return 1;
-        case '^': return -1;
-        case ',': return 1;
-        default: return 1; // for functions
-    }
+int Expression::getOperatorAssociative(std::string s) {
+    if (s == "-") return 1;
+    if (s == "+") return 1;
+    if (s == "%") return 1;
+    if (s == "/") return 1;
+    if (s == "*") return 1;
+    if (s == "^") return -1;
+    if (s == ",") return 1;
+
+    return 1;
 }
 
-int Expression::getOperatorAssociative(std::string& s) {
-    return Expression::getOperatorAssociative(s.at(0));
+int Expression::getOperatorPrecedence(std::string s) {
+    if (s == "-") return 2;
+    if (s == "+") return 2;
+    if (s == "%") return 2;
+    if (s == "/") return 3;
+    if (s == "*") return 3;
+    if (s == "^") return 4;
+    if (s == ",") return 1;
+
+    return 5;
 }
 
-int Expression::getOperatorPrecedence(char& c) {
-    switch (c) {
-        case '-': return 2;
-        case '+': return 2;
-        case '%': return 2;
-        case '/': return 3;
-        case '*': return 3;
-        case '^': return 4;
-        case ',': return 1;
-
-        default: return 5; // means operator is a function
-    }
+bool Expression::isOperator(std::string s) {
+    return s == "-" ||
+           s == "+" ||
+           s == "%" ||
+           s == "/" ||
+           s == "*" ||
+           s == "^" ||
+           s == ",";
 }
 
-int Expression::getOperatorPrecedence(std::string& s) {
-    return Expression::getOperatorPrecedence(s.at(0));
-}
-
-bool Expression::isOperator(char& c) {
-    switch (c) {
-        case '-': return true;
-        case '+': return true;
-        case '%': return true;
-        case '/': return true;
-        case '*': return true;
-        case '^': return true;
-        case ',': return true;
-
-        default: return false;
-    }
-}
-
-bool Expression::isOperator(std::string& s) {
-    return Expression::isOperator(s.at(0));
+bool Expression::isPartOfOperator(std::string s) {
+    return s == "-" ||
+           s == "+" ||
+           s == "%" ||
+           s == "/" ||
+           s == "*" ||
+           s == "**" ||
+           s == "^" ||
+           s == ",";
 }
 
 // Shunting-yard algorithm
@@ -93,7 +86,7 @@ void Expression::runOnToken(std::string token) {
                 this->mOperatorStack->at(0) != "(" &&
                 (
                     !Expression::isOperator(this->mOperatorStack->at(0)) ||
-                            Expression::getOperatorPrecedence(this->mOperatorStack->at(0)) > Expression::getOperatorPrecedence(token) ||
+                    Expression::getOperatorPrecedence(this->mOperatorStack->at(0)) > Expression::getOperatorPrecedence(token) ||
                     (Expression::getOperatorPrecedence(this->mOperatorStack->at(0)) == Expression::getOperatorPrecedence(token) && Expression::getOperatorAssociative(token) > 0)
                 )
             ) {
@@ -109,14 +102,13 @@ void Expression::runOnToken(std::string token) {
     }
     else if (token == "(") {
         this->mOperatorStack->insert(this->mOperatorStack->begin(), token);
-        // this->mOutputStack->push_back(")"); // TODO
     }
     else if (token == ")") {
         while(!this->mOperatorStack->empty() && this->mOperatorStack->at(0) != "(") {
             this->mOutputStack->push_back(this->mOperatorStack->at(0));
             this->mOperatorStack->erase(this->mOperatorStack->begin());
         }
-        this->mOperatorStack->erase(this->mOperatorStack->begin()); // TODO
+        this->mOperatorStack->erase(this->mOperatorStack->begin());
     }
     else {
         this->mOutputStack->push_back(token);
@@ -128,16 +120,24 @@ Value* Expression::run() {
 
     // Tokenize algorithm
     for (char c : this->mContent) {
-        if (c == ' ' || c == '(' || c == ')' || c == ',' || isOperator(c)) {
-            if (!token.empty()) this->runOnToken(token);
+        auto s = std::string(1, c);
 
-            if (c != ' ') {
-                this->runOnToken(std::string(1, c));
-                token = "";
-            }
+        if (c == '(' || c == ')') {
+            if (!token.empty()) this->runOnToken(token);
+            token = "";
+
+            this->runOnToken(s);
         }
-        else if (isalnum(c) || c == Options::DOT_CHAR || c == Options::STRING_LITERAL_CHAR || c == '_')  { // TODO
-            token += c;
+        else if (isPartOfOperator(s) == isPartOfOperator(token)) {
+            token += s;
+        }
+        else {
+            if (!token.empty()) this->runOnToken(token);
+            token = "";
+
+            if (c != ' '){
+                token = s;
+            }
         }
     }
 

@@ -5,20 +5,15 @@
 
 #include "value.h"
 
-SystemFunction::SystemFunction(std::string functionName, size_t parameterCount, CallbackFunction callbackFunction) {
+SystemFunction::SystemFunction(std::string functionName, FunctionCallback* functionCallback) {
     this->mFunctionName = functionName;
-    this->mParameterCount = parameterCount;
-    this->mCallbackFunction = callbackFunction;
+    this->mFunctionCallback = functionCallback;
 }
 
-Value* SystemFunction::run(std::vector<Value*>* arguments) {
-    return this->mCallbackFunction(arguments);
+Value* SystemFunction::run(ValueList* arguments) {
+    return this->mFunctionCallback(arguments);
 }
 
 std::string SystemFunction::getFunctionName() {
     return this->mFunctionName;
-}
-
-size_t SystemFunction::getParameterCount() {
-    return this->mParameterCount;
 }

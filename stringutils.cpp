@@ -62,11 +62,11 @@ std::string StringUtils::trim(std::string s) {
     return rtrim(ltrim(s));
 }
 
-std::vector<std::string>* StringUtils::split(std::string s, std::string d) {
+StringList* StringUtils::split(std::string s, std::string d) {
     size_t startIndex = 0;
     size_t index;
 
-    auto list = new std::vector<std::string>;
+    auto list = new StringList;
 
     if (std::string(1, s.at(s.length() -1)) != d) {
         s += d;

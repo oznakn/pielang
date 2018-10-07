@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-class Value;
+#include "definitions.h"
 
 class StringLiteral {
 private:

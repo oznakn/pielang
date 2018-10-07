@@ -4,23 +4,19 @@
 #include <string>
 #include <vector>
 
+#include "definitions.h"
 #include "function.h"
 
-class Value;
-
-typedef Value* (*CallbackFunction)(std::vector<Value*>*);
 
 class SystemFunction: public Function {
 private:
     std::string mFunctionName;
-    size_t mParameterCount;
-    CallbackFunction mCallbackFunction;
+    FunctionCallback* mFunctionCallback;
 
 public:
-    SystemFunction(std::string, size_t, CallbackFunction);
+    SystemFunction(std::string, FunctionCallback*);
     std::string getFunctionName();
-    size_t getParameterCount();
-    Value* run(std::vector<Value*>*);
+    Value* run(ValueList*);
 };
 
 #endif //PILANG_SYSTEMFUNCTION_H

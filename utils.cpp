@@ -40,7 +40,7 @@ size_t Utils::findSiblingPosition(std::string content, size_t startIndex, char n
 }
 
 
-size_t Utils::findStringInVector(std::vector<std::string>* contents, std::string s) {
+size_t Utils::findStringInVector(StringList* contents, std::string s) {
     for (size_t i = 0; i < contents->size(); i++) {
         if (contents->at(i) == s) {
             return i;

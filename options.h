@@ -2,13 +2,15 @@
 #define PILANG_OPTIONS_H
 
 #include <string>
+#include <vector>
+#include <unordered_map>
 
 struct Options {
     const static std::string MULTI_COMMENT_START_STRING;
     const static std::string MULTI_COMMENT_END_STRING;
     const static char EQUALITY_CHAR;
     const static std::string CHECK_EQUALITY_STRING;
-    const static char NUMBER_SEP_CHAR;
+    const static char DOT_CHAR;
     const static char STRING_CHAR;
     const static char STRING_ESCAPE_CHAR;
     const static char STRING_LITERAL_CHAR;

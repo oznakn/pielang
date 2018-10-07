@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 
+#include "definitions.h"
 #include "options.h"
 #include "utils.h"
 #include "stringutils.h"
@@ -24,8 +25,8 @@ Expression::Expression(Scope* scope, std::string content) {
     this->mScope = scope;
     this->mContent = content;
 
-    this->mOutputStack = new std::vector<std::string>;
-    this->mOperatorStack = new std::vector<std::string>;
+    this->mOutputStack = new StringList;
+    this->mOperatorStack = new StringList;
 }
 
 Expression::~Expression() {
@@ -86,7 +87,7 @@ bool Expression::isOperator(std::string& s) {
 }
 
 // Shunting-yard algorithm
-void Expression::runOnToken(std::string& token) {
+void Expression::runOnToken(std::string token) {
     if (Expression::isOperator(token)) {
         while(!this->mOperatorStack->empty() &&
                 this->mOperatorStack->at(0) != "(" &&
@@ -123,46 +124,20 @@ void Expression::runOnToken(std::string& token) {
 }
 
 Value* Expression::run() {
-    std::string token = "";
+    std::string token;
 
     // Tokenize algorithm
     for (char c : this->mContent) {
-        if (c == ' ') {
-            if (!token.empty()) {
-                this->runOnToken(token);
-                token = "";
-            }
-        }
-        else if (c == ',') { // TODO
-            if (!token.empty()) {
-                this->runOnToken(token);
-                token = "";
-            }
+        if (c == ' ' || c == '(' || c == ')' || c == ',' || isOperator(c)) {
+            if (!token.empty()) this->runOnToken(token);
 
-            token = ",";
-            this->runOnToken(token);
-            token = "";
+            if (c != ' ') {
+                this->runOnToken(std::string(1, c));
+                token = "";
+            }
         }
-        else if (isalnum(c) || c == '.' || c == '~' || c == '_')  { // TODO
+        else if (isalnum(c) || c == Options::DOT_CHAR || c == Options::STRING_LITERAL_CHAR || c == '_')  { // TODO
             token += c;
-        }
-        else if (isOperator(c)) {
-            if (!token.empty()) {
-                this->runOnToken(token);
-                token = "";
-            }
-            token = c;
-            this->runOnToken(token);
-            token = "";
-        }
-        else if (c == '(' || c == ')') {
-            if (!token.empty()) {
-                this->runOnToken(token);
-            }
-
-            token = c;
-            this->runOnToken(token);
-            token = "";
         }
     }
 
@@ -179,24 +154,21 @@ Value* Expression::run() {
     delete this->mOperatorStack;
 
     // Reverse Polish Notation
-    auto stack = new std::vector<Value*>;
+    auto stack = new ValueList;
     for(std::string s : *this->mOutputStack) {
         if (isOperator(s)) {
-            auto value2 = stack->at(stack->size() - 1);
-            stack->erase(stack->begin() + stack->size() - 1);
+            Operation* operation = new Operation(this->mScope,
+                    stack->at(stack->size() - 2),
+                    stack->at(stack->size() - 1),
+                    s);
 
-            auto value1 = stack->at(stack->size() - 1);
-            stack->erase(stack->begin() + stack->size() - 1);
-
-            Operation* operation = new Operation(this->mScope, value1, value2, s);
+            stack->erase(stack->begin() + stack->size() - 2, stack->begin() + stack->size());
             stack->push_back(operation->run());
+
             delete operation;
         }
         else if (this->mScope->hasFunction(s)) {
-            auto function = this->mScope->getFunction(s);
-            auto parameters = stack->at(stack->size() - 1)->getAsValueList();
-
-            auto result = function->run(parameters);
+            auto result = this->mScope->getFunction(s)->run(stack->at(stack->size() - 1)->getAsValueList());
 
             stack->erase(stack->begin() + stack->size() - 1);
             stack->push_back(result);

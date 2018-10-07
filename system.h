@@ -5,11 +5,13 @@
 #include <vector>
 #include <unordered_map>
 
-class Scope;
+#include "definitions.h"
 
 class System {
 public:
+    static Scope* mainScope;
     static void init(Scope*);
 };
+
 
 #endif //PILANG_SYSTEM_H

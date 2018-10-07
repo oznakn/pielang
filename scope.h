@@ -3,22 +3,15 @@
 
 #include <string>
 #include <vector>
-#include <unordered_map>
 
-class Value;
-class Variable;
-class Function;
-
-typedef std::unordered_map<std::string, Variable*> VariableMap;
-typedef std::unordered_map<std::string, Function*> FunctionMap;
+#include "definitions.h"
 
 class Scope {
 private:
     Scope* mInheritedScope = nullptr;
     std::string mContent;
 
-    VariableMap* mVariableMap;
-    FunctionMap* mFunctionMap;
+    Object* mScopeObject;
 
     bool mIsMainScope = false;
 
@@ -39,7 +32,7 @@ public:
     FunctionMap* getFunctionMap();
 
     Value* parseValue(std::string);
-    std::vector<Value*>* parsePluralValue(std::string);
+    ValueList* parsePluralValue(std::string);
     void setAsMainScope();
     void run();
 
@@ -53,7 +46,13 @@ public:
     bool hasFunction(std::string);
     void addFunction(std::string, Function*);
     void removeFunction(std::string);
-    Function* createSystemFunction(std::string, size_t, Value* (*CallbackFunction)(std::vector<Value*>*));
+    Function* createSystemFunction(std::string, FunctionCallback*);
+
+    Object* getObject(std::string);
+    bool hasObject(std::string);
+    void addObject(std::string, Object*);
+    void removeObject(std::string);
+    Object* createObject(std::string);
 };
 
 

@@ -2,6 +2,7 @@
 
 #include <string>
 
+#include "definitions.h"
 #include "options.h"
 #include "stringutils.h"
 
@@ -76,11 +77,25 @@ Value::Value(bool b) {
     this->mBoolValue = b;
 }
 
+Value::Value(int i) {
+    this->mValueType = Value::VALUE_TYPE_INT;
+    this->mFloatValue = (float) i;
+}
+
 Value::Value(float f) {
     this->mValueType = Value::VALUE_TYPE_FLOAT;
     this->mFloatValue = f;
 
     if ((int)(f * 10) % 10 == 0) {
+        this->mValueType = Value::VALUE_TYPE_INT;
+    }
+}
+
+Value::Value(double d) {
+    this->mValueType = Value::VALUE_TYPE_FLOAT;
+    this->mFloatValue = (float) d;
+
+    if ((int)(d * 10) % 10 == 0) {
         this->mValueType = Value::VALUE_TYPE_INT;
     }
 }
@@ -91,6 +106,12 @@ Value::Value(std::string s) {
 }
 
 Value::~Value() {
+    if (this->mValueList != nullptr) {
+        for (auto value : *this->mValueList) {
+            value->unlinkWithValue(this);
+        }
+    }
+
     delete this->mValueList;
     delete this->mLinkedVariableList;
     delete this->mLinkedValueList;
@@ -98,7 +119,7 @@ Value::~Value() {
 
 void Value::linkWithVariable(Variable* variable) {
     if (this->mLinkedVariableList == nullptr) {
-        this->mLinkedVariableList = new std::vector<Variable*>;
+        this->mLinkedVariableList = new VariableList;
     }
 
     this->mLinkedVariableList->push_back(variable);
@@ -120,7 +141,7 @@ void Value::unlinkWithVariable(Variable* variable) {
 
 void Value::linkWithValue(Value* mLinkedValueList) {
     if (this->mLinkedValueList == nullptr) {
-        this->mLinkedValueList = new std::vector<Value*>;
+        this->mLinkedValueList = new ValueList;
     }
 
     this->mLinkedValueList->push_back(mLinkedValueList);
@@ -151,7 +172,9 @@ std::string Value::getAsString(bool printStringCharsToo) {
         }
 
         case Value::VALUE_TYPE_FLOAT: {
-            return std::to_string(this->mFloatValue);
+            std::string str = std::to_string(this->mFloatValue);
+            str.erase(str.find_last_not_of('0') + 1, std::string::npos); // TODO
+            return str;
         }
 
         case Value::VALUE_TYPE_STRING: {
@@ -199,12 +222,6 @@ void Value::deleteIfNotLinked() {
     if ((this->mLinkedVariableList == nullptr || this->mLinkedVariableList->empty()) &&
         (this->mLinkedValueList == nullptr || this->mLinkedValueList->empty())) {
 
-        if (this->mValueList != nullptr) {
-            for (auto value : *this->mValueList) {
-                value->unlinkWithValue(this);
-            }
-        }
-
         delete this;
     }
 }
@@ -213,20 +230,20 @@ void Value::addValue(Value* value) {
     if (this->mValueType != VALUE_TYPE_TUPLE) {
         this->mValueType = VALUE_TYPE_TUPLE;
 
-        this->mValueList = new std::vector<Value*>;
+        this->mValueList = new ValueList;
     }
 
     this->mValueList->push_back(value);
     value->linkWithValue(this);
 }
 
-std::vector<Value*>* Value::getValueList() {
+ValueList* Value::getValueList() {
     return this->mValueList;
 }
 
-std::vector<Value*>* Value::getAsValueList() {
+ValueList* Value::getAsValueList() {
     if (this->mValueType != VALUE_TYPE_TUPLE) {
-        auto valueList = new std::vector<Value*>;
+        auto valueList = new ValueList;
         valueList->push_back(this);
         return valueList;
     }

@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+#include "definitions.h"
+
 class StringUtils {
 public:
     static bool isSpaceLike(char);
@@ -19,7 +21,7 @@ public:
     static std::string ltrim(std::string);
     static std::string rtrim(std::string);
     static std::string trim(std::string);
-    static std::vector<std::string>* split(std::string, std::string);
+    static StringList* split(std::string, std::string);
     static std::string replaceMultipleSpacesWithOne(std::string);
     static std::string replaceMultipleCharsWithOne(std::string, char c);
     static std::string duplicateWithCount(std::string, size_t);

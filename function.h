@@ -4,14 +4,21 @@
 #include <string>
 #include <vector>
 
-class Value;
+#include "definitions.h"
 
 class Function {
-public:
-    virtual size_t getParameterCount();
-    virtual std::string getFunctionName();
-    virtual Value* run(std::vector<Value*>*);
-};
+private:
+    ObjectList* mLinkedObjectList = nullptr;
 
+public:
+    virtual ~Function();
+
+    virtual std::string getFunctionName();
+    virtual Value* run(ValueList*);
+
+    const void linkWithObject(Object*);
+    const void unlinkWithObject(Object*);
+    const void deleteIfNotLinked();
+};
 
 #endif //PILANG_FUNCTION_H

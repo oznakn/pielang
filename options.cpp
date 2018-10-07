@@ -6,7 +6,7 @@ const std::string Options::MULTI_COMMENT_END_STRING = "*/";
 const char Options::EQUALITY_CHAR = '=';
 const std::string Options::CHECK_EQUALITY_STRING = std::string(1, Options::EQUALITY_CHAR) + Options::EQUALITY_CHAR;
 
-const char Options::NUMBER_SEP_CHAR = '.';
+const char Options::DOT_CHAR = '.';
 
 const char Options::STRING_CHAR = '"';
 const char Options::STRING_ESCAPE_CHAR = '\\';

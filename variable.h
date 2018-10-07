@@ -3,12 +3,14 @@
 
 #include <string>
 
-class Value;
+#include "definitions.h"
 
 class Variable {
 private:
     std::string mVariableName;
     Value* mValue;
+
+    ObjectList* mLinkedObjectList = nullptr;
 
 public:
     static bool isValidVariableName(std::string);
@@ -18,6 +20,10 @@ public:
 
     Value* getValue();
     void changeValue(Value*);
+
+    void linkWithObject(Object*);
+    void unlinkWithObject(Object*);
+    void deleteIfNotLinked();
 };
 
 #endif //PILANG_VARIABLE_H

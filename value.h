@@ -4,10 +4,9 @@
 #include <string>
 #include <vector>
 
-typedef size_t ValueType;
+#include "definitions.h"
 
-class Variable;
-class Scope;
+typedef size_t ValueType;
 
 class Value {
 private:
@@ -16,9 +15,10 @@ private:
     std::string mStringValue;
 
     ValueType mValueType = VALUE_TYPE_UNDEFINED;
-    std::vector<Variable*>* mLinkedVariableList = nullptr;
-    std::vector<Value*>* mLinkedValueList = nullptr;
-    std::vector<Value*>* mValueList = nullptr;
+    ValueList* mValueList = nullptr;
+
+    VariableList* mLinkedVariableList = nullptr;
+    ValueList* mLinkedValueList = nullptr;
 
 public:
     const static ValueType VALUE_TYPE_UNDEFINED = 0;
@@ -42,13 +42,14 @@ public:
     Value(bool);
     Value(int);
     Value(float);
+    Value(double);
     Value(std::string);
 
     ~Value();
 
     void addValue(Value*);
-    std::vector<Value*>* getValueList();
-    std::vector<Value*>* getAsValueList();
+    ValueList* getValueList();
+    ValueList* getAsValueList();
 
     void linkWithVariable(Variable*);
     void unlinkWithVariable(Variable*);

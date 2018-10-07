@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 
+#include "definitions.h"
 #include "options.h"
 #include "scope.h"
 #include "value.h"
@@ -21,7 +22,7 @@ UserFunction::UserFunction(std::string outerContent, Scope *inheritedScope) {
     std::string parametersString = StringUtils::trim(StringUtils::substring(outerContent, firstParametersContentIndex, firstFunctionContentIndex));
     parametersString = StringUtils::trim(StringUtils::substring(parametersString, 1, parametersString.length() - 1));
 
-    std::vector<std::string>* parameterList = StringUtils::split(parametersString, ",");
+    StringList* parameterList = StringUtils::split(parametersString, ",");
 
     for (size_t i = 0; i < parameterList->size(); i++) {
         parameterList->at(i) = StringUtils::trim(parameterList->at(i));
@@ -34,7 +35,7 @@ UserFunction::UserFunction(std::string outerContent, Scope *inheritedScope) {
     this->init(content, functionName, parameterList, inheritedScope);
 }
 
-UserFunction::UserFunction(std::string content, std::string functionName, std::vector<std::string>* parameterList, Scope *inheritedScope) {
+UserFunction::UserFunction(std::string content, std::string functionName, StringList* parameterList, Scope *inheritedScope) {
     this->init(content, functionName, parameterList, inheritedScope);
 }
 
@@ -42,7 +43,7 @@ UserFunction::~UserFunction() {
     delete this->mParameterList;
 }
 
-void UserFunction::init(std::string content, std::string functionName, std::vector<std::string>* parameterList, Scope *inheritedScope) {
+void UserFunction::init(std::string content, std::string functionName, StringList* parameterList, Scope *inheritedScope) {
     this->mContent = content;
     this->mFunctionName = functionName;
     this->mParameterList = parameterList;
@@ -54,7 +55,7 @@ std::string UserFunction::getFunctionName() {
     return this->mFunctionName;
 }
 
-Value* UserFunction::run(std::vector<Value*>* argumentList) {
+Value* UserFunction::run(ValueList* argumentList) {
     for (size_t i = 0; i < argumentList->size(); i++) {
         auto variableName = this->mParameterList->at(i);
         this->mScope->addVariable(variableName, new Variable(variableName, argumentList->at(i)));
@@ -67,8 +68,4 @@ Value* UserFunction::run(std::vector<Value*>* argumentList) {
     }
 
     return nullptr;
-}
-
-size_t UserFunction::getParameterCount() {
-    return this->mParameterList->size();
 }

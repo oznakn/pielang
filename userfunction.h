@@ -4,29 +4,25 @@
 #include <string>
 #include <vector>
 
+#include "definitions.h"
 #include "function.h"
-
-class Scope;
-class Value;
-class Function;
 
 class UserFunction : public Function {
 private:
     std::string mFunctionName;
     std::string mContent;
     Scope* mScope;
-    std::vector<std::string>* mParameterList;
+    StringList* mParameterList;
 
-    void init(std::string, std::string, std::vector<std::string>*, Scope*);
+    void init(std::string, std::string, StringList*, Scope*);
 
 public:
     UserFunction(std::string, Scope*);
-    UserFunction(std::string, std::string, std::vector<std::string>*, Scope*);
+    UserFunction(std::string, std::string, StringList*, Scope*);
     ~UserFunction();
 
     std::string getFunctionName();
-    Value* run(std::vector<Value*>*);
-    size_t getParameterCount();
+    Value* run(ValueList*);
 };
 
 #endif //PILANG_USERFUNCTION_H

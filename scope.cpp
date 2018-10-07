@@ -4,6 +4,7 @@
 #include <string>
 #include <unordered_map>
 
+#include "definitions.h"
 #include "options.h"
 #include "stringutils.h"
 #include "utils.h"
@@ -13,6 +14,7 @@
 #include "userfunction.h"
 #include "variable.h"
 #include "value.h"
+#include "object.h"
 #include "expression.h"
 #include "system.h"
 #include "systemfunction.h"
@@ -22,8 +24,7 @@ Scope::Scope(std::string content) : Scope(content, nullptr) {}
 Scope::Scope(std::string content, Scope* inheritedScope) {
     this->mContent = content;
 
-    this->mVariableMap = new VariableMap;
-    this->mFunctionMap = new FunctionMap;
+    this->mScopeObject = new Object("__main__");
 
     if (inheritedScope != nullptr) {
         this->mInheritedScope = inheritedScope;
@@ -31,25 +32,15 @@ Scope::Scope(std::string content, Scope* inheritedScope) {
 }
 
 Scope::~Scope() {
-    for (std::pair<std::string, Variable*> element : *this->mVariableMap) {
-        delete element.second;
-    }
-
-    for (std::pair<std::string, Function*> element : *this->mFunctionMap) {
-        delete element.second;
-    }
-
-    // delete &this->mContent;
-    delete this->mVariableMap;
-    delete this->mFunctionMap;
+    delete this->mScopeObject;
 }
 
 VariableMap* Scope::getVariableMap() {
-    return this->mVariableMap;
+    return this->mScopeObject->getVariableMap();
 }
 
 FunctionMap* Scope::getFunctionMap() {
-    return this->mFunctionMap;
+    return this->mScopeObject->getFunctionMap();
 }
 
 void Scope::setAsMainScope() {
@@ -154,7 +145,7 @@ void Scope::findAndReplaceFirstFunction(size_t startIndex) {
 
     auto function = new UserFunction(StringUtils::substring(this->mContent, startIndex, endBlockIndex), this);
 
-    this->mFunctionMap->insert(make_pair(function->getFunctionName(), function));
+    this->mScopeObject->addFunction(function->getFunctionName(), function);
 
     this->mContent = StringUtils::replaceMiddle(this->mContent, "", startIndex, endBlockIndex + 1); // 1 => END_BLOCK_CHAR
 }
@@ -216,7 +207,7 @@ void Scope::run() {
 }
 
 bool Scope::hasVariable(std::string variableName) {
-    return (this->mInheritedScope != nullptr && this->mInheritedScope->getVariableMap()->find(variableName) != this->mInheritedScope->getVariableMap()->end()) || this->mVariableMap->find(variableName) != this->mVariableMap->end();
+    return (this->mInheritedScope != nullptr && this->mInheritedScope->hasVariable(variableName)) || this->mScopeObject->hasVariable(variableName);
 }
 
 Variable* Scope::getVariable(std::string variableName) {
@@ -224,34 +215,24 @@ Variable* Scope::getVariable(std::string variableName) {
         return this->mInheritedScope->getVariableMap()->at(variableName);
     }
 
-    return this->mVariableMap->at(variableName);
+    return this->mScopeObject->getVariable(variableName);
 }
 
 void Scope::addVariable(std::string variableName, Variable* variable) {
-    this->mVariableMap->insert(std::make_pair(variableName, variable));
+    this->mScopeObject->addVariable(variableName, variable);
 }
 
 void Scope::removeVariable(std::string variableName) {
-    if (this->mVariableMap->find(variableName) != this->mVariableMap->end()) {
-        Variable* variable = this->mVariableMap->at(variableName);
-
-        this->mVariableMap->erase(variableName);
-
-        delete variable;
-    }
+    this->mScopeObject->removeVariable(variableName);
 }
 
 Variable* Scope::createVariable(std::string variableName, Value* value) {
-    auto variable = new Variable(variableName, value);
-
-    this->addVariable(variableName, variable);
-
-    return variable;
+    return this->mScopeObject->createVariable(variableName, value);
 }
 
 bool Scope::hasFunction(std::string functionName) {
-    return (this->mInheritedScope != nullptr && this->mInheritedScope->getFunctionMap()->find(functionName) != this->mInheritedScope->getFunctionMap()->end()) ||
-            (this->mFunctionMap->find(functionName) != this->mFunctionMap->end());
+    return (this->mInheritedScope != nullptr && this->mInheritedScope->hasFunction(functionName)) ||
+            (this->mScopeObject->hasFunction(functionName));
 }
 
 Function* Scope::getFunction(std::string functionName) {
@@ -259,25 +240,40 @@ Function* Scope::getFunction(std::string functionName) {
         return this->mInheritedScope->getFunctionMap()->at(functionName);
     }
 
-    return this->mFunctionMap->at(functionName);
+    return this->mScopeObject->getFunction(functionName);
 }
 
 void Scope::addFunction(std::string functionName, Function* function) {
-    this->mFunctionMap->insert(std::make_pair(functionName, function));
+    this->mScopeObject->addFunction(functionName, function);
 }
 
 void Scope::removeFunction(std::string functionName) {
-    if (this->mFunctionMap->find(functionName) != this->mFunctionMap->end()) {
-        Function* function = this->mFunctionMap->at(functionName);
+   this->mScopeObject->removeFunction(functionName);
+}
 
-        this->mFunctionMap->erase(functionName);
+Function* Scope::createSystemFunction(std::string functionName, FunctionCallback* functionCallback) {
+    return this->mScopeObject->createSystemFunction(functionName, functionCallback);
+}
 
-        delete function;
+Object* Scope::getObject(std::string objectName) {
+    return this->mScopeObject->getObject(objectName);
+}
+
+bool Scope::hasObject(std::string objectName) {
+    return this->mScopeObject->hasObject(objectName);
+}
+
+void Scope::addObject(std::string objectName, Object* object) {
+    this->mScopeObject->addObject(objectName, object);
+}
+
+void Scope::removeObject(std::string objectName) {
+    if (this->hasObject(objectName)) {
+        this->mScopeObject->removeObject(objectName);
     }
 }
 
-Function* Scope::createSystemFunction(std::string functionName, size_t parameterCount, Value *(*callbackFunction)(std::vector<Value *>*)) {
-    auto systemFunction = new SystemFunction(functionName, parameterCount, callbackFunction);
-    this->addFunction(functionName, systemFunction);
-    return systemFunction;
+Object* Scope::createObject(std::string objectName) {
+    return this->mScopeObject->createObject(objectName);
 }
+

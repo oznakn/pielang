@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 
+#include "definitions.h"
 #include "options.h"
 #include "stringutils.h"
 #include "value.h"

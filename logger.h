@@ -5,6 +5,8 @@
 #include <ctime>
 #include <unordered_map>
 
+#include "definitions.h"
+
 class Logger {
 private:
     static std::unordered_map<std::string, clock_t>* timeMap;

@@ -6,44 +6,51 @@
 #include <cmath>
 #include <ctime>
 
+#include "definitions.h"
 #include "value.h"
 #include "variable.h"
+#include "object.h"
 #include "scope.h"
 #include "logger.h"
 #include "systemfunction.h"
 
-Value* printCallback(std::vector<Value*>* arguments) {
+Value* importCallback(ValueList* arguments) {
+    Logger::println("Imported: " + arguments->at(0)->getAsString());
+    return new Value();
+}
+
+Value* printCallback(ValueList* arguments) {
     Logger::print(arguments->at(0)->getAsString());
     return new Value();
 }
 
-Value* printlnCallback(std::vector<Value*>* arguments) {
+Value* printlnCallback(ValueList* arguments) {
     Logger::println(arguments->at(0)->getAsString());
     return new Value();
 }
 
-Value* getTimeCallback(std::vector<Value*>* arguments) {
-    return new Value((float)((clock()*1000)/CLOCKS_PER_SEC));
+Value* getTimeCallback(ValueList* arguments) {
+    return new Value(((float)(clock()*1000)/CLOCKS_PER_SEC));
 }
 
-Value* sinCallback(std::vector<Value*>* arguments) {
-    return new Value((float)(sin(arguments->at(0)->getFloatValue())));
+Value* sinCallback(ValueList* arguments) {
+    return new Value((float)(sin((double) arguments->at(0)->getFloatValue())));
 }
 
-Value* cosCallback(std::vector<Value*>* arguments) {
-    return new Value((float)(cos(arguments->at(0)->getFloatValue())));
+Value* cosCallback(ValueList* arguments) {
+    return new Value((float)(cos((double) arguments->at(0)->getFloatValue())));
 
 }
 
-Value* tanCallback(std::vector<Value*>* arguments) {
-    return new Value((float)(tan(arguments->at(0)->getFloatValue())));
+Value* tanCallback(ValueList* arguments) {
+    return new Value((float)(tan((double) arguments->at(0)->getFloatValue())));
 }
 
-Value* cotCallback(std::vector<Value*>* arguments) {
-    return new Value((float)(1/ tan(arguments->at(0)->getFloatValue())));
+Value* cotCallback(ValueList* arguments) {
+    return new Value((float)(1/ tan((double) arguments->at(0)->getFloatValue())));
 }
 
-Value* nNumberCallback(std::vector<Value*>* arguments) {
+Value* nNumberCallback(ValueList* arguments) {
     float value = arguments->at(0)->getFloatValue();
     int sfCount = arguments->at(1)->getIntValue();
 
@@ -53,15 +60,21 @@ Value* nNumberCallback(std::vector<Value*>* arguments) {
     return new Value(value);
 }
 
-void System::init(Scope* mainScope) {
-    mainScope->createSystemFunction("print", 1, printCallback);
-    mainScope->createSystemFunction("println", 1, printlnCallback);
-    mainScope->createSystemFunction("get_time", 0, getTimeCallback);
-    mainScope->createSystemFunction("sin", 1, sinCallback);
-    mainScope->createSystemFunction("cos", 1, cosCallback);
-    mainScope->createSystemFunction("tan", 1, tanCallback);
-    mainScope->createSystemFunction("cot", 1, cotCallback);
-    mainScope->createSystemFunction("n_number", 2, nNumberCallback);
+Scope* System::mainScope = nullptr;
 
-    mainScope->addVariable("PI", new Variable("PI", new Value((float)3.14)));
+void System::init(Scope* mainScope) {
+    System::mainScope = mainScope;
+
+    mainScope->createSystemFunction("import",  importCallback);
+    mainScope->createSystemFunction("print",  printCallback);
+    mainScope->createSystemFunction("println",  printlnCallback);
+    mainScope->createSystemFunction("get_time", getTimeCallback);
+    mainScope->createSystemFunction("n_number", nNumberCallback);
+
+    Object* mathObject = mainScope->createObject("math");
+    mathObject->createVariable("PI", new Value(3.14f));
+    mathObject->createSystemFunction("sin", sinCallback);
+    mathObject->createSystemFunction("cos", cosCallback);
+    mathObject->createSystemFunction("tan", tanCallback);
+    mathObject->createSystemFunction("cot", cotCallback);
 }

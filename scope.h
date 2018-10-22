@@ -1,5 +1,5 @@
-#ifndef PILANG_SCOPE_H
-#define PILANG_SCOPE_H
+#ifndef PIELANG_SCOPE_H
+#define PIELANG_SCOPE_H
 
 #include <string>
 #include <vector>
@@ -61,4 +61,4 @@ public:
 };
 
 
-#endif // PILANG_SCOPE_H
+#endif // PIELANG_SCOPE_H

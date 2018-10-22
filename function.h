@@ -1,5 +1,5 @@
-#ifndef PILANG_FUNCTION_H
-#define PILANG_FUNCTION_H
+#ifndef PIELANG_FUNCTION_H
+#define PIELANG_FUNCTION_H
 
 #include <string>
 #include <vector>
@@ -21,4 +21,4 @@ public:
     const void deleteIfNotLinked();
 };
 
-#endif //PILANG_FUNCTION_H
+#endif //PIELANG_FUNCTION_H

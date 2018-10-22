@@ -1,5 +1,5 @@
-#ifndef PILANG_LOGGER_H
-#define PILANG_LOGGER_H
+#ifndef PIELANG_LOGGER_H
+#define PIELANG_LOGGER_H
 
 #include <string>
 #include <ctime>
@@ -21,4 +21,4 @@ public:
 };
 
 
-#endif //PILANG_LOGGER_H
+#endif //PIELANG_LOGGER_H

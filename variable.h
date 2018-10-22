@@ -1,5 +1,5 @@
-#ifndef PILANG_VARIABLE_H
-#define PILANG_VARIABLE_H
+#ifndef PIELANG_VARIABLE_H
+#define PIELANG_VARIABLE_H
 
 #include <string>
 
@@ -26,4 +26,4 @@ public:
     void deleteIfNotLinked();
 };
 
-#endif //PILANG_VARIABLE_H
+#endif //PIELANG_VARIABLE_H

@@ -132,12 +132,12 @@ Variable* Object::createVariable(std::string variableName, Value* value) {
 }
 
 Function* Object::getFunction(std::string functionName) {
-    return this->getWorkingObject(functionName)->mFunctionMap->at(functionName);
+    return this->getWorkingObject(functionName)->mFunctionMap->at(this->getRealNameFromDotNotation(functionName));
 }
 
 bool Object::hasFunction(std::string functionName) {
     auto workingObject = this->getWorkingObject(functionName);
-    return workingObject->mFunctionMap->find(functionName) != workingObject->mFunctionMap->end();
+    return workingObject->mFunctionMap->find(this->getRealNameFromDotNotation(functionName)) != workingObject->mFunctionMap->end();
 }
 
 void Object::addFunction(std::string functionName, Function* function) {

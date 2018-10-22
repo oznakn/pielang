@@ -1,6 +1,6 @@
 /**
  * @author Ozan Akın
- * Pilang Interpretter
+ * PieLang Interpretter
  */
 
 #include <iostream>
@@ -17,8 +17,7 @@
 
 std::string readFile(std::string & fileName) {
     std::ifstream in(fileName, std::ios::in | std::ios::binary);
-    if (in)
-    {
+    if (in) {
         std::string contents;
         in.seekg(0, std::ios::end);
         contents.resize(in.tellg());
@@ -45,10 +44,8 @@ std::string findWorkingDir() {
 int main() {
     Logger::startTimer("Program");
 
-    std::string fileName = findWorkingDir() + "index.pi";
+    std::string fileName = findWorkingDir() + "index.pie";
     std::string fileContent = readFile(fileName);
-
-
 
     Scope* scope = new Scope(fileContent);
     scope->setAsMainScope();

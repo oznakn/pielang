@@ -1,5 +1,7 @@
 #include "system.h"
 
+#define PI 3.141592653589793238462643383279502884f
+
 #include <string>
 #include <vector>
 #include <unordered_map>
@@ -15,6 +17,10 @@
 #include "systemfunction.h"
 
 Scope* System::mainScope = nullptr;
+
+float radianToDegree(float f) {
+    return f * PI / 180;
+}
 
 void System::init(Scope* mainScope) {
     System::mainScope = mainScope;
@@ -70,22 +76,30 @@ void System::init(Scope* mainScope) {
 
 
     Object* mathObject = mainScope->createObject("math");
-    mathObject->createVariable("PI", new Value(3.14f));
+    mathObject->createVariable("PI", new Value(PI));
+
+    mathObject->createSystemFunction("radian_to_degree", [](ValueList* arguments) {
+        return new Value(radianToDegree(arguments->at(0)->getFloatValue()));
+    });
+
+    mathObject->createSystemFunction("sqrt", [](ValueList* arguments) {
+        return new Value(sqrt(arguments->at(0)->getFloatValue()));
+    });
 
     mathObject->createSystemFunction("sin", [](ValueList* arguments) {
-        return new Value((float)(sin((double) arguments->at(0)->getFloatValue())));
+        return new Value(sin(radianToDegree(arguments->at(0)->getFloatValue())));
     });
 
     mathObject->createSystemFunction("cos", [](ValueList* arguments) {
-        return new Value((float)(cos((double) arguments->at(0)->getFloatValue())));
+        return new Value(cos(radianToDegree(arguments->at(0)->getFloatValue())));
     });
 
     mathObject->createSystemFunction("tan", [](ValueList* arguments) {
-        return new Value((float)(tan((double) arguments->at(0)->getFloatValue())));
+        return new Value(tan(radianToDegree(arguments->at(0)->getFloatValue())));
     });
 
     mathObject->createSystemFunction("cot", [](ValueList* arguments) {
-        return new Value((float)(1/ tan((double) arguments->at(0)->getFloatValue())));
+        return new Value(1 / tan(radianToDegree(arguments->at(0)->getFloatValue())));
     });
 }
 

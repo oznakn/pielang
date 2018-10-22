@@ -1,5 +1,5 @@
-#ifndef PILANG_UTILS_H
-#define PILANG_UTILS_H
+#ifndef PIELANG_UTILS_H
+#define PIELANG_UTILS_H
 
 #include <string>
 #include <vector>
@@ -12,4 +12,4 @@ public:
     static size_t findStringInVector(StringList*, std::string);
 };
 
-#endif //PILANG_UTILS_H
+#endif //PIELANG_UTILS_H

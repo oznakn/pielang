@@ -1,5 +1,5 @@
-#ifndef PILANG_OPTIONS_H
-#define PILANG_OPTIONS_H
+#ifndef PIELANG_OPTIONS_H
+#define PIELANG_OPTIONS_H
 
 #include <string>
 #include <vector>
@@ -36,4 +36,4 @@ struct Options {
     const static std::string BOOL_FALSE_STRING;
 };
 
-#endif //PILANG_OPTIONS_H
+#endif //PIELANG_OPTIONS_H

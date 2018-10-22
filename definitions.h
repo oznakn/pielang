@@ -1,5 +1,5 @@
-#ifndef PILANG_DEFINITIONS_H
-#define PILANG_DEFINITIONS_H
+#ifndef PIELANG_DEFINITIONS_H
+#define PIELANG_DEFINITIONS_H
 
 #include <string>
 #include <vector>
@@ -28,4 +28,4 @@ typedef std::unordered_map<std::string, Object*> ObjectMap;
 
 typedef std::function<Value*(ValueList*)> FunctionCallback;
 
-#endif //PILANG_DEFINITIONS_H
+#endif //PIELANG_DEFINITIONS_H

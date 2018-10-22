@@ -113,7 +113,7 @@ bool Expression::isPartOfOperator(std::string s) { // no need if there is one ch
 void Expression::runOnToken(std::string token, bool isUnary) {
     if (Expression::isOperator(token)) {
         while(!this->mOperatorStack->empty() &&
-              !Expression::isUnaryOperator(token) && // not an unary operator
+              !isUnary && // not an unary operator
               this->mOperatorStack->at(0) != Options::START_PARENTHESIS_STRING &&
               (
                       !Expression::isOperator(this->mOperatorStack->at(0)) ||

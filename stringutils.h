@@ -1,5 +1,5 @@
-#ifndef PILANG_STRINGUTILS_H
-#define PILANG_STRINGUTILS_H
+#ifndef PIELANG_STRINGUTILS_H
+#define PIELANG_STRINGUTILS_H
 
 #include <string>
 #include <vector>
@@ -28,4 +28,4 @@ public:
 };
 
 
-#endif //PILANG_STRINGUTILS_H
+#endif //PIELANG_STRINGUTILS_H

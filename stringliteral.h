@@ -1,5 +1,5 @@
-#ifndef PILANG_STRINGLITERAL_H
-#define PILANG_STRINGLITERAL_H
+#ifndef PIELANG_STRINGLITERAL_H
+#define PIELANG_STRINGLITERAL_H
 
 #include <string>
 #include <vector>
@@ -24,4 +24,4 @@ public:
     std::string getAsString();
 };
 
-#endif //PILANG_STRINGLITERAL_H
+#endif //PIELANG_STRINGLITERAL_H

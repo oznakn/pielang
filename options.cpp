@@ -23,7 +23,7 @@ const std::string Options::END_OF_LINE_WITH_OPTIONAL_CHAR = Options::END_OF_LINE
 const std::string Options::WINDOWS_END_OF_LINE_WITH_OPTIONAL_CHAR = Options::END_OF_LINE_OPTIONAL_CHAR_AS_STRING + Options::WINDOWS_END_OF_LINE;
 const std::string Options::CLASSIC_MAC_END_OF_LINE_WITH_OPTIONAL_CHAR = Options::END_OF_LINE_OPTIONAL_CHAR_AS_STRING + Options::CLASSIC_MAC_END_OF_LINE;
 
-const std::string Options::FUNCTION_WORD_STRING = "define";
+const std::string Options::FUNCTION_WORD_STRING = "def";
 
 const char Options::START_PARENTHESIS_CHAR = '(';
 const char Options::END_PARENTHESIS_CHAR = ')';

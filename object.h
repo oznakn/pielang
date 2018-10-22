@@ -1,5 +1,5 @@
-#ifndef PILANG_OBJECT_H
-#define PILANG_OBJECT_H
+#ifndef PIELANG_OBJECT_H
+#define PIELANG_OBJECT_H
 
 #include <string>
 
@@ -50,4 +50,4 @@ public:
 };
 
 
-#endif //PILANG_OBJECT_H
+#endif //PIELANG_OBJECT_H

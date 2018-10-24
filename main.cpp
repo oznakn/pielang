@@ -11,6 +11,7 @@
 #include "system.h"
 #include "scope.h"
 #include "operation.h"
+#include "shell.h"
 #include "operator.h"
 #include "value.h"
 #include "variable.h"
@@ -45,11 +46,13 @@ std::string findWorkingDir() {
 
 int main() {
     Logger::startTimer("Program");
-
-    std::string fileName = findWorkingDir() + "index.pie";
-    std::string fileContent = readFile(fileName);
-
+    
     Operator::init();
+
+    Shell::start();
+ 
+    /* std::string fileName = findWorkingDir() + "index.pie";
+    std::string fileContent = readFile(fileName);
 
     Scope* scope = new Scope(fileContent);
     scope->setAsMainScope();
@@ -57,7 +60,7 @@ int main() {
 
     scope->run();
 
-    delete scope;
+    delete scope; */
 
     std::cout << std::endl;
     Logger::endTimer("Program");

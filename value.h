@@ -13,6 +13,7 @@ private:
     bool mBoolValue;
     float mFloatValue;
     std::string mStringValue;
+    std::string mRepresentation;
 
     ValueType mValueType = VALUE_TYPE_UNDEFINED;
     ValueList* mValueList = nullptr;
@@ -52,6 +53,9 @@ public:
     void addValue(Value*);
     ValueList* getValueList();
     ValueList* getAsValueList();
+
+    void setRepresentation(std::string);
+    std::string getRepresentation();
 
     void linkWithVariable(Variable*);
     void unlinkWithVariable(Variable*);

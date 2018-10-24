@@ -1,1 +1,1 @@
-print(sabalak (100 * math.sin(30), "merhaba"))
+print sum 30

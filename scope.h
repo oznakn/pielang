@@ -38,6 +38,7 @@ public:
     VariableMap* getVariableMap();
     FunctionMap* getFunctionMap();
 
+    bool isValueParseable(std::string);
     Value* parseValue(std::string);
     ValueList* parsePluralValue(std::string);
     void setAsMainScope();

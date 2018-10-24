@@ -29,5 +29,5 @@ Operation::~Operation() {
 }
 
 Value* Operation::run() {
-    return this->mOperator->run(this->mFirstValue, this->mSecondValue);
+    return this->mOperator->run(this->mScope, this->mFirstValue, this->mSecondValue);
 }

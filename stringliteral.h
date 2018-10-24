@@ -12,6 +12,7 @@ private:
 
     std::string mString;
     size_t mIndex;
+    Value* mValue;
 
 public:
     static bool isValidStringLiteral(std::string);

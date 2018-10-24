@@ -31,7 +31,7 @@ public:
     static Operator* getOperatorFromPartOfOperatorStringWithOperatorType(std::string, OperatorType);
 
     Operator(OperatorType, OperatorAssociativeType, OperatorPrecedence, std::string, OperatorFunctionCallback);
-    Value* run(Value*, Value*);
+    Value* run(Scope*, Value*, Value*);
 
     std::string getOperatorString();
     OperatorType getOperatorType();

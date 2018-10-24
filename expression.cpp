@@ -67,25 +67,25 @@ bool Expression::isOperator(std::string s) {
     return Operator::getOperatorFromOperatorString(s) != nullptr;
 }
 
-bool Expression::isPartOfOperator(std::string s) { // no need if there is one char operator
+bool Expression::isPartOfOperator(std::string s) {
     return Operator::getOperatorFromPartOfOperatorString(s) != nullptr;
 }
 
 // Shunting-yard algorithm
 void Expression::runOnToken(std::string token, bool isUnary) {
     if (Expression::isOperator(token)) {
-        while(!this->mOperatorStack->empty() &&
-              !isUnary && // not an unary operator
+        if (!isUnary ) { // not a unary operator
+            while(!this->mOperatorStack->empty() &&
               this->mOperatorStack->at(0) != Options::START_PARENTHESIS_STRING &&
               (
                       !Expression::isOperator(this->mOperatorStack->at(0)) ||
                       Expression::getOperatorPrecedence(this->mOperatorStack->at(0)) > Expression::getOperatorPrecedence(token) ||
                       (Expression::getOperatorPrecedence(this->mOperatorStack->at(0)) == Expression::getOperatorPrecedence(token) && Expression::getOperatorAssociativeType(token) > 0)
-              )
-                ) {
+              )) {
 
-            this->mOutputStack->push_back(this->mOperatorStack->at(0));
-            this->mOperatorStack->erase(this->mOperatorStack->begin());
+                this->mOutputStack->push_back(this->mOperatorStack->at(0));
+                this->mOperatorStack->erase(this->mOperatorStack->begin());
+            }
         }
 
         if (isUnary) token = '.' + token; // TODO
@@ -106,6 +106,10 @@ void Expression::runOnToken(std::string token, bool isUnary) {
         this->mOperatorStack->erase(this->mOperatorStack->begin());
     }
     else {
+        if (!this->mScope->isValueParseable(token)) {
+            Logger::debug("Expression", "undefined: " + token);
+        }
+
         this->mOutputStack->push_back(token);
 
         if (!this->mOperatorStack->empty() && this->mOperatorStack->at(0).at(0) == '.') { // means unary operator
@@ -162,6 +166,10 @@ Value* Expression::run() {
 
     delete this->mOperatorStack;
 
+    for (auto item : *this->mOutputStack) {
+        Logger::debug("Expression OutputStack", item);
+    }
+
     // Reverse Polish Notation
     auto stack = new ValueList;
     for(std::string s : *this->mOutputStack) {
@@ -200,7 +208,7 @@ Value* Expression::run() {
             stack->push_back(this->mScope->parseValue(s));
         }
     }
-
+    
     delete this->mOutputStack;
 
     if (stack->empty()) {

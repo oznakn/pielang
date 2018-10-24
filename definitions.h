@@ -27,7 +27,7 @@ typedef std::unordered_map<std::string, Function*> FunctionMap;
 typedef std::unordered_map<std::string, Object*> ObjectMap;
 
 typedef std::function<Value*(ValueList*)> FunctionCallback;
-typedef std::function<Value*(Value*, Value*)> OperatorFunctionCallback;
+typedef std::function<Value*(Scope*, Value*, Value*)> OperatorFunctionCallback;
 
 typedef size_t OperatorType;
 typedef size_t OperatorAssociativeType;

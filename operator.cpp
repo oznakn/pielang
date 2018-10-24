@@ -6,6 +6,9 @@
 
 #include "definitions.h"
 #include "value.h"
+#include "scope.h"
+#include "variable.h"
+#include "logger.h"
 #include "stringutils.h"
 
 std::vector<Operator*>* Operator::operatorList = new std::vector<Operator*>;
@@ -60,7 +63,7 @@ void Operator::init() {
             Operator::OPERATOR_ASSOCIATIVE_TYPE_RIGHT,
             9,
             "^",
-            [](Value* firstValue, Value* secondValue) {
+            [](Scope* scope, Value* firstValue, Value* secondValue) {
                 if ((firstValue->getValueType() == Value::VALUE_TYPE_INT || firstValue->getValueType() == Value::VALUE_TYPE_FLOAT) &&
                     (secondValue->getValueType() == Value::VALUE_TYPE_INT || secondValue->getValueType() == Value::VALUE_TYPE_FLOAT)) {
                     return new Value(std::pow(firstValue->getFloatValue(), secondValue->getFloatValue()));
@@ -74,7 +77,7 @@ void Operator::init() {
             Operator::OPERATOR_ASSOCIATIVE_TYPE_LEFT,
             8,
             "*",
-            [](Value* firstValue, Value* secondValue) {
+            [](Scope* scope, Value* firstValue, Value* secondValue) {
                 if ((firstValue->getValueType() == Value::VALUE_TYPE_INT || firstValue->getValueType() == Value::VALUE_TYPE_FLOAT) &&
                     (secondValue->getValueType() == Value::VALUE_TYPE_INT || secondValue->getValueType() == Value::VALUE_TYPE_FLOAT)) {
                     return new Value(firstValue->getFloatValue() * secondValue->getFloatValue());
@@ -88,7 +91,7 @@ void Operator::init() {
             Operator::OPERATOR_ASSOCIATIVE_TYPE_LEFT,
             8,
             "/",
-            [](Value* firstValue, Value* secondValue) {
+            [](Scope* scope, Value* firstValue, Value* secondValue) {
                 if ((firstValue->getValueType() == Value::VALUE_TYPE_INT || firstValue->getValueType() == Value::VALUE_TYPE_FLOAT) &&
                     (secondValue->getValueType() == Value::VALUE_TYPE_INT || secondValue->getValueType() == Value::VALUE_TYPE_FLOAT)) {
                     return new Value(firstValue->getFloatValue() / secondValue->getFloatValue());
@@ -101,7 +104,8 @@ void Operator::init() {
             Operator::OPERATOR_TYPE_BINARY,
             Operator::OPERATOR_ASSOCIATIVE_TYPE_LEFT,
             8,
-            "%", [](Value* firstValue, Value* secondValue) {
+            "%", 
+            [](Scope* scope, Value* firstValue, Value* secondValue) {
                 if ((firstValue->getValueType() == Value::VALUE_TYPE_INT) &&
                     (secondValue->getValueType() == Value::VALUE_TYPE_INT)) {
                     return new Value((float) (firstValue->getIntValue() % secondValue->getIntValue()));
@@ -114,7 +118,8 @@ void Operator::init() {
             Operator::OPERATOR_TYPE_BINARY,
             Operator::OPERATOR_ASSOCIATIVE_TYPE_LEFT,
             7,
-            "+", [](Value* firstValue, Value* secondValue) {
+            "+", 
+            [](Scope* scope, Value* firstValue, Value* secondValue) {
                 if ((firstValue->getValueType() == Value::VALUE_TYPE_INT || firstValue->getValueType() == Value::VALUE_TYPE_FLOAT) &&
                     (secondValue->getValueType() == Value::VALUE_TYPE_INT || secondValue->getValueType() == Value::VALUE_TYPE_FLOAT)) {
                     return new Value(firstValue->getFloatValue() + secondValue->getFloatValue());
@@ -128,7 +133,7 @@ void Operator::init() {
             Operator::OPERATOR_ASSOCIATIVE_TYPE_LEFT,
             7,
             "-",
-            [](Value* firstValue, Value* secondValue) {
+            [](Scope* scope, Value* firstValue, Value* secondValue) {
                 if ((firstValue->getValueType() == Value::VALUE_TYPE_INT || firstValue->getValueType() == Value::VALUE_TYPE_FLOAT) &&
                     (secondValue->getValueType() == Value::VALUE_TYPE_INT || secondValue->getValueType() == Value::VALUE_TYPE_FLOAT)) {
                     return new Value(firstValue->getFloatValue() - secondValue->getFloatValue());
@@ -142,7 +147,7 @@ void Operator::init() {
             Operator::OPERATOR_ASSOCIATIVE_TYPE_LEFT,
             6,
             "<",
-            [](Value* firstValue, Value* secondValue) {
+            [](Scope* scope, Value* firstValue, Value* secondValue) {
                 if ((firstValue->getValueType() == Value::VALUE_TYPE_INT || firstValue->getValueType() == Value::VALUE_TYPE_FLOAT) &&
                     (secondValue->getValueType() == Value::VALUE_TYPE_INT || secondValue->getValueType() == Value::VALUE_TYPE_FLOAT)) {
                     return new Value(firstValue->getFloatValue() < secondValue->getFloatValue());
@@ -155,8 +160,8 @@ void Operator::init() {
             Operator::OPERATOR_TYPE_BINARY,
             Operator::OPERATOR_ASSOCIATIVE_TYPE_LEFT,
             6,
-            "<="
-            , [](Value* firstValue, Value* secondValue) {
+            "<=",
+            [](Scope* scope, Value* firstValue, Value* secondValue) {
                 if ((firstValue->getValueType() == Value::VALUE_TYPE_INT || firstValue->getValueType() == Value::VALUE_TYPE_FLOAT) &&
                     (secondValue->getValueType() == Value::VALUE_TYPE_INT || secondValue->getValueType() == Value::VALUE_TYPE_FLOAT)) {
                     return new Value(firstValue->getFloatValue() <= secondValue->getFloatValue());
@@ -169,7 +174,8 @@ void Operator::init() {
             Operator::OPERATOR_TYPE_BINARY,
             Operator::OPERATOR_ASSOCIATIVE_TYPE_LEFT,
             6,
-            ">", [](Value* firstValue, Value* secondValue) {
+            ">", 
+            [](Scope* scope, Value* firstValue, Value* secondValue) {
                 if ((firstValue->getValueType() == Value::VALUE_TYPE_INT || firstValue->getValueType() == Value::VALUE_TYPE_FLOAT) &&
                     (secondValue->getValueType() == Value::VALUE_TYPE_INT || secondValue->getValueType() == Value::VALUE_TYPE_FLOAT)) {
                     return new Value(firstValue->getFloatValue() > secondValue->getFloatValue());
@@ -184,7 +190,7 @@ void Operator::init() {
             Operator::OPERATOR_ASSOCIATIVE_TYPE_LEFT,
             6,
             ">=",
-            [](Value* firstValue, Value* secondValue) {
+            [](Scope* scope, Value* firstValue, Value* secondValue) {
                 if ((firstValue->getValueType() == Value::VALUE_TYPE_INT || firstValue->getValueType() == Value::VALUE_TYPE_FLOAT) &&
                     (secondValue->getValueType() == Value::VALUE_TYPE_INT || secondValue->getValueType() == Value::VALUE_TYPE_FLOAT)) {
                     return new Value(firstValue->getFloatValue() >= secondValue->getFloatValue());
@@ -198,7 +204,7 @@ void Operator::init() {
             Operator::OPERATOR_ASSOCIATIVE_TYPE_LEFT,
             5,
             "==",
-            [](Value* firstValue, Value* secondValue) {
+            [](Scope* scope, Value* firstValue, Value* secondValue) {
                 if ((firstValue->getValueType() == Value::VALUE_TYPE_INT || firstValue->getValueType() == Value::VALUE_TYPE_FLOAT) &&
                     (secondValue->getValueType() == Value::VALUE_TYPE_INT || secondValue->getValueType() == Value::VALUE_TYPE_FLOAT)) {
                     return new Value(firstValue->getFloatValue() == secondValue->getFloatValue());
@@ -212,7 +218,7 @@ void Operator::init() {
             Operator::OPERATOR_ASSOCIATIVE_TYPE_LEFT,
             5,
             "!=",
-            [](Value* firstValue, Value* secondValue) {
+            [](Scope* scope, Value* firstValue, Value* secondValue) {
                 if ((firstValue->getValueType() == Value::VALUE_TYPE_INT || firstValue->getValueType() == Value::VALUE_TYPE_FLOAT) &&
                     (secondValue->getValueType() == Value::VALUE_TYPE_INT || secondValue->getValueType() == Value::VALUE_TYPE_FLOAT)) {
                     return new Value(firstValue->getFloatValue() != secondValue->getFloatValue());
@@ -221,12 +227,31 @@ void Operator::init() {
                 return Value::undefined;
             });
 
+
     Operator::createOperator(
             Operator::OPERATOR_TYPE_BINARY,
             Operator::OPERATOR_ASSOCIATIVE_TYPE_LEFT,
             1,
+            "=",
+            [](Scope* scope, Value* firstValue, Value* secondValue) {
+                std::string variableName = firstValue->getRepresentation();
+
+                if (scope->hasVariable(variableName)) {
+                    scope->getVariable(variableName)->changeValue(secondValue->createNotLinkedInstance());
+                }
+                else {
+                    scope->createVariable(variableName, secondValue->createNotLinkedInstance());
+                }
+
+                return Value::undefined;
+            });
+
+    Operator::createOperator(
+            Operator::OPERATOR_TYPE_BINARY,
+            Operator::OPERATOR_ASSOCIATIVE_TYPE_LEFT,
+            2,
             ",",
-            [](Value* firstValue, Value* secondValue) {
+            [](Scope* scope, Value* firstValue, Value* secondValue) {
                 auto newValue = new Value;
 
                 if (firstValue->getValueType() == Value::VALUE_TYPE_COMBINED) {
@@ -255,7 +280,7 @@ void Operator::init() {
             Operator::OPERATOR_ASSOCIATIVE_TYPE_LEFT,
             0,
             "!",
-            [](Value* firstValue, Value* secondValue) {
+            [](Scope* scope, Value* firstValue, Value* secondValue) {
                 if (firstValue->getValueType() == Value::VALUE_TYPE_BOOL) {
                     return new Value(!firstValue->getBoolValue());
                 }
@@ -268,7 +293,7 @@ void Operator::init() {
             Operator::OPERATOR_ASSOCIATIVE_TYPE_LEFT,
             0,
             "+",
-            [](Value* firstValue, Value* secondValue) {
+            [](Scope* scope, Value* firstValue, Value* secondValue) {
                 return firstValue;
             });
 
@@ -277,7 +302,7 @@ void Operator::init() {
             Operator::OPERATOR_ASSOCIATIVE_TYPE_LEFT,
             0,
             "-",
-            [](Value* firstValue, Value* secondValue) {
+            [](Scope* scope, Value* firstValue, Value* secondValue) {
                 if (firstValue->getValueType() == Value::VALUE_TYPE_FLOAT || firstValue->getValueType() == Value::VALUE_TYPE_INT) {
                     return new Value(-1 * firstValue->getFloatValue());
                 }
@@ -294,8 +319,8 @@ Operator::Operator(OperatorType operatorType, OperatorAssociativeType operatorAs
     this->mOperatorFunctionCallback = operatorFunctionCallback;
 }
 
-Value* Operator::run(Value* firstValue, Value* secondValue) {
-    return this->mOperatorFunctionCallback(firstValue, secondValue);
+Value* Operator::run(Scope* scope, Value* firstValue, Value* secondValue) {
+    return this->mOperatorFunctionCallback(scope, firstValue, secondValue);
 }
 
 std::string Operator::getOperatorString() {

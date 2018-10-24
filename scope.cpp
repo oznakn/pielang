@@ -180,20 +180,6 @@ void Scope::runLines() {
             this->findAndReplaceFirstFunction(0);
             continue;
         }
-        else if ((tempIndex = line.find(Options::EQUALITY_CHAR)) != std::string::npos &&
-            Variable::isValidVariableName((tempString = StringUtils::substring(line, 0, tempIndex)))) {
-            tempString = StringUtils::trim(tempString);
-
-            auto expression = new Expression(this, StringUtils::substring(line, tempIndex + 1, line.length())); // 1 => length of '='
-            auto value = expression->run();
-
-            if (this->hasVariable(tempString)) {
-                this->getVariable(tempString)->changeValue(value->createNotLinkedInstance());
-            }
-            else {
-                this->createVariable(tempString,  value->createNotLinkedInstance());
-            }
-        }
         else {
             auto expression = new Expression(this, line);
             expression->run();
@@ -203,20 +189,35 @@ void Scope::runLines() {
     }
 }
 
-Value* Scope::parseValue(std::string s) {
+bool Scope::isValueParseable(std::string s) {
     s = StringUtils::trim(s);
 
+    return (Variable::isValidVariableName(s) && this->hasVariable(s)) ||
+        (StringLiteral::isValidStringLiteral(s)) ||
+        (Value::isParseable(s));
+}
+
+Value* Scope::parseValue(std::string s) {
+    s = StringUtils::trim(s);
+    Value* value = nullptr;
+
     if (Variable::isValidVariableName(s) && this->hasVariable(s)) {
-        return this->getVariable(s)->getValue();
+        value = this->getVariable(s)->getValue();
     }
     else if (StringLiteral::isValidStringLiteral(s)) {
-        return StringLiteral::findStringLiteral(s)->getValue();
+        value = StringLiteral::findStringLiteral(s)->getValue();
     }
     else if (Value::isParseable(s)) {
-        return Value::parseStringToValue(s);
+        value = Value::parseStringToValue(s);
     }
 
-    return Value::undefined;
+    if (value == nullptr) {
+        value = new Value; // TODO
+    }
+
+    value->setRepresentation(s);
+
+    return value;
 }
 
 void Scope::run() {

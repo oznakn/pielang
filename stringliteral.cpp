@@ -35,10 +35,13 @@ StringLiteral::StringLiteral(std::string s) {
     this->mIndex = StringLiteral::stringLiteralList->size();
 
     StringLiteral::stringLiteralList->push_back(this);
+
+    this->mValue = new Value(this->mString);
+    this->mValue->setRepresentation(this->mString);
 }
 
 Value* StringLiteral::getValue() {
-    return new Value(this->mString);
+    return this->mValue;
 }
 
 size_t StringLiteral::getIndex() {

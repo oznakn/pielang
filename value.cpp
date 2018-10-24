@@ -5,6 +5,7 @@
 
 #include "definitions.h"
 #include "options.h"
+#include "logger.h"
 #include "stringutils.h"
 
 Value* Value::undefined = new Value;
@@ -221,6 +222,15 @@ void Value::deleteIfNotLinked() {
     }
 }
 
+void Value::setRepresentation(std::string s) {
+    this->mRepresentation = s;
+}
+
+
+std::string Value::getRepresentation() {
+    return this->mRepresentation;
+}
+
 void Value::addValue(Value* value) {
     if (this->mValueList == nullptr) {
         this->mValueType = Value::VALUE_TYPE_COMBINED;
@@ -273,8 +283,7 @@ Value* Value::createNotLinkedInstance() {
         return newValue;
     }
 
-    std::cout << "Hoaydaa2" << std::endl;
-    return Value::undefined;
+    return new Value; // TODO
 }
 
 Variable* Value::getLinkedVariable() {

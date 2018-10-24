@@ -27,6 +27,10 @@ void System::init(Scope* mainScope) {
 
     mainScope->createVariable("undefined", Value::undefined);
 
+    mainScope->createSystemFunction("get_undefined",  [](ValueList* arguments) {
+        return Value::undefined;
+    });
+
     mainScope->createSystemFunction("import",  [](ValueList* arguments) {
         Logger::println("Imported: " + arguments->at(0)->getAsString());
         return Value::undefined;

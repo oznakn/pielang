@@ -10,6 +10,8 @@
 #include "logger.h"
 #include "system.h"
 #include "scope.h"
+#include "operation.h"
+#include "operator.h"
 #include "value.h"
 #include "variable.h"
 #include "expression.h"
@@ -46,6 +48,8 @@ int main() {
 
     std::string fileName = findWorkingDir() + "index.pie";
     std::string fileContent = readFile(fileName);
+
+    Operator::init();
 
     Scope* scope = new Scope(fileContent);
     scope->setAsMainScope();

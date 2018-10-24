@@ -1,1 +1,1 @@
-print(math.sqrt(25))
+print(sabalak (100 * math.sin(30), "merhaba"))

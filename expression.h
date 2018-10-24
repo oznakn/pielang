@@ -8,7 +8,7 @@
 
 class Expression {
 private:
-    static int getOperatorAssociative(std::string);
+    static int getOperatorAssociativeType(std::string);
     static int getOperatorPrecedence(std::string);
     static bool isOperator(std::string);
     static bool isPartOfOperator(std::string);

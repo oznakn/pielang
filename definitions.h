@@ -27,5 +27,10 @@ typedef std::unordered_map<std::string, Function*> FunctionMap;
 typedef std::unordered_map<std::string, Object*> ObjectMap;
 
 typedef std::function<Value*(ValueList*)> FunctionCallback;
+typedef std::function<Value*(Value*, Value*)> OperatorFunctionCallback;
+
+typedef size_t OperatorType;
+typedef size_t OperatorAssociativeType;
+typedef size_t OperatorPrecedence;
 
 #endif //PIELANG_DEFINITIONS_H

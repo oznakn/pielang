@@ -8,6 +8,8 @@
 
 class Scope {
 private:
+    static void runLine(std::string);
+
     Scope* mInheritedScope = nullptr;
     std::string mContent;
 

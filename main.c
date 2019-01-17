@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-#include "lexer/lexer.h"
+#include "lexer.h"
 
 int main() {
   Lexer *lexer = new_lexer("let a = 'anan' 100_000.5 124\n_b //= x");

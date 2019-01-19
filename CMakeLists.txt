@@ -3,4 +3,4 @@ project(pielang C)
 
 set(CMAKE_C_STANDARD 99)
 
-add_executable(pielang main.c lexer.h ast.h statement.h)
+add_executable(pielang main.c lexer.h lexer.c ast.h ast.c)

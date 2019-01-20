@@ -29,6 +29,19 @@ typedef enum {
 } Operator;
 
 typedef enum {
+  ASSIGN_PRECEDENCE = 1,
+  CONDITIONAL_PRECEDENCE = 2,
+  ADDITION_SUBTRACTION_PRECEDENCE = 3,
+  MULTIPLICATION_DIVISION_MOD_PRECEDENCE = 4,
+  EXPONENT_PRECEDENCE = 6,
+  PREFIX_PRECEDENCE = 8,
+  POSTFIX_PRECEDENCE = 9,
+  L_PARENTHESIS_PRECEDENCE = 11,
+  CALL_PRECEDENCE = 12,
+  MEMBER_PRECEDENCE = 13,
+} OperatorPrecedence;
+
+typedef enum {
   StatementTypeExpressionStatement = 1,
   StatementTypePrintStatement,
 } StatementType;
@@ -92,8 +105,8 @@ typedef struct {
 
 typedef struct {
   Expression expression;
-  char *identifier;
-  TupleExpression *tuple_expression;
+  Expression *identifier_expression;
+  Expression *tuple_expression;
 } CallExpression;
 
 typedef struct {
@@ -106,17 +119,6 @@ typedef struct {
   size_t statement_count;
 } AST;
 
-Operator token_to_operator(Token token);
-
-bool check_if_token_is_operator(Token token);
-
-
-bool is_right_associative(Token token);
-
-bool check_if_token_is_postfix_operator(Token token);
-
-unsigned short get_operator_precedence(Token token, unsigned short precedence);
-
 void print_expression(Expression *expression);
 
 void free_expression(Expression *expression);
@@ -125,16 +127,16 @@ void free_statement(Statement *statement);
 
 void free_ast(AST *ast);
 
-Expression *parse_grouped_expression(Lexer *lexer, unsigned short precedence, TokenType until1, TokenType until2);
+Operator token_to_operator(Token token);
 
-Expression *parse_prefix_expression(Lexer *lexer, unsigned short precedence, TokenType until1, TokenType until2);
+bool check_if_token_is_operator(Token token);
 
-Expression *parse_postfix_expression(Lexer *lexer, unsigned short precedence, TokenType until1, TokenType until2, Expression *left);
+bool is_right_associative(Token token);
 
-Expression *parse_infix_expression(Lexer *lexer, unsigned short precedence, TokenType until1, TokenType until2, Expression *left);
+bool check_if_token_is_postfix_operator(Token token);
 
-Expression *parse_expression(Lexer *lexer, unsigned short precedence, TokenType until1, TokenType until2);
+unsigned short get_operator_precedence(Token token, bool next);
 
-AST *parse(Lexer *lexer);
+bool has_finished(Token token, TokenType until1, TokenType until2);
 
 #endif //PIELANG_AST_H

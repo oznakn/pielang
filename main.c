@@ -2,11 +2,12 @@
 
 #include "lexer.h"
 #include "ast.h"
+#include "parser.h"
 
 int main() {
-  Lexer *lexer = new_lexer("a = (2 + -4 * math(w,3))");
+  Lexer *lexer = new_lexer("12 - system.main.call(23) ^ 2 * 3");
 
-  AST *ast = parse(lexer);
+  AST *ast = parse_ast(lexer);
 
   free_lexer(lexer);
   free_ast(ast);

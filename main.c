@@ -4,7 +4,7 @@
 #include "ast.h"
 
 int main() {
-  Lexer *lexer = new_lexer("4++ +5");
+  Lexer *lexer = new_lexer("a = (2 + -4 * math(w,3))");
 
   AST *ast = parse(lexer);
 

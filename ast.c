@@ -17,7 +17,7 @@ void print_expression(Expression *expression) {
     else if (infix_expression->operator == MULTIPLICATION_OP) { printf(" * "); }
     else if (infix_expression->operator == DIVISION_OP) { printf(" / "); }
     else if (infix_expression->operator == MOD_OP) { printf(" %% "); }
-    else if (infix_expression->operator == EXPONENT_OP) printf(" ^ ");
+    else if (infix_expression->operator == EXPONENT_OP) { printf(" ^ "); }
 
     print_expression(infix_expression->right_expression);
     printf(") ");
@@ -35,18 +35,44 @@ void print_expression(Expression *expression) {
     printf(") ");
 
   } else if (expression->expression_type == ExpressionTypePostfixExpression) {
-    PostfixExpression *postfixExpression = (PostfixExpression *)expression;
+    PostfixExpression *postfix_expression = (PostfixExpression *)expression;
 
     printf(" (");
-    print_expression(postfixExpression->left_expression);
+    print_expression(postfix_expression->left_expression);
 
-    if (postfixExpression->operator == PLUS_PLUS_OP) { printf("++"); }
-    else if (postfixExpression->operator == MINUS_MINUS_OP) { printf("--"); }
+    if (postfix_expression->operator == PLUS_PLUS_OP) { printf("++"); }
+    else if (postfix_expression->operator == MINUS_MINUS_OP) { printf("--"); }
 
     printf(") ");
 
-  } else if (expression->expression_type == ExpressionTypeNumberExpression) {
-    printf(" %f ", expression->value.number_value);
+  } else if (expression->expression_type == ExpressionTypeCallExpression) {
+    CallExpression *call_expression = (CallExpression *)expression;
+
+    printf(" ` %s", call_expression->identifier);
+    print_expression((Expression *)call_expression->tuple_expression);
+    printf("` ");
+  } else if (expression->expression_type == ExpressionTypeTupleExpression) {
+    TupleExpression *tuple_expression = (TupleExpression *)expression;
+
+    printf(" (");
+    for (size_t i = 0; i < tuple_expression->expression_count; i++) {
+      print_expression(tuple_expression->expressions[i]);
+
+      if (i < tuple_expression->expression_count - 1) {
+        printf(",");
+      }
+    }
+    printf(") ");
+  } else if (expression->expression_type == ExpressionTypeIntegerExpression) {
+    printf(" %lu ", expression->value.integer_value);
+  } else if (expression->expression_type == ExpressionTypeFloatExpression) {
+    printf(" %f ", expression->value.float_value);
+  } else if (expression->expression_type == ExpressionTypeStringExpression) {
+    printf(" \"%s\" ", expression->value.string_value);
+  } else if (expression->expression_type == ExpressionTypeBoolExpression) {
+    printf(" %s ", expression->value.bool_value ? "true" : "false");
+  } else if (expression->expression_type == ExpressionTypeIdentifierExpression) {
+    printf(" %s ", expression->value.string_value);
   }
 }
 
@@ -71,8 +97,56 @@ void free_expression(Expression *expression) {
       break;
     }
 
-    case ExpressionTypeNumberExpression:
+    case ExpressionTypePostfixExpression: {
+      PostfixExpression *postfix_expression = (PostfixExpression *)expression;
+
+      free_expression(postfix_expression->left_expression);
+      free(postfix_expression);
+
+      break;
+    }
+
+    case ExpressionTypeCallExpression: {
+      CallExpression *call_expression = (CallExpression *)expression;
+
+      if (call_expression->identifier != NULL) free(call_expression->identifier);
+
+      free_expression((Expression *)call_expression->tuple_expression);
+      free(call_expression);
+
+      break;
+    }
+
+    case ExpressionTypeTupleExpression: {
+      TupleExpression *tuple_expression = (TupleExpression *)expression;
+
+      for (size_t i = 0; i < tuple_expression->expression_count; i++) {
+        free_expression(tuple_expression->expressions[i]);
+      }
+
+      free(tuple_expression->expressions);
+      free(tuple_expression);
+
+      break;
+    }
+
+    case ExpressionTypeIntegerExpression: {
+      free(expression);
+      break;
+    }
+
+    case ExpressionTypeFloatExpression: {
+      free(expression);
+      break;
+    }
+
     case ExpressionTypeStringExpression: {
+      free(expression->value.string_value);
+      free(expression);
+      break;
+    }
+
+    case ExpressionTypeIdentifierExpression: {
       free(expression->value.string_value);
       free(expression);
       break;
@@ -116,33 +190,117 @@ void free_ast(AST *ast) {
   free(ast);
 }
 
-/*
- *
-  public
-  static final int ASSIGNMENT = 1;
-  public
-  static final int CONDITIONAL = 2;
-  public
-  static final int SUM = 3;
-  public
-  static final int PRODUCT = 4;
-  public
-  static final int EXPONENT = 5;
-  public
-  static final int PREFIX = 6;
-  public
-  static final int POSTFIX = 7;
-  public
-  static final int CALL = 8;
+Operator token_to_operator(Token token) {
+  switch (token.token_type) {
+    case MEMBER_TOKEN:
+      return MEMBER_OP;
+
+    case ASSIGN_TOKEN:
+      return ASSIGN_OP;
+
+    case ADDITION_TOKEN:
+      return ADDITION_OP;
+
+    case ASSIGN_ADDITION_TOKEN:
+      return ASSIGN_ADDITION_OP;
+
+    case SUBTRACTION_TOKEN:
+      return SUBTRACTION_OP;
+
+    case ASSIGN_SUBTRACTION_TOKEN:
+      return ASSIGN_SUBTRACTION_OP;
+
+    case MULTIPLICATION_TOKEN:
+      return MULTIPLICATION_OP;
+
+    case ASSIGN_MULTIPLICATION_TOKEN:
+      return ASSIGN_MULTIPLICATION_OP;
+
+    case DIVISION_TOKEN:
+      return DIVISION_OP;
+
+    case ASSIGN_DIVISION_TOKEN:
+      return ASSIGN_DIVISION_OP;
+
+    case INTEGER_DIVISION_TOKEN:
+      return INTEGER_DIVISION_OP;
+
+    case ASSIGN_INTEGER_DIVISION_TOKEN:
+      return ASSIGN_INTEGER_DIVISION_OP;
+
+    case MOD_TOKEN:
+      return MOD_OP;
+
+    case ASSIGN_MOD_TOKEN:
+      return ASSIGN_MOD_OP;
+
+    case EXPONENT_TOKEN:
+      return EXPONENT_OP;
+
+    case ASSIGN_EXPONENT_TOKEN:
+      return ASSIGN_EXPONENT_OP;
+
+    case PLUS_PLUS_TOKEN:
+      return PLUS_PLUS_OP;
+
+    case MINUS_MINUS_TOKEN:
+      return MINUS_MINUS_OP;
+
+    case L_PARENTHESIS_TOKEN:
+      return L_PARENTHESIS_OP;
+
+    default:
+      return -1;
+  }
+}
+
+bool check_if_token_is_operator(Token token) {
+  return token_to_operator(token) != -1;
+}
+
+bool is_right_associative(Token token) {
+  if (token.token_type == EXPONENT_TOKEN) return true;
+
+  return false;
+}
+
+bool check_if_token_is_postfix_operator(Token token) {
+  return token.token_type == PLUS_PLUS_TOKEN || token.token_type == MINUS_MINUS_TOKEN;
+}
+
+unsigned short get_operator_precedence(Token token, unsigned short curr_precedence) {
+  /*
+    *
+    public
+    static final int ASSIGNMENT = 1;
+    public
+    static final int CONDITIONAL = 2;
+    public
+    static final int SUM = 3;
+    public
+    static final int PRODUCT = 4;
+    public
+    static final int EXPONENT = 5;
+    public
+    static final int PREFIX = 6;
+    public
+    static final int POSTFIX = 7;
+    public
+    static final int CALL = 8;
   */
 
-unsigned short get_precedence(Token token, unsigned short curr_precedence, bool b) {
-  if (curr_precedence == 5 && token.token_type == EXPONENT_TOKEN) {
-    if (b) { return 6; }
-    else { return 4; }
-  }
 
   switch (token.token_type) {
+    case ASSIGN_TOKEN:
+    case ASSIGN_ADDITION_TOKEN:
+    case ASSIGN_SUBTRACTION_TOKEN:
+    case ASSIGN_MULTIPLICATION_TOKEN:
+    case ASSIGN_DIVISION_TOKEN:
+    case ASSIGN_INTEGER_DIVISION_TOKEN:
+    case ASSIGN_MOD_TOKEN:
+    case ASSIGN_EXPONENT_TOKEN:
+      return 1;
+
     case ADDITION_TOKEN:
     case SUBTRACTION_TOKEN:
       return 3;
@@ -154,34 +312,63 @@ unsigned short get_precedence(Token token, unsigned short curr_precedence, bool 
       return 4;
 
     case EXPONENT_TOKEN:
-      return 5;
+      return 6;
+
+    case PLUS_PLUS_TOKEN:
+    case MINUS_MINUS_TOKEN:
+      return 8;
+
+    case L_PARENTHESIS_TOKEN:
+      return 9;
+
+    case MEMBER_OP:
+      return 10;
 
     default:
       return 0;
   }
 }
 
-bool is_right_associative(Token token) {
-  if (token.token_type == EXPONENT_TOKEN) return true;
-
-  return false;
+bool has_finished(Token token, TokenType until1, TokenType until2) {
+  return token.token_type == until1 || token.token_type == until2;
 }
 
 Expression *eval_token(Token token) {
   Expression *expression = NULL;
 
-  if (token.token_type == NUMBER_TOKEN) {
+  if (token.token_type == IDENTIFIER_TOKEN) {
     expression = malloc(sizeof(Expression));
 
-    expression->value = (Value){.number_value = strtof(token.content, NULL)};
-    expression->expression_type = ExpressionTypeNumberExpression;
+    expression->value = (Value){.string_value = token.value.string_value};
+    expression->expression_type = ExpressionTypeIdentifierExpression;
+
+    return expression;
+  } else if (token.token_type == INTEGER_TOKEN) {
+    expression = malloc(sizeof(Expression));
+
+    expression->value = (Value){.integer_value = token.value.integer_value};
+    expression->expression_type = ExpressionTypeIntegerExpression;
+
+    return expression;
+  } else if (token.token_type == FLOAT_TOKEN) {
+    expression = malloc(sizeof(Expression));
+
+    expression->value = (Value){.float_value = token.value.float_value};
+    expression->expression_type = ExpressionTypeFloatExpression;
+
+    return expression;
+  } else if (token.token_type == BOOL_TOKEN) {
+    expression = malloc(sizeof(Expression));
+
+    expression->value = (Value){.bool_value = token.value.bool_value};
+    expression->expression_type = ExpressionTypeBoolExpression;
 
     return expression;
   } else if (token.token_type == STRING_LITERAL_TOKEN) {
     expression = malloc(sizeof(Expression));
 
-    expression->value = (Value){.string_value = token.content};
-    expression->expression_type = ExpressionTypeNumberExpression;
+    expression->value = (Value){.string_value = token.value.string_value};
+    expression->expression_type = ExpressionTypeStringExpression;
 
     return expression;
   }
@@ -189,53 +376,130 @@ Expression *eval_token(Token token) {
   return expression;
 }
 
-// http://journal.stuffwithstuff.com/2011/03/19/pratt-parsers-expression-parsing-made-easy/
-Expression *parse_expression(Lexer *lexer, unsigned short precedence, TokenType until) {
+Expression *parse_grouped_expression(Lexer *lexer, unsigned short precedence, TokenType until1, TokenType until2) {
+  Expression *result = parse_expression(lexer, 0, R_PARENTHESIS_TOKEN, until1);
+  next_token(lexer);
+  return result;
+}
+
+Expression *parse_prefix_expression(Lexer *lexer, unsigned short precedence, TokenType until1, TokenType until2) {
   Token curr_token = next_token(lexer);
+  if (has_finished(curr_token, until1, until2)) return NULL;
+
+  if (curr_token.token_type == L_PARENTHESIS_TOKEN) {
+    return parse_grouped_expression(lexer, precedence, until1, until2);
+  }
+
+  PrefixExpression *prefix_expression = malloc(sizeof(PrefixExpression));
+
+  prefix_expression->expression = (Expression){.expression_type = ExpressionTypePrefixExpression};
+  prefix_expression->operator = token_to_operator(curr_token);
+  prefix_expression->right_expression = parse_expression(lexer, 11, until1, until2); // TODO
+
+  return (Expression *)prefix_expression;
+}
+
+Expression *parse_postfix_expression(Lexer *lexer, unsigned short precedence, TokenType until1, TokenType until2, Expression *left) {
+  Token curr_token = next_token(lexer);
+  if (has_finished(curr_token, until1, until2)) return left;
+
+  PostfixExpression *postfixExpression = malloc(sizeof(PostfixExpression));
+
+  postfixExpression->expression = (Expression){.expression_type = ExpressionTypePostfixExpression};
+  postfixExpression->left_expression = left;
+  postfixExpression->operator = token_to_operator(curr_token);
+
+  return (Expression *)postfixExpression;
+}
+
+TupleExpression *parse_tuple_expression(Lexer *lexer) {
+  TupleExpression *tuple_expression = malloc(sizeof(TupleExpression));
+
+  tuple_expression->expression = (Expression){.expression_type = ExpressionTypeTupleExpression};
+  tuple_expression->expression_count = 0;
+  tuple_expression->expressions = malloc(tuple_expression->expression_count);
+
+  while (peek_token(lexer).token_type != R_PARENTHESIS_TOKEN) {
+    if (peek_token(lexer).token_type == COMMA_TOKEN) {
+      next_token(lexer);
+    }
+
+    Expression *expression = parse_expression(lexer, 0, COMMA_TOKEN, R_PARENTHESIS_TOKEN);
+
+    Expression **tmp = realloc(tuple_expression->expressions, sizeof(TupleExpression *) * (++tuple_expression->expression_count));
+
+    if (tmp == NULL) {
+      free(tuple_expression);
+      return NULL;
+    }
+    tuple_expression->expressions = tmp;
+
+    tuple_expression->expressions[tuple_expression->expression_count - 1] = expression;
+  }
+  next_token(lexer);
+
+  return tuple_expression;
+}
+
+Expression *parse_call_expression(Lexer *lexer, unsigned short precedence, TokenType until1, TokenType until2, Expression *left) {
+  CallExpression *call_expression = malloc(sizeof(CallExpression));
+  call_expression->expression = (Expression){.expression_type = ExpressionTypeCallExpression};
+  call_expression->identifier = left->value.string_value;
+  call_expression->tuple_expression = parse_tuple_expression(lexer);
+
+  return (Expression *)call_expression;
+}
+
+Expression *parse_infix_expression(Lexer *lexer, unsigned short precedence, TokenType until1, TokenType until2, Expression *left) {
+  Token curr_token = next_token(lexer);
+  if (has_finished(curr_token, until1, until2)) return left;
+
+  if (curr_token.token_type == L_PARENTHESIS_TOKEN) {
+    return parse_call_expression(lexer, precedence, until1, until2, left);
+  }
+
+  InfixExpression *infix_expression = malloc(sizeof(InfixExpression));
+  infix_expression->expression = (Expression){.expression_type = ExpressionTypeInfixExpression};
+  infix_expression->left_expression = left;
+  infix_expression->operator = token_to_operator(curr_token);
+  infix_expression->right_expression = parse_expression(lexer, get_operator_precedence(curr_token, precedence), until1, until2);
+
+  return (Expression *)infix_expression;
+}
+
+Expression *parse_expression(Lexer *lexer, unsigned short precedence, TokenType until1, TokenType until2) {
+  Token curr_token = peek_token(lexer);
+
+  if (has_finished(curr_token, until1, until2)) return NULL;
 
   Expression *left;
 
   if (check_if_token_is_operator(curr_token)) {
-    PrefixExpression *prefix_expression = malloc(sizeof(PrefixExpression));
-
-    prefix_expression->expression = (Expression){.expression_type = ExpressionTypePrefixExpression};
-    prefix_expression->operator = token_to_operator(curr_token);
-    prefix_expression->right_expression = eval_token(next_token(lexer));
-
-    left = (Expression *)prefix_expression;
+    left = parse_prefix_expression(lexer, precedence, until1, until2);
   } else {
-    left = eval_token(curr_token);
+    left = eval_token(next_token(lexer));
   }
 
   curr_token = peek_token(lexer);
+  if (has_finished(curr_token, until1, until2)) return left;
 
-  while (precedence < get_precedence(curr_token, precedence, true)) {
-    curr_token = next_token(lexer);
+  while (precedence < get_operator_precedence(curr_token, precedence)) {
+    curr_token = peek_token(lexer);
+    if (has_finished(curr_token, until1, until2)) {
+      return left;
+    } else if (check_if_token_is_postfix_operator(curr_token)) {
+      left = parse_postfix_expression(lexer, precedence, until1, until2, left);
+    }
 
-    if (curr_token.token_type == until || curr_token.token_type == EOF_TOKEN) return left; //TODO
+    curr_token = peek_token(lexer);
 
-    /* if (peek_token(lexer).token_type == PLUS_PLUS_TOKEN) {
-      PostfixExpression *postfix_expression = malloc(sizeof(PostfixExpression));
-
-      postfix_expression->expression = (Expression){.expression_type = ExpressionTypePostfixExpression};
-      postfix_expression->operator = token_to_operator(next_token(lexer));
-      postfix_expression->left_expression = left;
-
-      left = (Expression *)postfix_expression;
-
-      curr_token = next_token(lexer);
-
-      if (curr_token.token_type == until || curr_token.token_type == EOF_TOKEN) return left; //TODO
-    } */
-
-    InfixExpression *infix_expression = malloc(sizeof(InfixExpression));
-
-    infix_expression->expression = (Expression){.expression_type = ExpressionTypeInfixExpression};
-    infix_expression->left_expression = left;
-    infix_expression->operator = token_to_operator(curr_token);
-    infix_expression->right_expression = parse_expression(lexer, get_precedence(curr_token, precedence, false), until);
-
-    left = (Expression *)infix_expression;
+    if (has_finished(curr_token, until1, until2)) {
+      return left;
+    } else if (check_if_token_is_operator(curr_token)) {
+      left = parse_infix_expression(lexer, precedence, until1, until2, left);
+    } else {
+      return left;
+    }
   }
 
   return left;
@@ -261,7 +525,7 @@ AST *parse(Lexer *lexer) {
     ast->statements = tmp;
 
     if (true) {
-      Expression *expression = parse_expression(lexer, 0, EOL_TOKEN);
+      Expression *expression = parse_expression(lexer, 0, EOF_TOKEN, EOL_TOKEN);
 
       ExpressionStatement *expression_statement = malloc(sizeof(ExpressionStatement));
       expression_statement->statement = (Statement){.statement_type = StatementTypeExpressionStatement};

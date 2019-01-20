@@ -11,8 +11,12 @@ typedef enum {
   EOL_TOKEN,
   EOF_TOKEN,
   IDENTIFIER_TOKEN,
-  NUMBER_TOKEN,
+  INTEGER_TOKEN,
+  FLOAT_TOKEN,
+  BOOL_TOKEN,
   STRING_LITERAL_TOKEN,
+  MEMBER_TOKEN,
+  COMMA_TOKEN,
   ASSIGN_TOKEN,
   CHECK_EQUALITY_TOKEN,
   ADDITION_TOKEN,
@@ -43,29 +47,16 @@ typedef enum {
   FOR_TOKEN,
 } TokenType;
 
-typedef enum {
-  ASSIGN_OP = 1,
-  ADDITION_OP,
-  ASSIGN_ADDITION_OP,
-  SUBTRACTION_OP,
-  ASSIGN_SUBTRACTION_OP,
-  MULTIPLICATION_OP,
-  ASSIGN_MULTIPLICATION_OP,
-  DIVISION_OP,
-  ASSIGN_DIVISION_OP,
-  INTEGER_DIVISION_OP,
-  ASSIGN_INTEGER_DIVISION_OP,
-  EXPONENT_OP,
-  ASSIGN_EXPONENT_OP,
-  MOD_OP,
-  ASSIGN_MOD_OP,
-  PLUS_PLUS_OP,
-  MINUS_MINUS_OP,
-} Operator;
+typedef struct {
+  long int integer_value;
+  double float_value;
+  char *string_value;
+  bool bool_value;
+} Value;
 
 typedef struct {
   TokenType token_type;
-  char *content;
+  Value value;
 } Token;
 
 typedef struct {
@@ -75,15 +66,9 @@ typedef struct {
   char *content;
 } Lexer;
 
-Operator token_to_operator(Token token);
-
-bool check_if_token_is_operator(Token token);
-
 Lexer *new_lexer(char *content);
 
 void free_lexer(Lexer *lexer);
-
-void print_token(Token token);
 
 void reset(Lexer *lexer, size_t cursor);
 

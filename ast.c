@@ -5,12 +5,12 @@
 
 #include "lexer.h"
 
-void print_expression(Expression *expression) {
+void printf_expression(Expression *expression) {
   if (expression->expression_type == ExpressionTypeInfixExpression) {
     InfixExpression *infix_expression = (InfixExpression *)expression;
 
     printf(" (");
-    print_expression(infix_expression->left_expression);
+    printf_expression(infix_expression->left_expression);
 
     if (infix_expression->operator == ADDITION_OP) { printf(" + "); }
     else if (infix_expression->operator == SUBTRACTION_OP) { printf(" - "); }
@@ -20,27 +20,34 @@ void print_expression(Expression *expression) {
     else if (infix_expression->operator == EXPONENT_OP) { printf(" ^ "); }
     else if (infix_expression->operator == ASSIGN_OP) { printf(" = "); }
     else if (infix_expression->operator == MEMBER_OP) { printf(" . "); }
+    else if (infix_expression->operator == CHECK_EQUALITY_OP) { printf(" == "); }
+    else if (infix_expression->operator == CHECK_NOT_EQUALITY_OP) { printf(" != "); }
+    else if (infix_expression->operator == CHECK_SMALLER_OP) { printf(" < "); }
+    else if (infix_expression->operator == CHECK_SMALLER_EQUAL_OP) { printf(" <= "); }
+    else if (infix_expression->operator == CHECK_BIGGER_OP) { printf(" > "); }
+    else if (infix_expression->operator == CHECK_BIGGER_EQUAL_OP) { printf(" >= "); }
 
-    print_expression(infix_expression->right_expression);
+    printf_expression(infix_expression->right_expression);
     printf(") ");
   } else if (expression->expression_type == ExpressionTypePrefixExpression) {
     PrefixExpression *prefix_expression = (PrefixExpression *)expression;
 
     printf(" (");
 
-    if (prefix_expression->operator == ADDITION_OP) { printf(" +"); }
-    else if (prefix_expression->operator == SUBTRACTION_OP) { printf(" -"); }
+    if (prefix_expression->operator == NOT_OP) { printf("!"); }
+    else if (prefix_expression->operator == ADDITION_OP) { printf("+"); }
+    else if (prefix_expression->operator == SUBTRACTION_OP) { printf("-"); }
     else if (prefix_expression->operator == PLUS_PLUS_OP) { printf("++"); }
     else if (prefix_expression->operator == MINUS_MINUS_OP) { printf("--"); }
 
-    print_expression(prefix_expression->right_expression);
+    printf_expression(prefix_expression->right_expression);
     printf(") ");
 
   } else if (expression->expression_type == ExpressionTypePostfixExpression) {
     PostfixExpression *postfix_expression = (PostfixExpression *)expression;
 
     printf(" (");
-    print_expression(postfix_expression->left_expression);
+    printf_expression(postfix_expression->left_expression);
 
     if (postfix_expression->operator == PLUS_PLUS_OP) { printf("++"); }
     else if (postfix_expression->operator == MINUS_MINUS_OP) { printf("--"); }
@@ -51,16 +58,16 @@ void print_expression(Expression *expression) {
     CallExpression *call_expression = (CallExpression *)expression;
 
     printf(" `");
-    print_expression(call_expression->identifier_expression);
+    printf_expression(call_expression->identifier_expression);
     printf("->");
-    print_expression(call_expression->tuple_expression);
+    printf_expression(call_expression->tuple_expression);
     printf("` ");
   } else if (expression->expression_type == ExpressionTypeTupleExpression) {
     TupleExpression *tuple_expression = (TupleExpression *)expression;
 
     printf(" (");
     for (size_t i = 0; i < tuple_expression->expression_count; i++) {
-      print_expression(tuple_expression->expressions[i]);
+      printf_expression(tuple_expression->expressions[i]);
 
       if (i < tuple_expression->expression_count - 1) {
         printf(",");
@@ -77,6 +84,27 @@ void print_expression(Expression *expression) {
     printf(" %s ", expression->value.bool_value ? "true" : "false");
   } else if (expression->expression_type == ExpressionTypeIdentifierExpression) {
     printf(" %s ", expression->value.string_value);
+  }
+}
+
+void printf_statement(Statement *statement) {
+  if (statement->statement_type == StatementTypePrintStatement) {
+    PrintStatement *print_statement = (PrintStatement *)statement;
+
+    printf("print ");
+    printf_expression(print_statement->right_expression);
+    printf("\n");
+  } else if (statement->statement_type == StatementTypeReturnStatement) {
+    ReturnStatement *return_statement = (ReturnStatement *)statement;
+
+    printf("return ");
+    printf_expression(return_statement->right_expression);
+    printf("\n");
+  } else if (statement->statement_type == StatementTypeExpressionStatement) {
+    ExpressionStatement *expression_Statement = (ExpressionStatement *)statement;
+
+    printf_expression(expression_Statement->expression);
+    printf("\n");
   }
 }
 
@@ -193,55 +221,83 @@ void free_ast(AST *ast) {
   free(ast);
 }
 
+bool has_finished(Token token, TokenType until1, TokenType until2) {
+  return token.token_type == until1 || token.token_type == until2;
+}
+
 Operator token_to_operator(Token token) {
   switch (token.token_type) {
     case MEMBER_TOKEN:
       return MEMBER_OP;
 
-    case ASSIGN_TOKEN:
+    case EQUAL_TOKEN:
       return ASSIGN_OP;
 
-    case ADDITION_TOKEN:
+    case PLUS_TOKEN:
       return ADDITION_OP;
 
-    case ASSIGN_ADDITION_TOKEN:
+    case PLUS_EQUAL_TOKEN:
       return ASSIGN_ADDITION_OP;
 
-    case SUBTRACTION_TOKEN:
+    case MINUS_TOKEN:
       return SUBTRACTION_OP;
 
-    case ASSIGN_SUBTRACTION_TOKEN:
+    case MINUS_EQUAL_TOKEN:
       return ASSIGN_SUBTRACTION_OP;
 
-    case MULTIPLICATION_TOKEN:
+    case STAR_TOKEN:
       return MULTIPLICATION_OP;
 
-    case ASSIGN_MULTIPLICATION_TOKEN:
+    case STAR_EQUAL_TOKEN:
       return ASSIGN_MULTIPLICATION_OP;
 
-    case DIVISION_TOKEN:
-      return DIVISION_OP;
-
-    case ASSIGN_DIVISION_TOKEN:
-      return ASSIGN_DIVISION_OP;
-
-    case INTEGER_DIVISION_TOKEN:
-      return INTEGER_DIVISION_OP;
-
-    case ASSIGN_INTEGER_DIVISION_TOKEN:
-      return ASSIGN_INTEGER_DIVISION_OP;
-
-    case MOD_TOKEN:
-      return MOD_OP;
-
-    case ASSIGN_MOD_TOKEN:
-      return ASSIGN_MOD_OP;
-
-    case EXPONENT_TOKEN:
+    case DOUBLE_STAR_TOKEN:
       return EXPONENT_OP;
 
-    case ASSIGN_EXPONENT_TOKEN:
+    case DOUBLE_STAR_EQUAL_TOKEN:
       return ASSIGN_EXPONENT_OP;
+
+    case SLASH_TOKEN:
+      return DIVISION_OP;
+
+    case SLASH_EQUAL_TOKEN:
+      return ASSIGN_DIVISION_OP;
+
+    case DOUBLE_SLASH_TOKEN:
+      return INTEGER_DIVISION_OP;
+
+    case DOUBLE_SLASH_EQUAL_TOKEN:
+      return ASSIGN_INTEGER_DIVISION_OP;
+
+    case PERCENTAGE_TOKEN:
+      return MOD_OP;
+
+    case PERCENTAGE_EQUAL_TOKEN:
+      return ASSIGN_MOD_OP;
+
+    case CARROT_TOKEN:
+      return EXPONENT_OP;
+
+    case CARROT_EQUAL_TOKEN:
+      return ASSIGN_EXPONENT_OP;
+
+    case DOUBLE_EQUAL_TOKEN:
+      return CHECK_EQUALITY_OP;
+
+    case EXCLAMATION_EQUAL_TOKEN:
+      return CHECK_NOT_EQUALITY_OP;
+
+    case SMALLER_TOKEN:
+      return CHECK_SMALLER_OP;
+
+    case SMALLER_EQUAL_TOKEN:
+      return CHECK_SMALLER_EQUAL_OP;
+
+    case BIGGER_TOKEN:
+      return CHECK_BIGGER_OP;
+
+    case BIGGER_EQUAL_TOKEN:
+      return CHECK_BIGGER_EQUAL_OP;
 
     case PLUS_PLUS_TOKEN:
       return PLUS_PLUS_OP;
@@ -252,6 +308,9 @@ Operator token_to_operator(Token token) {
     case L_PARENTHESIS_TOKEN:
       return L_PARENTHESIS_OP;
 
+    case EXCLAMATION_TOKEN:
+      return NOT_OP;
+
     default:
       return -1;
   }
@@ -261,61 +320,73 @@ bool check_if_token_is_operator(Token token) {
   return token_to_operator(token) != -1;
 }
 
-bool is_right_associative(Token token) {
-  return token.token_type == EXPONENT_TOKEN || token.token_type == ASSIGN_TOKEN;
-}
-
 bool check_if_token_is_postfix_operator(Token token) {
-  return token.token_type == PLUS_PLUS_TOKEN || token.token_type == MINUS_MINUS_TOKEN;
+  Operator operator = token_to_operator(token);
+
+  return operator == PLUS_PLUS_OP || operator == MINUS_MINUS_OP;
 }
 
-unsigned short get_operator_precedence(Token token, bool next) {
+bool is_operator_right_associative(Operator operator) {
+  return operator == EXPONENT_OP || operator == ASSIGN_OP;
+}
+
+unsigned short get_operator_precedence(Operator operator, bool next) {
   unsigned short result;
 
-  switch (token.token_type) {
-    case ASSIGN_TOKEN:
-    case ASSIGN_ADDITION_TOKEN:
-    case ASSIGN_SUBTRACTION_TOKEN:
-    case ASSIGN_MULTIPLICATION_TOKEN:
-    case ASSIGN_DIVISION_TOKEN:
-    case ASSIGN_INTEGER_DIVISION_TOKEN:
-    case ASSIGN_MOD_TOKEN:
-    case ASSIGN_EXPONENT_TOKEN: {
+  switch (operator) {
+    case ASSIGN_OP:
+    case ASSIGN_ADDITION_OP:
+    case ASSIGN_SUBTRACTION_OP:
+    case ASSIGN_MULTIPLICATION_OP:
+    case ASSIGN_DIVISION_OP:
+    case ASSIGN_INTEGER_DIVISION_OP:
+    case ASSIGN_MOD_OP:
+    case ASSIGN_EXPONENT_OP: {
       result = ASSIGN_PRECEDENCE;
       break;
     }
 
-    case ADDITION_TOKEN:
-    case SUBTRACTION_TOKEN: {
+    case CHECK_EQUALITY_OP:
+    case CHECK_NOT_EQUALITY_OP:
+    case CHECK_BIGGER_OP:
+    case CHECK_BIGGER_EQUAL_OP:
+    case CHECK_SMALLER_OP:
+    case CHECK_SMALLER_EQUAL_OP: {
+      result = CONDITIONAL_PRECEDENCE;
+      break;
+    }
+
+    case ADDITION_OP:
+    case SUBTRACTION_OP: {
       result = ADDITION_SUBTRACTION_PRECEDENCE;
       break;
     };
 
-    case MULTIPLICATION_TOKEN:
-    case DIVISION_TOKEN:
-    case INTEGER_DIVISION_TOKEN:
-    case MOD_TOKEN: {
+    case MULTIPLICATION_OP:
+    case DIVISION_OP:
+    case INTEGER_DIVISION_OP:
+    case MOD_OP: {
       result = MULTIPLICATION_DIVISION_MOD_PRECEDENCE;
       break;
     };
 
-    case EXPONENT_TOKEN: {
+    case EXPONENT_OP: {
       result = EXPONENT_PRECEDENCE;
       break;
     };
 
-    case PLUS_PLUS_TOKEN:
-    case MINUS_MINUS_TOKEN: {
+    case PLUS_PLUS_OP:
+    case MINUS_MINUS_OP: {
       result = PREFIX_PRECEDENCE;
       break;
     };
 
-    case L_PARENTHESIS_TOKEN: {
+    case L_PARENTHESIS_OP: {
       result = L_PARENTHESIS_PRECEDENCE;
       break;
     };
 
-    case MEMBER_TOKEN: {
+    case MEMBER_OP: {
       result = MEMBER_PRECEDENCE;
       break;
     };
@@ -325,11 +396,7 @@ unsigned short get_operator_precedence(Token token, bool next) {
     }
   }
 
-  if (next && is_right_associative(token)) result -= 1u;
+  if (next && is_operator_right_associative(operator)) result -= 1u;
 
   return result;
-}
-
-bool has_finished(Token token, TokenType until1, TokenType until2) {
-  return token.token_type == until1 || token.token_type == until2;
 }

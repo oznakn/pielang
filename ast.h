@@ -26,6 +26,13 @@ typedef enum {
   PLUS_PLUS_OP,
   MINUS_MINUS_OP,
   L_PARENTHESIS_OP,
+  NOT_OP,
+  CHECK_EQUALITY_OP,
+  CHECK_NOT_EQUALITY_OP,
+  CHECK_BIGGER_OP,
+  CHECK_BIGGER_EQUAL_OP,
+  CHECK_SMALLER_OP,
+  CHECK_SMALLER_EQUAL_OP,
 } Operator;
 
 typedef enum {
@@ -44,6 +51,7 @@ typedef enum {
 typedef enum {
   StatementTypeExpressionStatement = 1,
   StatementTypePrintStatement,
+  StatementTypeReturnStatement,
 } StatementType;
 
 typedef enum {
@@ -115,11 +123,18 @@ typedef struct {
 } PrintStatement;
 
 typedef struct {
+  Statement statement;
+  Expression *right_expression;
+} ReturnStatement;
+
+typedef struct {
   Statement **statements;
   size_t statement_count;
 } AST;
 
-void print_expression(Expression *expression);
+void printf_expression(Expression *expression);
+
+void printf_statement(Statement *statement);
 
 void free_expression(Expression *expression);
 
@@ -127,16 +142,16 @@ void free_statement(Statement *statement);
 
 void free_ast(AST *ast);
 
+bool has_finished(Token token, TokenType until1, TokenType until2);
+
 Operator token_to_operator(Token token);
 
 bool check_if_token_is_operator(Token token);
 
-bool is_right_associative(Token token);
-
 bool check_if_token_is_postfix_operator(Token token);
 
-unsigned short get_operator_precedence(Token token, bool next);
+bool is_operator_right_associative(Operator operator);
 
-bool has_finished(Token token, TokenType until1, TokenType until2);
+unsigned short get_operator_precedence(Operator operator, bool next);
 
 #endif //PIELANG_AST_H

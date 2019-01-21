@@ -6,6 +6,11 @@
 #include "lexer.h"
 #include "ast.h"
 
+void *parser_error() {
+  printf("ERROR\n");
+  return NULL;
+}
+
 Expression *eval_token(Token token) {
   Expression *expression = NULL;
 
@@ -50,14 +55,19 @@ Expression *eval_token(Token token) {
 }
 
 Expression *parse_grouped_expression(Lexer *lexer, unsigned short precedence, TokenType until1, TokenType until2) {
-  Expression *result = parse_expression(lexer, 0, R_PARENTHESIS_TOKEN, until1);
+  Expression *result = parse_expression(lexer, 0, R_PARENTHESIS_TOKEN, until2);
+
+  if (peek_token(lexer).token_type != R_PARENTHESIS_TOKEN) {
+    return parser_error();
+  }
+
   next_token(lexer);
   return result;
 }
 
 Expression *parse_prefix_expression(Lexer *lexer, unsigned short precedence, TokenType until1, TokenType until2) {
   Token curr_token = next_token(lexer);
-  if (has_finished(curr_token, until1, until2)) return NULL;
+  if (has_finished(curr_token, until1, until2)) return parser_error();
 
   if (curr_token.token_type == L_PARENTHESIS_TOKEN) {
     return parse_grouped_expression(lexer, precedence, until1, until2);
@@ -103,7 +113,7 @@ Expression *parse_tuple_expression(Lexer *lexer) {
 
     if (tmp == NULL) {
       free(tuple_expression);
-      return NULL;
+      return parser_error();
     }
     tuple_expression->expressions = tmp;
 
@@ -135,7 +145,7 @@ Expression *parse_infix_expression(Lexer *lexer, unsigned short precedence, Toke
   infix_expression->expression = (Expression){.expression_type = ExpressionTypeInfixExpression};
   infix_expression->left_expression = left;
   infix_expression->operator = token_to_operator(curr_token);
-  infix_expression->right_expression = parse_expression(lexer, get_operator_precedence(curr_token, true), until1, until2);
+  infix_expression->right_expression = parse_expression(lexer, get_operator_precedence(infix_expression->operator, true), until1, until2);
 
   return (Expression *)infix_expression;
 }
@@ -143,7 +153,7 @@ Expression *parse_infix_expression(Lexer *lexer, unsigned short precedence, Toke
 Expression *parse_expression(Lexer *lexer, unsigned short precedence, TokenType until1, TokenType until2) {
   Token curr_token = peek_token(lexer);
 
-  if (has_finished(curr_token, until1, until2)) return NULL;
+  if (has_finished(curr_token, until1, until2)) return parser_error();
 
   Expression *left;
 
@@ -156,7 +166,7 @@ Expression *parse_expression(Lexer *lexer, unsigned short precedence, TokenType 
   curr_token = peek_token(lexer);
   if (has_finished(curr_token, until1, until2)) return left;
 
-  while (precedence < get_operator_precedence(curr_token, false)) {
+  while (precedence < get_operator_precedence(token_to_operator(curr_token), false)) {
     if (has_finished(curr_token, until1, until2)) {
       return left;
     } else if (check_if_token_is_postfix_operator(curr_token)) {
@@ -178,6 +188,36 @@ Expression *parse_expression(Lexer *lexer, unsigned short precedence, TokenType 
   return left;
 }
 
+Statement *parse_print_statement(Lexer *lexer) {
+  next_token(lexer);
+
+  PrintStatement *print_statement = malloc(sizeof(PrintStatement));
+  print_statement->statement = (Statement){.statement_type = StatementTypePrintStatement};
+  print_statement->right_expression = parse_expression(lexer, 0, EOF_TOKEN, EOL_TOKEN);
+
+  return (Statement *)print_statement;
+}
+
+Statement *parse_return_statement(Lexer *lexer) {
+  next_token(lexer);
+
+  ReturnStatement *return_statement = malloc(sizeof(ReturnStatement));
+  return_statement->statement = (Statement){.statement_type = StatementTypeReturnStatement};
+  return_statement->right_expression = parse_expression(lexer, 0, EOF_TOKEN, EOL_TOKEN);
+
+  return (Statement *)return_statement;
+}
+
+Statement *parse_expression_statement(Lexer *lexer) {
+  Expression *expression = parse_expression(lexer, 0, EOL_TOKEN, EOF_TOKEN);
+
+  ExpressionStatement *expression_statement = malloc(sizeof(ExpressionStatement));
+  expression_statement->statement = (Statement){.statement_type = StatementTypeExpressionStatement};
+  expression_statement->expression = expression;
+
+  return (Statement *)expression_statement;
+}
+
 AST *parse_ast(Lexer *lexer) {
   AST *ast = malloc(sizeof(AST));
   ast->statement_count = 0;
@@ -197,16 +237,24 @@ AST *parse_ast(Lexer *lexer) {
     }
     ast->statements = tmp;
 
-    if (true) {
-      Expression *expression = parse_expression(lexer, 0, EOF_TOKEN, EOL_TOKEN);
+    if (token.token_type == PRINT_TOKEN) {
+      Statement *statement = parse_print_statement(lexer);
 
-      ExpressionStatement *expression_statement = malloc(sizeof(ExpressionStatement));
-      expression_statement->statement = (Statement){.statement_type = StatementTypeExpressionStatement};
-      expression_statement->expression = expression;
+      printf_statement(statement);
 
-      print_expression(expression);
+      ast->statements[ast->statement_count - 1] = statement;
+    } else if (token.token_type == RETURN_TOKEN) {
+      Statement *statement = parse_return_statement(lexer);
 
-      ast->statements[ast->statement_count - 1] = (Statement *)expression_statement;
+      printf_statement(statement);
+
+      ast->statements[ast->statement_count - 1] = statement;
+    } else {
+      Statement *statement = parse_expression_statement(lexer);
+
+      printf_statement(statement);
+
+      ast->statements[ast->statement_count - 1] = statement;
     }
   }
 

@@ -80,7 +80,7 @@ Token read_number_token(Lexer *lexer) {
 
     if (tmp == NULL) {
       free(string);
-      
+
       return (Token){.token_type = NULL_TOKEN};
     }
 
@@ -144,6 +144,24 @@ Token peek_token(Lexer *lexer) {
   reset(lexer, checkpoint);
 
   return token;
+}
+
+bool search_for_token(Lexer *lexer, TokenType token_type, TokenType until) {
+  size_t checkpoint = save_checkpoint(lexer);
+
+  Token token;
+
+  while (true) {
+    token = next_token(lexer);
+
+    if (token.token_type == token_type) {
+      reset(lexer, checkpoint);
+      return true;
+    } else if (token.token_type == until || token.token_type == EOF_TOKEN) {
+      reset(lexer, checkpoint);
+      return false;
+    }
+  }
 }
 
 Token next_token(Lexer *lexer) {
@@ -218,10 +236,10 @@ Token next_token(Lexer *lexer) {
       if (peek_char(lexer) == '=') {
         next_char(lexer);
 
-        return (Token){.token_type = CHECK_EQUALITY_TOKEN};
+        return (Token){.token_type = DOUBLE_EQUAL_TOKEN};
       }
 
-      return (Token){.token_type = ASSIGN_TOKEN};
+      return (Token){.token_type = EQUAL_TOKEN};
     }
 
     case '+': {
@@ -232,10 +250,10 @@ Token next_token(Lexer *lexer) {
       } else if (peek_char(lexer) == '=') {
         next_char(lexer);
 
-        return (Token){.token_type = ASSIGN_ADDITION_TOKEN};
+        return (Token){.token_type = PLUS_EQUAL_TOKEN};
       }
 
-      return (Token){.token_type = ADDITION_TOKEN};
+      return (Token){.token_type = PLUS_TOKEN};
     }
 
     case '-': {
@@ -246,10 +264,10 @@ Token next_token(Lexer *lexer) {
       } else if (peek_char(lexer) == '=') {
         next_char(lexer);
 
-        return (Token){.token_type = ASSIGN_SUBTRACTION_TOKEN};
+        return (Token){.token_type = MINUS_EQUAL_TOKEN};
       }
 
-      return (Token){.token_type = SUBTRACTION_TOKEN};
+      return (Token){.token_type = MINUS_TOKEN};
     }
 
     case '*': {
@@ -259,17 +277,17 @@ Token next_token(Lexer *lexer) {
         if (peek_char(lexer) == '=') {
           next_char(lexer);
 
-          return (Token){.token_type = ASSIGN_EXPONENT_TOKEN};
+          return (Token){.token_type = DOUBLE_STAR_EQUAL_TOKEN};
         }
 
-        return (Token){.token_type = EXPONENT_TOKEN};
+        return (Token){.token_type = DOUBLE_STAR_TOKEN};
       } else if (peek_char(lexer) == '=') {
         next_char(lexer);
 
-        return (Token){.token_type = ASSIGN_MULTIPLICATION_TOKEN};
+        return (Token){.token_type = STAR_EQUAL_TOKEN};
       }
 
-      return (Token){.token_type = MULTIPLICATION_TOKEN};
+      return (Token){.token_type = STAR_TOKEN};
     }
 
     case '/': {
@@ -279,37 +297,67 @@ Token next_token(Lexer *lexer) {
         if (peek_char(lexer) == '=') {
           next_char(lexer);
 
-          return (Token){.token_type = ASSIGN_INTEGER_DIVISION_TOKEN};
+          return (Token){.token_type = DOUBLE_SLASH_EQUAL_TOKEN};
         }
 
-        return (Token){.token_type = INTEGER_DIVISION_TOKEN};
+        return (Token){.token_type = DOUBLE_SLASH_TOKEN};
       } else if (peek_char(lexer) == '=') {
         next_char(lexer);
 
-        return (Token){.token_type = ASSIGN_DIVISION_TOKEN};
+        return (Token){.token_type = SLASH_EQUAL_TOKEN};
       }
 
-      return (Token){.token_type = DIVISION_TOKEN};
+      return (Token){.token_type = SLASH_TOKEN};
     }
 
     case '%': {
       if (peek_char(lexer) == '=') {
         next_char(lexer);
 
-        return (Token){.token_type = ASSIGN_MOD_TOKEN};
+        return (Token){.token_type = PERCENTAGE_EQUAL_TOKEN};
       }
 
-      return (Token){.token_type = MOD_TOKEN};
+      return (Token){.token_type = PERCENTAGE_TOKEN};
     }
 
     case '^': {
       if (peek_char(lexer) == '=') {
         next_char(lexer);
 
-        return (Token){.token_type = ASSIGN_EXPONENT_TOKEN};
+        return (Token){.token_type = CARROT_EQUAL_TOKEN};
       }
 
-      return (Token){.token_type = EXPONENT_TOKEN};
+      return (Token){.token_type = CARROT_TOKEN};
+    }
+
+    case '!': {
+      if (peek_char(lexer) == '=') {
+        next_char(lexer);
+
+        return (Token){.token_type = EXCLAMATION_EQUAL_TOKEN};
+      }
+
+      return (Token){.token_type = EXCLAMATION_TOKEN};
+    }
+
+    case '<': {
+      if (peek_char(lexer) == '=') {
+        next_char(lexer);
+
+        return (Token){.token_type = SMALLER_EQUAL_TOKEN};
+      }
+
+      return (Token){.token_type = SMALLER_TOKEN};
+    }
+
+    case '>': {
+      if (peek_char(lexer) == '=') {
+        next_char(lexer);
+
+        return (Token){.token_type = BIGGER_EQUAL_TOKEN};
+      }
+
+      return (Token){.token_type = BIGGER_TOKEN};
     }
 
     case '(': {
@@ -354,6 +402,14 @@ Token next_token(Lexer *lexer) {
       if (strcmp(s, "false") == 0) {
         free(s);
         return (Token){.token_type = BOOL_TOKEN, .value.bool_value = false};
+      }
+      if (strcmp(s, "print") == 0) {
+        free(s);
+        return (Token){.token_type = PRINT_TOKEN};
+      }
+      if (strcmp(s, "return") == 0) {
+        free(s);
+        return (Token){.token_type = RETURN_TOKEN};
       }
       if (strcmp(s, "function") == 0) {
         free(s);

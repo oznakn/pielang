@@ -5,6 +5,14 @@
 
 #include "lexer.h"
 
+void printf_alignment(unsigned int alignment) {
+  if (alignment != 0u) {
+    for (unsigned int i = 0; i < alignment; i += 1u) {
+      printf("    ");
+    }
+  }
+}
+
 void printf_expression(Expression *expression) {
   if (expression->expression_type == ExpressionTypeInfixExpression) {
     InfixExpression *infix_expression = (InfixExpression *)expression;
@@ -87,30 +95,66 @@ void printf_expression(Expression *expression) {
   }
 }
 
-void printf_statement(Statement *statement) {
+void printf_block(Block *block, unsigned int alignment) {
+  printf("{\n");
+
+  for (size_t i = 0; i < block->statement_count; i++) {
+    printf_statement(block->statements[i], alignment + 1u);
+  }
+
+  printf("}\n");
+}
+
+void printf_block_definition(BlockDefinition *block_definition, unsigned int alignment) {
+  if (block_definition->block_definition_type == BlockDefinitionTypeIfBlock) {
+    IfBlockDefinition *if_block_definition = (IfBlockDefinition *)block_definition;
+
+    printf_alignment(alignment);
+    printf("IF");
+    printf_expression(if_block_definition->condition);
+    printf("\n");
+    printf_block(if_block_definition->block_definition.block, alignment);
+  }
+}
+
+void printf_statement(Statement *statement, unsigned int alignment) {
   if (statement->statement_type == StatementTypePrintStatement) {
     PrintStatement *print_statement = (PrintStatement *)statement;
 
+    printf_alignment(alignment);
     printf("print ");
     printf_expression(print_statement->right_expression);
     printf("\n");
   } else if (statement->statement_type == StatementTypeReturnStatement) {
     ReturnStatement *return_statement = (ReturnStatement *)statement;
 
+    printf_alignment(alignment);
     printf("return ");
     printf_expression(return_statement->right_expression);
     printf("\n");
   } else if (statement->statement_type == StatementTypeImportStatement) {
     ImportStatement *import_statement = (ImportStatement *)statement;
 
+    printf_alignment(alignment);
     printf("import ");
     printf_expression(import_statement->right_expression);
     printf("\n");
+  } else if (statement->statement_type == StatementTypeBlockDefinitionStatement) {
+    BlockDefinitionStatement *block_definition_statement = (BlockDefinitionStatement *)statement;
+
+    printf_block_definition(block_definition_statement->block_definition, alignment);
   } else if (statement->statement_type == StatementTypeExpressionStatement) {
     ExpressionStatement *expression_Statement = (ExpressionStatement *)statement;
 
+    printf_alignment(alignment);
     printf_expression(expression_Statement->expression);
     printf("\n");
+  }
+}
+
+void printf_ast(AST *ast) {
+  for (size_t i = 0; i < ast->block->statement_count; i++) {
+    printf_statement(ast->block->statements[i], 0);
   }
 }
 
@@ -195,6 +239,23 @@ void free_expression(Expression *expression) {
   }
 }
 
+void free_block(Block *block) {
+  for (size_t i = 0; i < block->statement_count; i++) {
+    free_statement(block->statements[i]);
+  }
+  free(block);
+}
+
+void free_block_definition(BlockDefinition *block_definition) {
+  if (block_definition->block_definition_type == BlockDefinitionTypeIfBlock) {
+    IfBlockDefinition *if_block_definition = (IfBlockDefinition *)block_definition;
+
+    free_block(if_block_definition->block_definition.block);
+    free_expression(if_block_definition->condition);
+    free(block_definition);
+  }
+}
+
 void free_statement(Statement *statement) {
   switch (statement->statement_type) {
     case StatementTypeExpressionStatement: {
@@ -214,6 +275,30 @@ void free_statement(Statement *statement) {
       break;
     }
 
+    case StatementTypeImportStatement: {
+      ImportStatement *import_statement = (ImportStatement *)statement;
+
+      free_expression(import_statement->right_expression);
+      free(import_statement);
+      break;
+    }
+
+    case StatementTypeReturnStatement: {
+      ReturnStatement *return_statement = (ReturnStatement *)statement;
+
+      free_expression(return_statement->right_expression);
+      free(return_statement);
+      break;
+    }
+
+    case StatementTypeBlockDefinitionStatement: {
+      BlockDefinitionStatement *block_definition_statement = (BlockDefinitionStatement *)statement;
+
+      free_block_definition(block_definition_statement->block_definition);
+      free(block_definition_statement);
+      break;
+    }
+
     default: {
 
     }
@@ -221,9 +306,7 @@ void free_statement(Statement *statement) {
 }
 
 void free_ast(AST *ast) {
-  for (size_t i = 0; i < ast->statement_count; i++) {
-    free_statement(ast->statements[i]);
-  }
+  free_block(ast->block);
   free(ast);
 }
 

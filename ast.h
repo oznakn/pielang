@@ -50,6 +50,7 @@ typedef enum {
 
 typedef enum {
   StatementTypeExpressionStatement = 1,
+  StatementTypeBlockDefinitionStatement,
   StatementTypePrintStatement,
   StatementTypeReturnStatement,
   StatementTypeImportStatement,
@@ -68,6 +69,11 @@ typedef enum {
   ExpressionTypeCallExpression,
   ExpressionTypeTupleExpression,
 } ExpressionType;
+
+typedef enum {
+  BlockDefinitionTypeIfBlock = 1,
+  BlockDefinitionTypeForBlock,
+} BlockDefinitionType;
 
 typedef struct {
   StatementType statement_type;
@@ -126,15 +132,54 @@ typedef struct {
 typedef struct {
   Statement **statements;
   size_t statement_count;
+} Block;
+
+typedef struct {
+  BlockDefinitionType block_definition_type;
+  Block *block;
+} BlockDefinition;
+
+typedef struct {
+  BlockDefinition block_definition;
+  Expression *pre_expression;
+  Expression *condition;
+} IfBlockDefinition;
+
+typedef struct {
+  BlockDefinition block_definition;
+  Expression *pre_expression;
+  Expression *condition;
+  Expression *post_expression;
+} ForBlockDefinition;
+
+typedef struct {
+  Statement statement;
+  BlockDefinition *block_definition;
+} BlockDefinitionStatement;
+
+typedef struct {
+  Block *block;
 } AST;
+
+void printf_alignment(unsigned int alignment);
 
 void printf_expression(Expression *expression);
 
-void printf_statement(Statement *statement);
+void printf_block(Block *block, unsigned int alignment);
+
+void printf_block_definition(BlockDefinition *block_definition, unsigned int alignment);
+
+void printf_statement(Statement *statement, unsigned int alignment);
+
+void printf_ast(AST *ast);
 
 void free_expression(Expression *expression);
 
 void free_statement(Statement *statement);
+
+void free_block(Block *block);
+
+void free_block_definition(BlockDefinition *block_definition);
 
 void free_ast(AST *ast);
 

@@ -9,8 +9,10 @@ int main() {
   struct timeval start, end;
   gettimeofday(&start, NULL);
 
-  Lexer *lexer = new_lexer("import 'selamlar'");
+  Lexer *lexer = new_lexer("print 'hey'\n\n return 'heyo'\nif a != 3 { print 'merhabalar' }");
   AST *ast = parse_ast(lexer);
+
+  printf_ast(ast);
 
   free_lexer(lexer);
   free_ast(ast);

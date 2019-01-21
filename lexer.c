@@ -38,7 +38,6 @@ Lexer *new_lexer(char *content) {
 }
 
 void free_lexer(Lexer *lexer) {
-  // free(lexer->content); TODO
   free(lexer);
 }
 
@@ -164,6 +163,50 @@ bool search_for_token(Lexer *lexer, TokenType token_type, TokenType until) {
   }
 }
 
+Token parse_string_literal_token(Lexer *lexer, char c) {
+  size_t i = 1;
+
+  char *string = malloc(i);
+  char *tmp = NULL;
+
+  while (true) {
+    if (peek_char(lexer) == c) {
+      next_char(lexer);
+      break;
+    } else if (peek_char(lexer) == '\\') {
+      next_char(lexer);
+
+      if (peek_char(lexer) == 'n') {
+        string[i - 1] = '\n';
+        tmp = realloc(string, ++i);
+      } else if (peek_char(lexer) == 't') {
+        string[i - 1] = '\t';
+        tmp = realloc(string, ++i);
+      } else if (peek_char(lexer) == 'r') {
+        string[i - 1] = '\r';
+        tmp = realloc(string, ++i);
+      } else if (peek_char(lexer) == c) {
+        string[i - 1] = '\'';
+        tmp = realloc(string, ++i);
+      }
+
+      next_char(lexer);
+    } else {
+      string[i - 1] = next_char(lexer);
+      tmp = realloc(string, ++i);
+    }
+
+    if (tmp == NULL) {
+      free(string);
+      return (Token){.token_type = NULL_TOKEN};
+    }
+    string = tmp;
+  }
+  string[i - 1] = '\0';
+
+  return (Token){.token_type = STRING_LITERAL_TOKEN, .value.string_value=string};
+}
+
 Token next_token(Lexer *lexer) {
   skip_whitespace(lexer);
   save_checkpoint(lexer);
@@ -173,56 +216,23 @@ Token next_token(Lexer *lexer) {
       return (Token){.token_type = EOF_TOKEN};
     }
 
-    case '\n':
-    case ';': {
+    case '\n': {
       while (peek_char(lexer) == '\n') next_char(lexer);
 
       return (Token){.token_type = EOL_TOKEN};
     }
 
-    case '\'': {
-      size_t i = 1;
-
-      char *string = malloc(i);
-      char *tmp = NULL;
-
-      while (true) {
-        if (peek_char(lexer) == '\'') {
-          next_char(lexer);
-          break;
-        } else if (peek_char(lexer) == '\\') {
-          next_char(lexer);
-
-          if (peek_char(lexer) == 'n') {
-            string[i - 1] = '\n';
-            tmp = realloc(string, ++i);
-          } else if (peek_char(lexer) == 't') {
-            string[i - 1] = '\t';
-            tmp = realloc(string, ++i);
-          } else if (peek_char(lexer) == 'r') {
-            string[i - 1] = '\r';
-            tmp = realloc(string, ++i);
-          } else if (peek_char(lexer) == '\'') {
-            string[i - 1] = '\'';
-            tmp = realloc(string, ++i);
-          }
-
-          next_char(lexer);
-        } else {
-          string[i - 1] = next_char(lexer);
-          tmp = realloc(string, ++i);
-        }
-
-        if (tmp == NULL) {
-          free(string);
-          return (Token){.token_type = NULL_TOKEN};
-        }
-        string = tmp;
-      }
-      string[i - 1] = '\0';
-
-      return (Token){.token_type = STRING_LITERAL_TOKEN, .value.string_value=string};
+    case ';': {
+      return (Token){.token_type = SEMICOLON_TOKEN};
     }
+
+    case '\'': {
+      return parse_string_literal_token(lexer, '\'');
+    }
+
+      /* case '"': { // TODO
+        return parse_string_literal_token(lexer, '"');
+      } */
 
     case '.': {
       return (Token){.token_type = MEMBER_TOKEN};

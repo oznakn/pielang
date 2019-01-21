@@ -65,7 +65,7 @@ void printf_expression(Expression *expression) {
   } else if (expression->expression_type == ExpressionTypeTupleExpression) {
     TupleExpression *tuple_expression = (TupleExpression *)expression;
 
-    printf(" (");
+    printf(" T(");
     for (size_t i = 0; i < tuple_expression->expression_count; i++) {
       printf_expression(tuple_expression->expressions[i]);
 
@@ -99,6 +99,12 @@ void printf_statement(Statement *statement) {
 
     printf("return ");
     printf_expression(return_statement->right_expression);
+    printf("\n");
+  } else if (statement->statement_type == StatementTypeImportStatement) {
+    ImportStatement *import_statement = (ImportStatement *)statement;
+
+    printf("import ");
+    printf_expression(import_statement->right_expression);
     printf("\n");
   } else if (statement->statement_type == StatementTypeExpressionStatement) {
     ExpressionStatement *expression_Statement = (ExpressionStatement *)statement;
@@ -219,10 +225,6 @@ void free_ast(AST *ast) {
     free_statement(ast->statements[i]);
   }
   free(ast);
-}
-
-bool has_finished(Token token, TokenType until1, TokenType until2) {
-  return token.token_type == until1 || token.token_type == until2;
 }
 
 Operator token_to_operator(Token token) {

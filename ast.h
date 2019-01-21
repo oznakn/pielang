@@ -52,6 +52,7 @@ typedef enum {
   StatementTypeExpressionStatement = 1,
   StatementTypePrintStatement,
   StatementTypeReturnStatement,
+  StatementTypeImportStatement,
 } StatementType;
 
 typedef enum {
@@ -120,12 +121,7 @@ typedef struct {
 typedef struct {
   Statement statement;
   Expression *right_expression;
-} PrintStatement;
-
-typedef struct {
-  Statement statement;
-  Expression *right_expression;
-} ReturnStatement;
+} PrintStatement, ReturnStatement, ImportStatement;
 
 typedef struct {
   Statement **statements;
@@ -141,8 +137,6 @@ void free_expression(Expression *expression);
 void free_statement(Statement *statement);
 
 void free_ast(AST *ast);
-
-bool has_finished(Token token, TokenType until1, TokenType until2);
 
 Operator token_to_operator(Token token);
 

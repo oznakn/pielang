@@ -53,7 +53,7 @@ char next_char(Lexer *lexer) {
 }
 
 void skip_whitespace(Lexer *lexer) {
-  while (peek_char(lexer) == ' ') next_char(lexer);
+  while (peek_char(lexer) == ' ' || peek_char(lexer) == '\r' || peek_char(lexer) == '\t') next_char(lexer);
 }
 
 Token read_number_token(Lexer *lexer) {
@@ -410,6 +410,10 @@ Token next_token(Lexer *lexer) {
       if (strcmp(s, "return") == 0) {
         free(s);
         return (Token){.token_type = RETURN_TOKEN};
+      }
+      if (strcmp(s, "import") == 0) {
+        free(s);
+        return (Token){.token_type = IMPORT_TOKEN};
       }
       if (strcmp(s, "function") == 0) {
         free(s);

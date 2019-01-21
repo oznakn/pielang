@@ -9,7 +9,7 @@ int main() {
   struct timeval start, end;
   gettimeofday(&start, NULL);
 
-  Lexer *lexer = new_lexer("return (4 + 5 == !(3 + 4) )");
+  Lexer *lexer = new_lexer("import 'selamlar'");
   AST *ast = parse_ast(lexer);
 
   free_lexer(lexer);

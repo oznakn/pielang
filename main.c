@@ -1,34 +1,37 @@
-#define TEST_MODE true
+#define TEST_MODE false
 
 #include <stdio.h>
-#include <stdbool.h>
 #include <sys/time.h>
 
+#include "bool.h"
 #include "lexer.h"
 #include "ast.h"
 #include "parser.h"
 
 void run_repl() {
+  size_t buffer_size = 500000;
+  char *buffer = malloc(buffer_size);
+  FILE *file;
+
+  Lexer *lexer = NULL;
+
   while (true) {
-
-    struct timeval start, end;
-    gettimeofday(&start, NULL);
-
     printf(">>> ");
 
-    Lexer *lexer = new_lexer(stdin);
+    getline(&buffer, &buffer_size, stdin);
+
+    file = fmemopen(buffer, strlen(buffer), "r");
+    if (lexer == NULL) {
+      lexer = new_lexer(file);
+    } else {
+      update_lexer(lexer, file);
+    }
+
     Statement *statement = parse_statement(lexer);
+
     printf_statement(statement, 0);
     free_statement(statement);
-    free_lexer(lexer);
-
-    gettimeofday(&end, NULL);
-    double delta_us = (end.tv_sec - start.tv_sec) * 1000.0;
-    delta_us += (end.tv_usec - start.tv_usec) / 1000.0;
-    printf("Time elapsed: %fms\n", delta_us);
   }
-
-  printf("Exiting...");
 }
 
 /*
@@ -89,8 +92,8 @@ int main(int argc, char **argv) {
     run(file);
   }
   #else
-  if (false && argc == 2) {
-    char *filename = "../index.pie"; //argv[1];
+  if (argc == 2) {
+    char *filename = argv[1];
 
     FILE *file = fopen(filename, "r");
 

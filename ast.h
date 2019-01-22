@@ -1,20 +1,20 @@
 #ifndef PIELANG_AST_H
 #define PIELANG_AST_H
 
-#include <stdint.h>
-#include <stdbool.h>
+#include "bool.h"
 
 #define ASSIGN_PRECEDENCE 1
-#define MIDDLE_PRECEDENECE 2
-#define COMMA_PRECEDENCE 3
-#define CONDITIONAL_PRECEDENCE 4
-#define ADDITION_SUBTRACTION_PRECEDENCE 5
-#define MULTIPLICATION_DIVISION_MOD_PRECEDENCE 6
-#define EXPONENT_PRECEDENCE 7
-#define PREFIX_PRECEDENCE 8
-#define POSTFIX_PRECEDENCE 9
+#define COMMA_PRECEDENCE 2
+#define ASYNC_AWAIT_PRECEDENCE 3
+#define IN_OP_PRECEDENCE 4
+#define CONDITIONAL_PRECEDENCE 5
+#define ADDITION_SUBTRACTION_PRECEDENCE 6
+#define MULTIPLICATION_DIVISION_MOD_PRECEDENCE 7
+#define EXPONENT_PRECEDENCE 8
+#define PLUS_PLUS_MINUS_MINUS_PRECEDENCE 9
 #define CALL_PRECEDENCE 10
-#define MEMBER_PRECEDENCE 11
+#define LIST_PRECEDENCE 11
+#define MEMBER_PRECEDENCE 12
 
 #include "lexer.h"
 
@@ -38,6 +38,7 @@ typedef enum {
   PLUS_PLUS_OP,
   MINUS_MINUS_OP,
   L_PARENTHESIS_OP,
+  L_BRACKET_OP,
   NOT_OP,
   CHECK_EQUALITY_OP,
   CHECK_NOT_EQUALITY_OP,
@@ -47,6 +48,8 @@ typedef enum {
   CHECK_SMALLER_EQUAL_OP,
   IN_OP,
   COMMA_OP,
+  ASYNC_OP,
+  AWAIT_OP,
 } Operator;
 
 typedef enum {
@@ -68,13 +71,20 @@ typedef enum {
   ExpressionTypePrefixExpression,
   ExpressionTypePostfixExpression,
   ExpressionTypeCallExpression,
-  ExpressionTypeTupleExpression,
+  ExpressionTypeArrayExpression,
+  ExpressionTypeMemberExpression,
+  ExpressionTypeFunctionExpression,
 } ExpressionType;
 
 typedef enum {
   BlockDefinitionTypeIfBlock = 1,
   BlockDefinitionTypeForBlock,
 } BlockDefinitionType;
+
+typedef enum {
+  ArrayExpressionTypeList,
+  ArrayExpressionTypeTuple,
+} ArrayExpressionType;
 
 typedef struct {
   StatementType statement_type;
@@ -117,7 +127,14 @@ typedef struct {
   Expression expression;
   Expression **expressions;
   size_t expression_count;
-} TupleExpression;
+  ArrayExpressionType array_expression_type;
+} ArrayExpression;
+
+typedef struct {
+  Expression expression;
+  Expression **expressions;
+  size_t expression_count;
+} MemberExpression;
 
 typedef struct {
   Expression expression;
@@ -137,21 +154,29 @@ typedef struct {
 
 typedef struct {
   BlockDefinitionType block_definition_type;
-  Block *block;
 } BlockDefinition;
 
 typedef struct {
   BlockDefinition block_definition;
+  Block *block;
   Expression *pre_expression;
   Expression *condition;
 } IfBlockDefinition;
 
 typedef struct {
   BlockDefinition block_definition;
+  Block *block;
   Expression *pre_expression;
   Expression *condition;
   Expression *post_expression;
 } ForBlockDefinition;
+
+typedef struct {
+  Expression expression;
+  Block *block;
+  Expression *identifier;
+  Expression *arguments;
+} FunctionExpression;
 
 typedef struct {
   Statement statement;
@@ -164,7 +189,7 @@ typedef struct {
 
 void printf_alignment(unsigned int alignment);
 
-void printf_expression(Expression *expression);
+void printf_expression(Expression *expression, unsigned int alignment);
 
 void printf_block(Block *block, unsigned int alignment);
 

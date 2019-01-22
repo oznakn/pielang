@@ -3,8 +3,9 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <stdbool.h>
 #include <string.h>
+
+#include "bool.h"
 
 typedef enum {
   NULL_TOKEN = 0,
@@ -50,15 +51,18 @@ typedef enum {
   BIGGER_EQUAL_TOKEN,
   SMALLER_TOKEN,
   SMALLER_EQUAL_TOKEN,
+  ASYNC_TOKEN,
+  AWAIT_TOKEN,
   PRINT_TOKEN,
   RETURN_TOKEN,
   IMPORT_TOKEN,
-  FUNCTION_TOKEN,
   IF_TOKEN,
   ELSE_TOKEN,
   FOR_TOKEN,
+  FUNCTION_TOKEN,
   IN_TOKEN,
 } TokenType;
+
 
 typedef struct {
   long int integer_value;
@@ -67,10 +71,12 @@ typedef struct {
   bool bool_value;
 } Value;
 
+
 typedef struct {
   TokenType token_type;
   Value value;
 } Token;
+
 
 typedef struct {
   Token curr_token;
@@ -80,16 +86,26 @@ typedef struct {
   char next_char;
 } Lexer;
 
+
 Lexer *new_lexer(FILE *file);
+
+
+void update_lexer(Lexer *lexer, FILE *file);
+
 
 void free_lexer(Lexer *lexer);
 
+
 Token parse_string_literal_token(Lexer *lexer, char c);
+
 
 Token _next_token(Lexer *lexer);
 
+
 Token next_token(Lexer *lexer);
 
+
 Token peek_token(Lexer *lexer);
+
 
 #endif //PIELANG_LEXER_H

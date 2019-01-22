@@ -1,8 +1,6 @@
 #include "ast.h"
 
-#include <stdint.h>
-#include <stdbool.h>
-
+#include "bool.h"
 #include "lexer.h"
 
 void printf_alignment(unsigned int alignment) {
@@ -13,89 +11,176 @@ void printf_alignment(unsigned int alignment) {
   }
 }
 
-void printf_expression(Expression *expression) {
-  if (expression->expression_type == ExpressionTypeInfixExpression) {
-    InfixExpression *infix_expression = (InfixExpression *)expression;
 
-    printf(" (");
-    printf_expression(infix_expression->left_expression);
+void printf_expression(Expression *expression, unsigned int alignment) {
+  switch (expression->expression_type) {
+    case ExpressionTypeInfixExpression: {
+      InfixExpression *infix_expression = (InfixExpression *)expression;
 
-    if (infix_expression->operator == ADDITION_OP) { printf(" + "); }
-    else if (infix_expression->operator == SUBTRACTION_OP) { printf(" - "); }
-    else if (infix_expression->operator == MULTIPLICATION_OP) { printf(" * "); }
-    else if (infix_expression->operator == DIVISION_OP) { printf(" / "); }
-    else if (infix_expression->operator == MOD_OP) { printf(" %% "); }
-    else if (infix_expression->operator == EXPONENT_OP) { printf(" ^ "); }
-    else if (infix_expression->operator == ASSIGN_OP) { printf(" = "); }
-    else if (infix_expression->operator == MEMBER_OP) { printf(" . "); }
-    else if (infix_expression->operator == CHECK_EQUALITY_OP) { printf(" == "); }
-    else if (infix_expression->operator == CHECK_NOT_EQUALITY_OP) { printf(" != "); }
-    else if (infix_expression->operator == CHECK_SMALLER_OP) { printf(" < "); }
-    else if (infix_expression->operator == CHECK_SMALLER_EQUAL_OP) { printf(" <= "); }
-    else if (infix_expression->operator == CHECK_BIGGER_OP) { printf(" > "); }
-    else if (infix_expression->operator == CHECK_BIGGER_EQUAL_OP) { printf(" >= "); }
-    else if (infix_expression->operator == IN_OP) { printf(" in "); }
-    else if (infix_expression->operator == COMMA_OP) { printf(" , "); }
+      printf(" (");
+      printf_expression(infix_expression->left_expression, alignment);
 
-    printf_expression(infix_expression->right_expression);
-    printf(") ");
-  } else if (expression->expression_type == ExpressionTypePrefixExpression) {
-    PrefixExpression *prefix_expression = (PrefixExpression *)expression;
+      if (infix_expression->operator == ADDITION_OP) { printf(" + "); }
+      else if (infix_expression->operator == SUBTRACTION_OP) { printf(" - "); }
+      else if (infix_expression->operator == MULTIPLICATION_OP) { printf(" * "); }
+      else if (infix_expression->operator == DIVISION_OP) { printf(" / "); }
+      else if (infix_expression->operator == MOD_OP) { printf(" %% "); }
+      else if (infix_expression->operator == EXPONENT_OP) { printf(" ^ "); }
+      else if (infix_expression->operator == ASSIGN_OP) { printf(" = "); }
+      else if (infix_expression->operator == MEMBER_OP) { printf(" . "); }
+      else if (infix_expression->operator == CHECK_EQUALITY_OP) { printf(" == "); }
+      else if (infix_expression->operator == CHECK_NOT_EQUALITY_OP) { printf(" != "); }
+      else if (infix_expression->operator == CHECK_SMALLER_OP) { printf(" < "); }
+      else if (infix_expression->operator == CHECK_SMALLER_EQUAL_OP) { printf(" <= "); }
+      else if (infix_expression->operator == CHECK_BIGGER_OP) { printf(" > "); }
+      else if (infix_expression->operator == CHECK_BIGGER_EQUAL_OP) { printf(" >= "); }
+      else if (infix_expression->operator == IN_OP) { printf(" in "); }
+      else if (infix_expression->operator == COMMA_OP) { printf(" , "); }
 
-    printf(" (");
+      printf_expression(infix_expression->right_expression, alignment);
+      printf(") ");
 
-    if (prefix_expression->operator == NOT_OP) { printf("!"); }
-    else if (prefix_expression->operator == ADDITION_OP) { printf("+"); }
-    else if (prefix_expression->operator == SUBTRACTION_OP) { printf("-"); }
-    else if (prefix_expression->operator == PLUS_PLUS_OP) { printf("++"); }
-    else if (prefix_expression->operator == MINUS_MINUS_OP) { printf("--"); }
-
-    printf_expression(prefix_expression->right_expression);
-    printf(") ");
-
-  } else if (expression->expression_type == ExpressionTypePostfixExpression) {
-    PostfixExpression *postfix_expression = (PostfixExpression *)expression;
-
-    printf(" (");
-    printf_expression(postfix_expression->left_expression);
-
-    if (postfix_expression->operator == PLUS_PLUS_OP) { printf("++"); }
-    else if (postfix_expression->operator == MINUS_MINUS_OP) { printf("--"); }
-
-    printf(") ");
-
-  } else if (expression->expression_type == ExpressionTypeCallExpression) {
-    CallExpression *call_expression = (CallExpression *)expression;
-
-    printf(" `");
-    printf_expression(call_expression->identifier_expression);
-    printf("->");
-    printf_expression(call_expression->tuple_expression);
-    printf("` ");
-  } else if (expression->expression_type == ExpressionTypeTupleExpression) {
-    TupleExpression *tuple_expression = (TupleExpression *)expression;
-
-    printf(" T(");
-    for (size_t i = 0; i < tuple_expression->expression_count; i++) {
-      printf_expression(tuple_expression->expressions[i]);
-
-      if (i < tuple_expression->expression_count - 1) {
-        printf(",");
-      }
+      break;
     }
-    printf(") ");
-  } else if (expression->expression_type == ExpressionTypeIntegerExpression) {
-    printf(" %lu ", expression->value.integer_value);
-  } else if (expression->expression_type == ExpressionTypeFloatExpression) {
-    printf(" %f ", expression->value.float_value);
-  } else if (expression->expression_type == ExpressionTypeStringExpression) {
-    printf(" \"%s\" ", expression->value.string_value);
-  } else if (expression->expression_type == ExpressionTypeBoolExpression) {
-    printf(" %s ", expression->value.bool_value ? "true" : "false");
-  } else if (expression->expression_type == ExpressionTypeIdentifierExpression) {
-    printf(" %s ", expression->value.string_value);
+
+    case ExpressionTypePrefixExpression: {
+      PrefixExpression *prefix_expression = (PrefixExpression *)expression;
+
+      printf(" (");
+
+      if (prefix_expression->operator == NOT_OP) { printf("!"); }
+      else if (prefix_expression->operator == ADDITION_OP) { printf("+"); }
+      else if (prefix_expression->operator == SUBTRACTION_OP) { printf("-"); }
+      else if (prefix_expression->operator == PLUS_PLUS_OP) { printf("++"); }
+      else if (prefix_expression->operator == MINUS_MINUS_OP) { printf("--"); }
+      else if (prefix_expression->operator == ASYNC_OP) { printf(" async "); }
+      else if (prefix_expression->operator == AWAIT_OP) { printf(" await "); }
+
+      printf_expression(prefix_expression->right_expression, alignment);
+      printf(") ");
+
+      break;
+    }
+
+    case ExpressionTypePostfixExpression: {
+      PostfixExpression *postfix_expression = (PostfixExpression *)expression;
+
+      printf(" (");
+      printf_expression(postfix_expression->left_expression, alignment);
+
+      if (postfix_expression->operator == PLUS_PLUS_OP) { printf("++"); }
+      else if (postfix_expression->operator == MINUS_MINUS_OP) { printf("--"); }
+
+      printf(") ");
+
+      break;
+    }
+
+    case ExpressionTypeCallExpression: {
+      CallExpression *call_expression = (CallExpression *)expression;
+
+      printf(" `");
+      printf_expression(call_expression->identifier_expression, alignment);
+      printf("->");
+      printf_expression(call_expression->tuple_expression, alignment);
+      printf("` ");
+
+      break;
+    }
+
+    case ExpressionTypeArrayExpression: {
+      ArrayExpression *array_expression = (ArrayExpression *)expression;
+
+      if (array_expression->array_expression_type == ArrayExpressionTypeList) {
+        printf(" [");
+      } else {
+        printf(" T(");
+      }
+
+      for (size_t i = 0; i < array_expression->expression_count; i++) {
+        printf_expression(array_expression->expressions[i], alignment);
+
+        if (i < array_expression->expression_count - 1) {
+          printf(",");
+        }
+      }
+
+      if (array_expression->array_expression_type == ArrayExpressionTypeList) {
+        printf("] ");
+      } else {
+        printf(") ");
+      }
+
+      break;
+    }
+
+    case ExpressionTypeMemberExpression: {
+      MemberExpression *member_expression = (MemberExpression *)expression;
+
+      printf(" (");
+      for (size_t i = 0; i < member_expression->expression_count; i++) {
+        printf_expression(member_expression->expressions[i], alignment);
+
+        if (i < member_expression->expression_count - 1) {
+          printf(".");
+        }
+      }
+      printf(") ");
+
+      break;
+    }
+
+    case ExpressionTypeFunctionExpression: {
+      FunctionExpression *function_expression = (FunctionExpression *)expression;
+
+      printf("FUNCTION");
+
+      if (function_expression->identifier) printf_expression(function_expression->identifier, alignment);
+      printf_expression(function_expression->arguments, alignment);
+      printf("\n");
+      printf_block(function_expression->block, alignment);
+
+      break;
+    }
+
+    case ExpressionTypeIntegerExpression: {
+      printf(" %lu ", expression->value.integer_value);
+
+      break;
+    }
+
+    case ExpressionTypeFloatExpression: {
+      printf(" %f ", expression->value.float_value);
+
+      break;
+    }
+
+    case ExpressionTypeStringExpression: {
+      printf(" \"%s\" ", expression->value.string_value);
+
+      break;
+    }
+
+    case ExpressionTypeBoolExpression: {
+      printf(" %s ", expression->value.bool_value ? "true" : "false");
+
+      break;
+    }
+
+    case ExpressionTypeIdentifierExpression: {
+      printf(" %s ", expression->value.string_value);
+
+      break;
+    }
+
+
+    default : {
+
+    }
   }
+
 }
+
 
 void printf_block(Block *block, unsigned int alignment) {
   printf("{\n");
@@ -107,83 +192,123 @@ void printf_block(Block *block, unsigned int alignment) {
   printf("}\n");
 }
 
+
 void printf_block_definition(BlockDefinition *block_definition, unsigned int alignment) {
-  if (block_definition->block_definition_type == BlockDefinitionTypeIfBlock) {
-    IfBlockDefinition *if_block_definition = (IfBlockDefinition *)block_definition;
+  switch (block_definition->block_definition_type) {
+    case BlockDefinitionTypeIfBlock: {
+      IfBlockDefinition *if_block_definition = (IfBlockDefinition *)block_definition;
 
-    printf_alignment(alignment);
-    printf("IF");
+      printf_alignment(alignment);
+      printf("IF");
 
-    if (if_block_definition->pre_expression) {
-      printf_expression(if_block_definition->pre_expression);
-      printf(";");
+      if (if_block_definition->pre_expression) {
+        printf_expression(if_block_definition->pre_expression, alignment);
+        printf(";");
+      }
+
+      printf_expression(if_block_definition->condition, alignment);
+      printf("\n");
+      printf_block(if_block_definition->block, alignment);
+
+      break;
     }
 
-    printf_expression(if_block_definition->condition);
-    printf("\n");
-    printf_block(if_block_definition->block_definition.block, alignment);
-  } else if (block_definition->block_definition_type == BlockDefinitionTypeForBlock) {
-    ForBlockDefinition *for_block_definition = (ForBlockDefinition *)block_definition;
+    case BlockDefinitionTypeForBlock: {
+      ForBlockDefinition *for_block_definition = (ForBlockDefinition *)block_definition;
 
-    printf_alignment(alignment);
-    printf("FOR");
+      printf_alignment(alignment);
+      printf("FOR");
 
-    if (for_block_definition->pre_expression) {
-      printf_expression(for_block_definition->pre_expression);
-      printf(";");
+      if (for_block_definition->pre_expression) {
+        printf_expression(for_block_definition->pre_expression, alignment);
+        printf(";");
+      }
+
+      printf_expression(for_block_definition->condition, alignment);
+
+      if (for_block_definition->post_expression) {
+        printf(";");
+        printf_expression(for_block_definition->post_expression, alignment);
+      }
+      printf("\n");
+      printf_block(for_block_definition->block, alignment);
+
+      break;
     }
 
-    printf_expression(for_block_definition->condition);
+    default: {
 
-    if (for_block_definition->post_expression) {
-      printf(";");
-      printf_expression(for_block_definition->post_expression);
     }
-    printf("\n");
-    printf_block(for_block_definition->block_definition.block, alignment);
   }
 }
+
 
 void printf_statement(Statement *statement, unsigned int alignment) {
-  if (statement->statement_type == StatementTypePrintStatement) {
-    PrintStatement *print_statement = (PrintStatement *)statement;
+  switch (statement->statement_type) {
+    case StatementTypePrintStatement: {
+      PrintStatement *print_statement = (PrintStatement *)statement;
 
-    printf_alignment(alignment);
-    printf("print ");
-    printf_expression(print_statement->right_expression);
-    printf("\n");
-  } else if (statement->statement_type == StatementTypeReturnStatement) {
-    ReturnStatement *return_statement = (ReturnStatement *)statement;
+      printf_alignment(alignment);
+      printf("print ");
+      printf_expression(print_statement->right_expression, alignment);
+      printf("\n");
 
-    printf_alignment(alignment);
-    printf("return ");
-    printf_expression(return_statement->right_expression);
-    printf("\n");
-  } else if (statement->statement_type == StatementTypeImportStatement) {
-    ImportStatement *import_statement = (ImportStatement *)statement;
+      break;
+    }
 
-    printf_alignment(alignment);
-    printf("import ");
-    printf_expression(import_statement->right_expression);
-    printf("\n");
-  } else if (statement->statement_type == StatementTypeBlockDefinitionStatement) {
-    BlockDefinitionStatement *block_definition_statement = (BlockDefinitionStatement *)statement;
+    case StatementTypeReturnStatement: {
+      ReturnStatement *return_statement = (ReturnStatement *)statement;
 
-    printf_block_definition(block_definition_statement->block_definition, alignment);
-  } else if (statement->statement_type == StatementTypeExpressionStatement) {
-    ExpressionStatement *expression_Statement = (ExpressionStatement *)statement;
+      printf_alignment(alignment);
+      printf("return ");
+      printf_expression(return_statement->right_expression, alignment);
+      printf("\n");
 
-    printf_alignment(alignment);
-    printf_expression(expression_Statement->expression);
-    printf("\n");
+      break;
+    }
+
+    case StatementTypeImportStatement: {
+      ImportStatement *import_statement = (ImportStatement *)statement;
+
+      printf_alignment(alignment);
+      printf("import ");
+      printf_expression(import_statement->right_expression, alignment);
+      printf("\n");
+
+      break;
+    }
+
+    case StatementTypeBlockDefinitionStatement: {
+      BlockDefinitionStatement *block_definition_statement = (BlockDefinitionStatement *)statement;
+
+      printf_block_definition(block_definition_statement->block_definition, alignment);
+
+      break;
+    }
+
+    case StatementTypeExpressionStatement: {
+      ExpressionStatement *expression_Statement = (ExpressionStatement *)statement;
+
+      printf_alignment(alignment);
+      printf_expression(expression_Statement->expression, alignment);
+      printf("\n");
+
+      break;
+    }
+
+    default : {
+
+    }
   }
 }
+
 
 void printf_ast(AST *ast) {
   for (size_t i = 0; i < ast->block->statement_count; i++) {
     printf_statement(ast->block->statements[i], 0);
   }
 }
+
 
 void free_expression(Expression *expression) {
   switch (expression->expression_type) {
@@ -225,15 +350,39 @@ void free_expression(Expression *expression) {
       break;
     }
 
-    case ExpressionTypeTupleExpression: {
-      TupleExpression *tuple_expression = (TupleExpression *)expression;
+    case ExpressionTypeArrayExpression: {
+      ArrayExpression *array_expression = (ArrayExpression *)expression;
 
-      for (size_t i = 0; i < tuple_expression->expression_count; i++) {
-        free_expression(tuple_expression->expressions[i]);
+      for (size_t i = 0; i < array_expression->expression_count; i++) {
+        free_expression(array_expression->expressions[i]);
       }
 
-      free(tuple_expression->expressions);
-      free(tuple_expression);
+      free(array_expression->expressions);
+      free(array_expression);
+
+      break;
+    }
+
+    case ExpressionTypeMemberExpression: {
+      MemberExpression *member_expression = (MemberExpression *)expression;
+
+      for (size_t i = 0; i < member_expression->expression_count; i++) {
+        free_expression(member_expression->expressions[i]);
+      }
+
+      free(member_expression->expressions);
+      free(member_expression);
+
+      break;
+    }
+
+    case ExpressionTypeFunctionExpression: {
+      FunctionExpression *function_expression = (FunctionExpression *)expression;
+
+      if (function_expression->identifier) free_expression(function_expression->identifier);
+      free_expression(function_expression->arguments);
+      free_block(function_expression->block);
+      free(function_expression);
 
       break;
     }
@@ -266,6 +415,7 @@ void free_expression(Expression *expression) {
   }
 }
 
+
 void free_block(Block *block) {
   for (size_t i = 0; i < block->statement_count; i++) {
     free_statement(block->statements[i]);
@@ -273,24 +423,38 @@ void free_block(Block *block) {
   free(block);
 }
 
+
 void free_block_definition(BlockDefinition *block_definition) {
-  if (block_definition->block_definition_type == BlockDefinitionTypeIfBlock) {
-    IfBlockDefinition *if_block_definition = (IfBlockDefinition *)block_definition;
+  switch (block_definition->block_definition_type) {
+    case BlockDefinitionTypeIfBlock: {
+      IfBlockDefinition *if_block_definition = (IfBlockDefinition *)block_definition;
 
-    free_block(if_block_definition->block_definition.block);
-    free_expression(if_block_definition->condition);
-    if (if_block_definition->pre_expression) free_expression(if_block_definition->pre_expression);
-    free(block_definition);
-  } else if (block_definition->block_definition_type == BlockDefinitionTypeForBlock) {
-    ForBlockDefinition *for_block_definition = (ForBlockDefinition *)block_definition;
+      free_block(if_block_definition->block);
+      free_expression(if_block_definition->condition);
+      if (if_block_definition->pre_expression) free_expression(if_block_definition->pre_expression);
+      free(block_definition);
 
-    free_block(for_block_definition->block_definition.block);
-    free_expression(for_block_definition->condition);
-    if (for_block_definition->pre_expression) free_expression(for_block_definition->pre_expression);
-    if (for_block_definition->post_expression) free_expression(for_block_definition->post_expression);
-    free(block_definition);
+      break;
+    }
+
+    case BlockDefinitionTypeForBlock: {
+      ForBlockDefinition *for_block_definition = (ForBlockDefinition *)block_definition;
+
+      free_block(for_block_definition->block);
+      free_expression(for_block_definition->condition);
+      if (for_block_definition->pre_expression) free_expression(for_block_definition->pre_expression);
+      if (for_block_definition->post_expression) free_expression(for_block_definition->post_expression);
+      free(block_definition);
+
+      break;
+    }
+
+    default : {
+
+    }
   }
 }
+
 
 void free_statement(Statement *statement) {
   switch (statement->statement_type) {
@@ -341,10 +505,12 @@ void free_statement(Statement *statement) {
   }
 }
 
+
 void free_ast(AST *ast) {
   free_block(ast->block);
   free(ast);
 }
+
 
 Operator token_to_operator(Token token) {
   switch (token.token_type) {
@@ -429,6 +595,9 @@ Operator token_to_operator(Token token) {
     case L_PARENTHESIS_TOKEN:
       return L_PARENTHESIS_OP;
 
+    case L_BRACKET_TOKEN:
+      return L_BRACKET_OP;
+
     case EXCLAMATION_TOKEN:
       return NOT_OP;
 
@@ -438,14 +607,22 @@ Operator token_to_operator(Token token) {
     case COMMA_TOKEN:
       return COMMA_OP;
 
+    case ASYNC_TOKEN:
+      return ASYNC_OP;
+
+    case AWAIT_TOKEN:
+      return AWAIT_OP;
+
     default:
       return -1;
   }
 }
 
+
 bool check_if_token_is_operator(Token token) {
   return token_to_operator(token) != -1;
 }
+
 
 bool check_if_token_is_postfix_operator(Token token) {
   Operator operator = token_to_operator(token);
@@ -453,9 +630,11 @@ bool check_if_token_is_postfix_operator(Token token) {
   return operator == PLUS_PLUS_OP || operator == MINUS_MINUS_OP;
 }
 
+
 bool is_operator_right_associative(Operator operator) {
   return operator == EXPONENT_OP || operator == ASSIGN_OP;
 }
+
 
 unsigned short get_operator_precedence(Operator operator, bool next) {
   unsigned short result;
@@ -504,12 +683,17 @@ unsigned short get_operator_precedence(Operator operator, bool next) {
 
     case PLUS_PLUS_OP:
     case MINUS_MINUS_OP: {
-      result = PREFIX_PRECEDENCE;
+      result = PLUS_PLUS_MINUS_MINUS_PRECEDENCE;
       break;
     };
 
     case L_PARENTHESIS_OP: {
       result = CALL_PRECEDENCE;
+      break;
+    };
+
+    case L_BRACKET_OP: {
+      result = LIST_PRECEDENCE;
       break;
     };
 
@@ -519,7 +703,7 @@ unsigned short get_operator_precedence(Operator operator, bool next) {
     };
 
     case IN_OP: {
-      result = MIDDLE_PRECEDENECE;
+      result = IN_OP_PRECEDENCE;
       break;
     }
 
@@ -527,6 +711,13 @@ unsigned short get_operator_precedence(Operator operator, bool next) {
       result = COMMA_PRECEDENCE;
       break;
     };
+
+    case ASYNC_OP:
+    case AWAIT_OP: {
+      result = ASYNC_AWAIT_PRECEDENCE;
+      break;
+    }
+
 
     default: {
       result = 0;

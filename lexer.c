@@ -1,38 +1,47 @@
 #include "lexer.h"
 
 #include <string.h>
+#include "bool.h"
 
 bool is_digit(char c) {
   return ('0' <= c && c <= '9');
 }
 
+
 bool is_number_char(char c) {
   return is_digit(c) || c == '_';
 }
+
 
 bool is_alpha(char c) {
   return ('A' <= c && c <= 'Z') || ('a' <= c && c <= 'z');
 }
 
+
 bool is_alphanum(char c) {
   return is_alpha(c) || is_digit(c);
 }
+
 
 bool is_identifier_first_char(char c) {
   return is_alpha(c) || c == '_';
 }
 
+
 bool is_identifier_char(char c) {
   return is_identifier_first_char(c) || is_digit(c);
 }
+
 
 char _next_char(Lexer *lexer) {
   return (char)fgetc(lexer->file);
 }
 
+
 char peek_char(Lexer *lexer) {
   return lexer->next_char;
 }
+
 
 char next_char(Lexer *lexer) {
   lexer->curr_char = lexer->next_char;
@@ -40,6 +49,7 @@ char next_char(Lexer *lexer) {
 
   return lexer->curr_char;
 }
+
 
 Lexer *new_lexer(FILE *file) {
   Lexer *lexer = malloc(sizeof(Lexer));
@@ -51,14 +61,22 @@ Lexer *new_lexer(FILE *file) {
   return lexer;
 }
 
+void update_lexer(Lexer *lexer, FILE *file) {
+  lexer->file = file;
+  lexer->next_char = _next_char(lexer);
+  lexer->next_token = _next_token(lexer);
+}
+
 void free_lexer(Lexer *lexer) {
   free(lexer->file);
   free(lexer);
 }
 
+
 void skip_whitespace(Lexer *lexer) {
   while (peek_char(lexer) == ' ' || peek_char(lexer) == '\r' || peek_char(lexer) == '\t') next_char(lexer);
 }
+
 
 Token read_number_token(Lexer *lexer) {
   bool is_float = false;
@@ -101,6 +119,7 @@ Token read_number_token(Lexer *lexer) {
   }
 }
 
+
 char *read_literal(Lexer *lexer) {
   size_t i = 1;
   char *string = malloc(1);
@@ -126,6 +145,7 @@ char *read_literal(Lexer *lexer) {
 
   return string;
 }
+
 
 Token parse_string_literal_token(Lexer *lexer, char c) {
   size_t i = 1;
@@ -170,6 +190,7 @@ Token parse_string_literal_token(Lexer *lexer, char c) {
 
   return (Token){.token_type = STRING_LITERAL_TOKEN, .value.string_value=string};
 }
+
 
 Token _next_token(Lexer *lexer) {
   skip_whitespace(lexer);
@@ -429,11 +450,7 @@ Token _next_token(Lexer *lexer) {
         free(s);
         return (Token){.token_type = IMPORT_TOKEN};
       }
-      if (strcmp(s, "function") == 0) {
-        free(s);
-        return (Token){.token_type = FUNCTION_TOKEN};
-      }
-      if (strcmp(s, "function") == 0) {
+      if (strcmp(s, "fun") == 0) {
         free(s);
         return (Token){.token_type = FUNCTION_TOKEN};
       }
@@ -453,11 +470,20 @@ Token _next_token(Lexer *lexer) {
         free(s);
         return (Token){.token_type = IN_TOKEN};
       }
+      if (strcmp(s, "async") == 0) {
+        free(s);
+        return (Token){.token_type = ASYNC_TOKEN};
+      }
+      if (strcmp(s, "await") == 0) {
+        free(s);
+        return (Token){.token_type = AWAIT_TOKEN};
+      }
 
       return (Token){.token_type = IDENTIFIER_TOKEN, .value.string_value = s};
     }
   }
 }
+
 
 Token next_token(Lexer *lexer) {
   lexer->curr_token = lexer->next_token;
@@ -465,6 +491,7 @@ Token next_token(Lexer *lexer) {
 
   return lexer->curr_token;
 }
+
 
 Token peek_token(Lexer *lexer) {
   return lexer->next_token;

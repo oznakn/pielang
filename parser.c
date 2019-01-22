@@ -39,7 +39,7 @@ void *parser_error() {
 }
 
 Expression *eval_token(Token token) {
-  Expression *expression = NULL;
+  Expression *expression;
 
   if (token.token_type == IDENTIFIER_TOKEN) {
     expression = malloc(sizeof(Expression));
@@ -78,7 +78,7 @@ Expression *eval_token(Token token) {
     return expression;
   }
 
-  return expression;
+  return parser_error();
 }
 
 /* Expression *parse_grouped_expression(Lexer *lexer, unsigned short precedence, TokenType until1, TokenType until2) {
@@ -240,9 +240,7 @@ Block *parse_block(Lexer *lexer, ParserLimiter limiter) {
   Statement **tmp = NULL;
 
   while (true) {
-    while (peek_token(lexer).token_type == EOL_TOKEN) {
-      next_token(lexer);
-    }
+    while (peek_token(lexer).token_type == EOL_TOKEN) { next_token(lexer); }
 
     Token token = peek_token(lexer);
 

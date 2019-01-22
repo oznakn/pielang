@@ -72,6 +72,8 @@ typedef struct {
 } Token;
 
 typedef struct {
+  Token curr_token;
+  Token next_token;
   size_t size;
   size_t cursor;
   size_t checkpoint;
@@ -88,10 +90,12 @@ size_t save_checkpoint(Lexer *lexer);
 
 void go_checkpoint(Lexer *lexer);
 
-Token peek_token(Lexer *lexer);
+Token parse_string_literal_token(Lexer *lexer, char c);
 
-// bool search_for_token(Lexer *lexer, TokenType token_type, TokenType until);
+Token _next_token(Lexer *lexer);
 
 Token next_token(Lexer *lexer);
+
+Token peek_token(Lexer *lexer);
 
 #endif //PIELANG_LEXER_H

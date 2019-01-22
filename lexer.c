@@ -34,6 +34,8 @@ Lexer *new_lexer(char *content) {
   lexer->cursor = 0;
   lexer->checkpoint = 0;
 
+  lexer->next_token = _next_token(lexer);
+
   return lexer;
 }
 
@@ -135,34 +137,6 @@ void go_checkpoint(Lexer *lexer) {
   lexer->cursor = lexer->checkpoint;
 }
 
-Token peek_token(Lexer *lexer) {
-  size_t checkpoint = save_checkpoint(lexer);
-
-  Token token = next_token(lexer);
-
-  reset(lexer, checkpoint);
-
-  return token;
-}
-
-bool search_for_token(Lexer *lexer, TokenType token_type, TokenType until) {
-  size_t checkpoint = save_checkpoint(lexer);
-
-  Token token;
-
-  while (true) {
-    token = next_token(lexer);
-
-    if (token.token_type == token_type) {
-      reset(lexer, checkpoint);
-      return true;
-    } else if (token.token_type == until || token.token_type == EOF_TOKEN) {
-      reset(lexer, checkpoint);
-      return false;
-    }
-  }
-}
-
 Token parse_string_literal_token(Lexer *lexer, char c) {
   size_t i = 1;
 
@@ -207,7 +181,7 @@ Token parse_string_literal_token(Lexer *lexer, char c) {
   return (Token){.token_type = STRING_LITERAL_TOKEN, .value.string_value=string};
 }
 
-Token next_token(Lexer *lexer) {
+Token _next_token(Lexer *lexer) {
   skip_whitespace(lexer);
   save_checkpoint(lexer);
 
@@ -449,4 +423,15 @@ Token next_token(Lexer *lexer) {
       return (Token){.token_type = IDENTIFIER_TOKEN, .value.string_value = s};
     }
   }
+}
+
+Token next_token(Lexer *lexer) {
+  lexer->curr_token = lexer->next_token;
+  lexer->next_token = _next_token(lexer);
+
+  return lexer->curr_token;
+}
+
+Token peek_token(Lexer *lexer) {
+  return lexer->next_token;
 }

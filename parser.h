@@ -8,8 +8,9 @@
 #include "ast.h"
 
 typedef enum {
-  DEFAULT_BLOCK_PARSER_LIMITER = 0,
+  DEFAULT_BLOCK_PARSER_LIMITER = 1,
   DEFAULT_EXPRESSION_PARSER_LIMITER,
+  GROUPED_EXPRESSION_PARSER_LIMITER,
   TUPLE_EXPRESSION_PARSER_LIMITER,
   DEFAULT_BLOCK_EXPRESSION_PARSER_LIMITER,
   IF_BLOCK_EXPRESSION_PARSER_LIMITER,
@@ -18,13 +19,13 @@ typedef enum {
 
 bool has_finished(Token token, ParserLimiter limiter);
 
-// Expression *parse_grouped_expression(Lexer *lexer, unsigned short precedence, TokenType until1, TokenType until2);
+Expression *parse_grouped_expression(Lexer *lexer);
 
 Expression *parse_prefix_expression(Lexer *lexer, unsigned short precedence, ParserLimiter limiter);
 
 Expression *parse_postfix_expression(Lexer *lexer, unsigned short precedence, ParserLimiter limiter, Expression *left);
 
-Expression *parse_tuple_expression(Lexer *lexer, ParserLimiter limiter, bool reduce);
+Expression *parse_tuple_expression(Lexer *lexer, unsigned short precedence, ParserLimiter limiter, Expression *left);
 
 Expression *parse_call_expression(Lexer *lexer, unsigned short precedence, ParserLimiter limiter, Expression *left);
 

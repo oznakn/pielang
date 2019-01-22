@@ -34,6 +34,8 @@ void printf_expression(Expression *expression) {
     else if (infix_expression->operator == CHECK_SMALLER_EQUAL_OP) { printf(" <= "); }
     else if (infix_expression->operator == CHECK_BIGGER_OP) { printf(" > "); }
     else if (infix_expression->operator == CHECK_BIGGER_EQUAL_OP) { printf(" >= "); }
+    else if (infix_expression->operator == IN_OP) { printf(" in "); }
+    else if (infix_expression->operator == COMMA_OP) { printf(" , "); }
 
     printf_expression(infix_expression->right_expression);
     printf(") ");
@@ -111,9 +113,34 @@ void printf_block_definition(BlockDefinition *block_definition, unsigned int ali
 
     printf_alignment(alignment);
     printf("IF");
+
+    if (if_block_definition->pre_expression) {
+      printf_expression(if_block_definition->pre_expression);
+      printf(";");
+    }
+
     printf_expression(if_block_definition->condition);
     printf("\n");
     printf_block(if_block_definition->block_definition.block, alignment);
+  } else if (block_definition->block_definition_type == BlockDefinitionTypeForBlock) {
+    ForBlockDefinition *for_block_definition = (ForBlockDefinition *)block_definition;
+
+    printf_alignment(alignment);
+    printf("FOR");
+
+    if (for_block_definition->pre_expression) {
+      printf_expression(for_block_definition->pre_expression);
+      printf(";");
+    }
+
+    printf_expression(for_block_definition->condition);
+
+    if (for_block_definition->post_expression) {
+      printf(";");
+      printf_expression(for_block_definition->post_expression);
+    }
+    printf("\n");
+    printf_block(for_block_definition->block_definition.block, alignment);
   }
 }
 
@@ -252,6 +279,15 @@ void free_block_definition(BlockDefinition *block_definition) {
 
     free_block(if_block_definition->block_definition.block);
     free_expression(if_block_definition->condition);
+    if (if_block_definition->pre_expression) free_expression(if_block_definition->pre_expression);
+    free(block_definition);
+  } else if (block_definition->block_definition_type == BlockDefinitionTypeForBlock) {
+    ForBlockDefinition *for_block_definition = (ForBlockDefinition *)block_definition;
+
+    free_block(for_block_definition->block_definition.block);
+    free_expression(for_block_definition->condition);
+    if (for_block_definition->pre_expression) free_expression(for_block_definition->pre_expression);
+    if (for_block_definition->post_expression) free_expression(for_block_definition->post_expression);
     free(block_definition);
   }
 }
@@ -396,6 +432,12 @@ Operator token_to_operator(Token token) {
     case EXCLAMATION_TOKEN:
       return NOT_OP;
 
+    case IN_TOKEN:
+      return IN_OP;
+
+    case COMMA_TOKEN:
+      return COMMA_OP;
+
     default:
       return -1;
   }
@@ -467,12 +509,22 @@ unsigned short get_operator_precedence(Operator operator, bool next) {
     };
 
     case L_PARENTHESIS_OP: {
-      result = L_PARENTHESIS_PRECEDENCE;
+      result = CALL_PRECEDENCE;
       break;
     };
 
     case MEMBER_OP: {
       result = MEMBER_PRECEDENCE;
+      break;
+    };
+
+    case IN_OP: {
+      result = MIDDLE_PRECEDENECE;
+      break;
+    }
+
+    case COMMA_OP: {
+      result = COMMA_PRECEDENCE;
       break;
     };
 

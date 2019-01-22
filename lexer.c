@@ -26,31 +26,34 @@ bool is_identifier_char(char c) {
   return is_identifier_first_char(c) || is_digit(c);
 }
 
-Lexer *new_lexer(char *content) {
+char _next_char(Lexer *lexer) {
+  return (char)fgetc(lexer->file);
+}
+
+char peek_char(Lexer *lexer) {
+  return lexer->next_char;
+}
+
+char next_char(Lexer *lexer) {
+  lexer->curr_char = lexer->next_char;
+  lexer->next_char = _next_char(lexer);
+
+  return lexer->curr_char;
+}
+
+Lexer *new_lexer(FILE *file) {
   Lexer *lexer = malloc(sizeof(Lexer));
 
-  lexer->content = content;
-  lexer->size = strlen(content);
-  lexer->cursor = 0;
-  lexer->checkpoint = 0;
-
+  lexer->file = file;
+  lexer->next_char = _next_char(lexer);
   lexer->next_token = _next_token(lexer);
 
   return lexer;
 }
 
 void free_lexer(Lexer *lexer) {
+  free(lexer->file);
   free(lexer);
-}
-
-char peek_char(Lexer *lexer) {
-  if (lexer->cursor == lexer->size) return '\0';
-  return lexer->content[lexer->cursor];
-}
-
-char next_char(Lexer *lexer) {
-  if (lexer->cursor == lexer->size) return '\0';
-  return lexer->content[lexer->cursor++];
 }
 
 void skip_whitespace(Lexer *lexer) {
@@ -124,19 +127,6 @@ char *read_literal(Lexer *lexer) {
   return string;
 }
 
-void reset(Lexer *lexer, size_t cursor) {
-  lexer->cursor = cursor;
-}
-
-size_t save_checkpoint(Lexer *lexer) {
-  lexer->checkpoint = lexer->cursor;
-  return lexer->cursor;
-}
-
-void go_checkpoint(Lexer *lexer) {
-  lexer->cursor = lexer->checkpoint;
-}
-
 Token parse_string_literal_token(Lexer *lexer, char c) {
   size_t i = 1;
 
@@ -183,24 +173,30 @@ Token parse_string_literal_token(Lexer *lexer, char c) {
 
 Token _next_token(Lexer *lexer) {
   skip_whitespace(lexer);
-  save_checkpoint(lexer);
 
-  switch (next_char(lexer)) {
+  switch (peek_char(lexer)) {
+    case EOF:
     case '\0': {
       return (Token){.token_type = EOF_TOKEN};
     }
 
     case '\n': {
+      next_char(lexer);
+
       while (peek_char(lexer) == '\n') next_char(lexer);
 
       return (Token){.token_type = EOL_TOKEN};
     }
 
     case ';': {
+      next_char(lexer);
+
       return (Token){.token_type = SEMICOLON_TOKEN};
     }
 
     case '\'': {
+      next_char(lexer);
+
       return parse_string_literal_token(lexer, '\'');
     }
 
@@ -209,14 +205,20 @@ Token _next_token(Lexer *lexer) {
       } */
 
     case '.': {
+      next_char(lexer);
+
       return (Token){.token_type = MEMBER_TOKEN};
     }
 
     case ',': {
+      next_char(lexer);
+
       return (Token){.token_type = COMMA_TOKEN};
     }
 
     case '=': {
+      next_char(lexer);
+
       if (peek_char(lexer) == '=') {
         next_char(lexer);
 
@@ -227,6 +229,8 @@ Token _next_token(Lexer *lexer) {
     }
 
     case '+': {
+      next_char(lexer);
+
       if (peek_char(lexer) == '+') {
         next_char(lexer);
 
@@ -241,6 +245,8 @@ Token _next_token(Lexer *lexer) {
     }
 
     case '-': {
+      next_char(lexer);
+
       if (peek_char(lexer) == '-') {
         next_char(lexer);
 
@@ -255,6 +261,8 @@ Token _next_token(Lexer *lexer) {
     }
 
     case '*': {
+      next_char(lexer);
+
       if (peek_char(lexer) == '*') {
         next_char(lexer);
 
@@ -275,6 +283,8 @@ Token _next_token(Lexer *lexer) {
     }
 
     case '/': {
+      next_char(lexer);
+
       if (peek_char(lexer) == '/') {
         next_char(lexer);
 
@@ -295,6 +305,8 @@ Token _next_token(Lexer *lexer) {
     }
 
     case '%': {
+      next_char(lexer);
+
       if (peek_char(lexer) == '=') {
         next_char(lexer);
 
@@ -305,6 +317,8 @@ Token _next_token(Lexer *lexer) {
     }
 
     case '^': {
+      next_char(lexer);
+
       if (peek_char(lexer) == '=') {
         next_char(lexer);
 
@@ -315,6 +329,8 @@ Token _next_token(Lexer *lexer) {
     }
 
     case '!': {
+      next_char(lexer);
+
       if (peek_char(lexer) == '=') {
         next_char(lexer);
 
@@ -325,6 +341,8 @@ Token _next_token(Lexer *lexer) {
     }
 
     case '<': {
+      next_char(lexer);
+
       if (peek_char(lexer) == '=') {
         next_char(lexer);
 
@@ -335,6 +353,8 @@ Token _next_token(Lexer *lexer) {
     }
 
     case '>': {
+      next_char(lexer);
+
       if (peek_char(lexer) == '=') {
         next_char(lexer);
 
@@ -345,32 +365,42 @@ Token _next_token(Lexer *lexer) {
     }
 
     case '(': {
+      next_char(lexer);
+
       return (Token){.token_type = L_PARENTHESIS_TOKEN};
     }
 
     case ')': {
+      next_char(lexer);
+
       return (Token){.token_type = R_PARENTHESIS_TOKEN};
     }
 
     case '[': {
+      next_char(lexer);
+
       return (Token){.token_type = L_BRACKET_TOKEN};
     }
 
     case ']': {
+      next_char(lexer);
+
       return (Token){.token_type = R_BRACKET_TOKEN};
     }
 
     case '{': {
+      next_char(lexer);
+
       return (Token){.token_type = L_BRACE_TOKEN};
     }
 
     case '}': {
+      next_char(lexer);
+
       return (Token){.token_type = R_BRACE_TOKEN};
     }
 
     default: {
-      go_checkpoint(lexer);
-
       if (is_digit(peek_char(lexer))) {
         return read_number_token(lexer);
       }
@@ -418,6 +448,10 @@ Token _next_token(Lexer *lexer) {
       if (strcmp(s, "for") == 0) {
         free(s);
         return (Token){.token_type = FOR_TOKEN};
+      }
+      if (strcmp(s, "in") == 0) {
+        free(s);
+        return (Token){.token_type = IN_TOKEN};
       }
 
       return (Token){.token_type = IDENTIFIER_TOKEN, .value.string_value = s};

@@ -57,6 +57,7 @@ typedef enum {
   IF_TOKEN,
   ELSE_TOKEN,
   FOR_TOKEN,
+  IN_TOKEN,
 } TokenType;
 
 typedef struct {
@@ -74,21 +75,14 @@ typedef struct {
 typedef struct {
   Token curr_token;
   Token next_token;
-  size_t size;
-  size_t cursor;
-  size_t checkpoint;
-  char *content;
+  FILE *file;
+  char curr_char;
+  char next_char;
 } Lexer;
 
-Lexer *new_lexer(char *content);
+Lexer *new_lexer(FILE *file);
 
 void free_lexer(Lexer *lexer);
-
-void reset(Lexer *lexer, size_t cursor);
-
-size_t save_checkpoint(Lexer *lexer);
-
-void go_checkpoint(Lexer *lexer);
 
 Token parse_string_literal_token(Lexer *lexer, char c);
 

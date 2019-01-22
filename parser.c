@@ -19,7 +19,10 @@ bool has_finished(Token token, ParserLimiter limiter) {
       return token.token_type == EOL_TOKEN;
 
     case TUPLE_EXPRESSION_PARSER_LIMITER:
-      return token.token_type == COMMA_TOKEN || token.token_type == R_PARENTHESIS_TOKEN;
+      return token.token_type == COMMA_TOKEN || token.token_type == R_PARENTHESIS_TOKEN || token.token_type == EOL_TOKEN;
+
+    case GROUPED_EXPRESSION_PARSER_LIMITER:
+      return token.token_type == R_PARENTHESIS_TOKEN;
 
     case DEFAULT_BLOCK_EXPRESSION_PARSER_LIMITER:
       return token.token_type == L_BRACE_TOKEN;
@@ -81,8 +84,8 @@ Expression *eval_token(Token token) {
   return parser_error();
 }
 
-/* Expression *parse_grouped_expression(Lexer *lexer, unsigned short precedence, TokenType until1, TokenType until2) {
-  Expression *result = parse_expression(lexer, 0, R_PARENTHESIS_TOKEN, until2);
+Expression *parse_grouped_expression(Lexer *lexer) {
+  Expression *result = parse_expression(lexer, 0, GROUPED_EXPRESSION_PARSER_LIMITER);
 
   if (peek_token(lexer).token_type != R_PARENTHESIS_TOKEN) {
     return parser_error();
@@ -90,14 +93,14 @@ Expression *eval_token(Token token) {
 
   next_token(lexer);
   return result;
-} */
+}
 
 Expression *parse_prefix_expression(Lexer *lexer, unsigned short precedence, ParserLimiter limiter) {
   Token curr_token = next_token(lexer);
   if (has_finished(curr_token, limiter)) return parser_error();
 
   if (curr_token.token_type == L_PARENTHESIS_TOKEN) {
-    return parse_tuple_expression(lexer, limiter, true);
+    return parse_grouped_expression(lexer); // TODO limiter, true
   }
 
   PrefixExpression *prefix_expression = malloc(sizeof(PrefixExpression));
@@ -122,48 +125,32 @@ Expression *parse_postfix_expression(Lexer *lexer, unsigned short precedence, Pa
   return (Expression *)postfixExpression;
 }
 
-Expression *parse_tuple_expression(Lexer *lexer, ParserLimiter limiter, bool reduce) {
-  TupleExpression *tuple_expression = malloc(sizeof(TupleExpression));
+Expression *parse_tuple_expression(Lexer *lexer, unsigned short precedence, ParserLimiter limiter, Expression *left) {
+  TupleExpression *tuple_expression = NULL;
 
-  tuple_expression->expression = (Expression){.expression_type = ExpressionTypeTupleExpression};
-  tuple_expression->expression_count = 0;
-  tuple_expression->expressions = malloc(tuple_expression->expression_count);
+  if (left->expression_type != ExpressionTypeTupleExpression) {
+    tuple_expression = malloc(sizeof(TupleExpression));
 
-  while (peek_token(lexer).token_type != R_PARENTHESIS_TOKEN) {
-    if (peek_token(lexer).token_type == COMMA_TOKEN) {
-      next_token(lexer);
-    }
-
-    if (has_finished(peek_token(lexer), TUPLE_EXPRESSION_PARSER_LIMITER)) {
-      break;
-    } else if (has_finished(peek_token(lexer), limiter)) {
-      free_expression((Expression *)tuple_expression);
-      return parser_error();
-    }
-
-    Expression *expression = parse_expression(lexer, 0, TUPLE_EXPRESSION_PARSER_LIMITER);
-
-    Expression **tmp = realloc(tuple_expression->expressions, sizeof(TupleExpression *) * (++tuple_expression->expression_count));
-
-    if (tmp == NULL) {
-      free_expression((Expression *)tuple_expression);
-      return parser_error();
-    }
-    tuple_expression->expressions = tmp;
-
-    tuple_expression->expressions[tuple_expression->expression_count - 1] = expression;
+    tuple_expression->expression = (Expression){.expression_type = ExpressionTypeTupleExpression};
+    tuple_expression->expression_count = 1;
+    tuple_expression->expressions = malloc(tuple_expression->expression_count);
+    tuple_expression->expressions[0] = left;
+  } else {
+    tuple_expression = (TupleExpression *)left;
   }
 
-  next_token(lexer);
+  if (has_finished(peek_token(lexer), limiter)) return (Expression *)tuple_expression;
 
-  if (reduce && tuple_expression->expression_count == 1) {
-    Expression *expression = tuple_expression->expressions[0];
+  Expression *right = parse_expression(lexer, get_operator_precedence(COMMA_OP, true), limiter);
 
-    free((Expression *)tuple_expression->expressions);
-    free((Expression *)tuple_expression);
-
-    return expression;
+  Expression **tmp = realloc(tuple_expression->expressions, sizeof(Expression *) * (++tuple_expression->expression_count));
+  if (tmp == NULL) {
+    free_expression(left);
+    return NULL;
   }
+  tuple_expression->expressions = tmp;
+
+  tuple_expression->expressions[tuple_expression->expression_count - 1] = right;
 
   return (Expression *)tuple_expression;
 }
@@ -172,7 +159,7 @@ Expression *parse_call_expression(Lexer *lexer, unsigned short precedence, Parse
   CallExpression *call_expression = malloc(sizeof(CallExpression));
   call_expression->expression = (Expression){.expression_type = ExpressionTypeCallExpression};
   call_expression->identifier_expression = left;
-  call_expression->tuple_expression = parse_tuple_expression(lexer, limiter, false);
+  call_expression->tuple_expression = parse_grouped_expression(lexer); // TODO limiter, false
 
   return (Expression *)call_expression;
 }
@@ -183,6 +170,8 @@ Expression *parse_infix_expression(Lexer *lexer, unsigned short precedence, Pars
 
   if (curr_token.token_type == L_PARENTHESIS_TOKEN) {
     return parse_call_expression(lexer, precedence, limiter, left);
+  } else if (curr_token.token_type == COMMA_TOKEN) {
+    return parse_tuple_expression(lexer, 0, TUPLE_EXPRESSION_PARSER_LIMITER, left);
   }
 
   InfixExpression *infix_expression = malloc(sizeof(InfixExpression));
@@ -273,9 +262,13 @@ BlockDefinition *parse_if_block_definition(Lexer *lexer, ParserLimiter limiter) 
     expression2 = parse_expression(lexer, 0, IF_BLOCK_EXPRESSION_PARSER_LIMITER);
   }
 
+  if (peek_token(lexer).token_type != L_BRACE_TOKEN) return parser_error();
+
   next_token(lexer);
 
   Block *block = parse_block(lexer, limiter);
+
+  if (peek_token(lexer).token_type != R_BRACE_TOKEN) return parser_error();
 
   next_token(lexer);
 
@@ -313,11 +306,16 @@ BlockDefinition *parse_for_block_definition(Lexer *lexer, ParserLimiter limiter)
     }
   }
 
-  next_token(lexer); // {
+  printf("%d\n", peek_token(lexer).token_type);
+  if (peek_token(lexer).token_type != L_BRACE_TOKEN) return parser_error();
+
+  next_token(lexer);
 
   Block *block = parse_block(lexer, limiter);
 
-  next_token(lexer); // }
+  if (peek_token(lexer).token_type != R_BRACE_TOKEN) return parser_error();
+
+  next_token(lexer);
 
   ForBlockDefinition *for_block_definition = malloc(sizeof(ForBlockDefinition));
   for_block_definition->block_definition = (BlockDefinition){.block_definition_type = BlockDefinitionTypeForBlock, .block = block};
@@ -341,6 +339,8 @@ BlockDefinition *parse_block_definition(Lexer *lexer, ParserLimiter limiter) {
 
   if (token.token_type == IF_TOKEN) {
     return parse_if_block_definition(lexer, limiter);
+  } else if (token.token_type == FOR_TOKEN) {
+    return parse_for_block_definition(lexer, limiter);
   }
 
   return NULL;
@@ -406,7 +406,7 @@ Statement *parse_statement(Lexer *lexer) {
     statement = parse_return_statement(lexer, DEFAULT_EXPRESSION_PARSER_LIMITER);
   } else if (token.token_type == IMPORT_TOKEN) {
     statement = parse_import_statement(lexer, DEFAULT_EXPRESSION_PARSER_LIMITER);
-  } else if (token.token_type == IF_TOKEN) {
+  } else if (token.token_type == IF_TOKEN || token.token_type == FOR_TOKEN) {
     statement = parse_block_definition_statement(lexer, DEFAULT_BLOCK_PARSER_LIMITER);
   } else {
     statement = parse_expression_statement(lexer, DEFAULT_EXPRESSION_PARSER_LIMITER);

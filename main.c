@@ -1,4 +1,4 @@
-#define TEST_MODE false
+#define TEST_MODE true
 
 #include <stdio.h>
 #include <sys/time.h>

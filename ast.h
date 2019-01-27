@@ -92,7 +92,7 @@ typedef struct {
 
 typedef struct {
   ExpressionType expression_type;
-  Value value;
+  Literal *literal;
 } Expression;
 
 typedef struct {

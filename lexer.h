@@ -8,6 +8,38 @@
 #include "bool.h"
 
 typedef enum {
+  LiteralTypeBoolLiteral,
+  LiteralTypeIntegerLiteral,
+  LiteralTypeFloatLiteral,
+  LiteralTypeStringLiteral,
+} LiteralType;
+
+typedef struct {
+  LiteralType literal_type;
+} Literal;
+
+typedef struct {
+  Literal literal;
+  bool bool_literal;
+} BoolLiteral;
+
+typedef struct {
+  Literal literal;
+  long int integer_literal;
+} IntegerLiteral;
+
+typedef struct {
+  Literal literal;
+  double float_literal;
+} FloatLiteral;
+
+typedef struct {
+  Literal literal;
+  char *string_literal;
+  size_t length;
+} StringLiteral;
+
+typedef enum {
   NULL_TOKEN = 0,
   EOL_TOKEN,
   EOF_TOKEN,
@@ -63,20 +95,10 @@ typedef enum {
   IN_TOKEN,
 } TokenType;
 
-
-typedef struct {
-  long int integer_value;
-  double float_value;
-  char *string_value;
-  bool bool_value;
-} Value;
-
-
 typedef struct {
   TokenType token_type;
-  Value value;
+  Literal *literal;
 } Token;
-
 
 typedef struct {
   Token curr_token;

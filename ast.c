@@ -143,32 +143,32 @@ void printf_expression(Expression *expression, unsigned int alignment) {
       break;
     }
 
+    case ExpressionTypeBoolExpression: {
+      printf(" %s ", ((BoolLiteral *)expression->literal)->bool_literal ? "true" : "false");
+
+      break;
+    }
+
     case ExpressionTypeIntegerExpression: {
-      printf(" %lu ", expression->value.integer_value);
+      printf(" %lu ", ((IntegerLiteral *)expression->literal)->integer_literal);
 
       break;
     }
 
     case ExpressionTypeFloatExpression: {
-      printf(" %f ", expression->value.float_value);
+      printf(" %f ", ((FloatLiteral *)expression->literal)->float_literal);
 
       break;
     }
 
     case ExpressionTypeStringExpression: {
-      printf(" \"%s\" ", expression->value.string_value);
-
-      break;
-    }
-
-    case ExpressionTypeBoolExpression: {
-      printf(" %s ", expression->value.bool_value ? "true" : "false");
+      printf(" \"%s\" ", ((StringLiteral *)expression->literal)->string_literal);
 
       break;
     }
 
     case ExpressionTypeIdentifierExpression: {
-      printf(" %s ", expression->value.string_value);
+      printf(" %s ", ((StringLiteral *)expression->literal)->string_literal);
 
       break;
     }
@@ -388,23 +388,25 @@ void free_expression(Expression *expression) {
     }
 
     case ExpressionTypeIntegerExpression: {
+      free(expression->literal);
       free(expression);
       break;
     }
 
     case ExpressionTypeFloatExpression: {
+      free(expression->literal);
       free(expression);
       break;
     }
 
     case ExpressionTypeStringExpression: {
-      free(expression->value.string_value);
+      free(expression->literal);
       free(expression);
       break;
     }
 
     case ExpressionTypeIdentifierExpression: {
-      free(expression->value.string_value);
+      free(expression->literal);
       free(expression);
       break;
     }

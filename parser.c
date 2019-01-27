@@ -45,35 +45,34 @@ Expression *eval_token(Token token) {
   if (token.token_type == IDENTIFIER_TOKEN) {
     expression = malloc(sizeof(Expression));
 
-    expression->value = (Value){.string_value = token.value.string_value};
+    expression->literal = token.literal;
     expression->expression_type = ExpressionTypeIdentifierExpression;
 
     return expression;
   } else if (token.token_type == INTEGER_TOKEN) {
     expression = malloc(sizeof(Expression));
 
-    expression->value = (Value){.integer_value = token.value.integer_value};
+    expression->literal = token.literal;
     expression->expression_type = ExpressionTypeIntegerExpression;
 
     return expression;
   } else if (token.token_type == FLOAT_TOKEN) {
     expression = malloc(sizeof(Expression));
-
-    expression->value = (Value){.float_value = token.value.float_value};
+    expression->literal = token.literal;
     expression->expression_type = ExpressionTypeFloatExpression;
 
     return expression;
   } else if (token.token_type == BOOL_TOKEN) {
     expression = malloc(sizeof(Expression));
 
-    expression->value = (Value){.bool_value = token.value.bool_value};
+    expression->literal = token.literal;
     expression->expression_type = ExpressionTypeBoolExpression;
 
     return expression;
   } else if (token.token_type == STRING_LITERAL_TOKEN) {
     expression = malloc(sizeof(Expression));
 
-    expression->value = (Value){.string_value = token.value.string_value};
+    expression->literal = token.literal;
     expression->expression_type = ExpressionTypeStringExpression;
 
     return expression;

@@ -61,11 +61,13 @@ Lexer *new_lexer(FILE *file) {
   return lexer;
 }
 
+
 void update_lexer(Lexer *lexer, FILE *file) {
   lexer->file = file;
   lexer->next_char = _next_char(lexer);
   lexer->next_token = _next_token(lexer);
 }
+
 
 void free_lexer(Lexer *lexer) {
   free(lexer->file);
@@ -113,9 +115,17 @@ Token read_number_token(Lexer *lexer) {
 
 
   if (is_float) {
-    return (Token){.token_type = FLOAT_TOKEN, .value.float_value = strtod(string, NULL)};
+    FloatLiteral *float_literal = malloc(sizeof(FloatLiteral));
+    float_literal->literal = (Literal){.literal_type = LiteralTypeFloatLiteral};
+    float_literal->float_literal = strtod(string, NULL);
+
+    return (Token){.token_type = FLOAT_TOKEN, .literal = (Literal *)float_literal};
   } else {
-    return (Token){.token_type = INTEGER_TOKEN, .value.integer_value = strtol(string, NULL, 10)};
+    IntegerLiteral *integer_literal = malloc(sizeof(IntegerLiteral));
+    integer_literal->literal = (Literal){.literal_type = LiteralTypeIntegerLiteral};
+    integer_literal->integer_literal = strtol(string, NULL, 10);
+
+    return (Token){.token_type = INTEGER_TOKEN, .literal = (Literal *)integer_literal};
   }
 }
 
@@ -188,7 +198,12 @@ Token parse_string_literal_token(Lexer *lexer, char c) {
   }
   string[i - 1] = '\0';
 
-  return (Token){.token_type = STRING_LITERAL_TOKEN, .value.string_value=string};
+  StringLiteral *string_literal = malloc(sizeof(StringLiteral));
+  string_literal->literal = (Literal){.literal_type = LiteralTypeStringLiteral};
+  string_literal->string_literal = string;
+  string_literal->length = strlen(string);
+
+  return (Token){.token_type = STRING_LITERAL_TOKEN, .literal = (Literal *)string_literal};
 }
 
 
@@ -432,11 +447,23 @@ Token _next_token(Lexer *lexer) {
 
       if (strcmp(s, "true") == 0) {
         free(s);
-        return (Token){.token_type = BOOL_TOKEN, .value.bool_value = true};
+
+        // TODO
+        BoolLiteral *bool_literal = malloc(sizeof(BoolLiteral));
+        bool_literal->literal = (Literal){.literal_type = LiteralTypeBoolLiteral};
+        bool_literal->bool_literal = true;
+
+        return (Token){.token_type = BOOL_TOKEN, .literal = (Literal *)bool_literal};
       }
       if (strcmp(s, "false") == 0) {
         free(s);
-        return (Token){.token_type = BOOL_TOKEN, .value.bool_value = false};
+
+        // TODO
+        BoolLiteral *bool_literal = malloc(sizeof(BoolLiteral));
+        bool_literal->literal = (Literal){.literal_type = LiteralTypeBoolLiteral};
+        bool_literal->bool_literal = false;
+
+        return (Token){.token_type = BOOL_TOKEN, .literal = (Literal *)bool_literal};
       }
       if (strcmp(s, "print") == 0) {
         free(s);
@@ -479,7 +506,12 @@ Token _next_token(Lexer *lexer) {
         return (Token){.token_type = AWAIT_TOKEN};
       }
 
-      return (Token){.token_type = IDENTIFIER_TOKEN, .value.string_value = s};
+      StringLiteral *string_literal = malloc(sizeof(StringLiteral));
+      string_literal->literal = (Literal){.literal_type = LiteralTypeStringLiteral};
+      string_literal->string_literal = s;
+      string_literal->length = strlen(s);
+
+      return (Token){.token_type = IDENTIFIER_TOKEN, .literal = (Literal *)string_literal};
     }
   }
 }

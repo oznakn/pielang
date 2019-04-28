@@ -69,6 +69,7 @@ typedef enum {
   ExpressionTypeCallExpression,
   ExpressionTypeArrayExpression,
   ExpressionTypeMemberExpression,
+  ExpressionTypeIndexExpression,
   ExpressionTypeFunctionExpression,
 } ExpressionType;
 
@@ -129,6 +130,12 @@ typedef struct {
 
 typedef struct {
   Expression expression;
+  Expression *left_expression;
+  Expression *right_expression;
+} IndexExpression;
+
+typedef struct {
+  Expression expression;
   Expression *identifier_expression;
   Expression *tuple_expression;
 } CallExpression;
@@ -183,6 +190,7 @@ typedef enum {
   DEFAULT_EXPRESSION_PARSER_LIMITER,
   GROUPED_EXPRESSION_PARSER_LIMITER,
   ARRAY_EXPRESSION_PARSER_LIMITER,
+  INDEX_EXPRESSION_PARSER_LIMITER,
   IF_BLOCK_EXPRESSION_PARSER_LIMITER,
   FOR_BLOCK_EXPRESSION_PARSER_LIMITER,
 } ParserLimiter;
@@ -257,7 +265,10 @@ Expression *parse_prefix_expression(Lexer *lexer, ParserLimiter limiter);
 Expression *parse_array_expression(Lexer *lexer, Expression *left);
 
 
-Expression *parse_member_expression(Lexer *lexer, Expression *left);
+Expression *parse_member_expression(Lexer *lexer, Expression *identifier);
+
+
+Expression *parse_index_expression(Lexer *lexer, Expression *left);
 
 
 Expression *parse_call_expression(Lexer *lexer, Expression *identifier);

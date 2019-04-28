@@ -71,6 +71,7 @@ typedef struct {
   Value value;
   Value **items;
   size_t length;
+  bool has_finished;
 } TupleValue, ListValue;
 
 
@@ -124,10 +125,10 @@ Value *new_function_value(Block *block, char *function_name, char **arguments, s
 Value *new_object_value();
 
 
-Value *new_tuple_value(Value **items, size_t length);
+Value *new_tuple_value(Value **items, size_t length, bool has_finished);
 
 
-Value *new_list_value(Value **items, size_t length);
+Value *new_list_value(Value **items, size_t length, bool has_finished);
 
 
 Value *copy_value(Value *value);

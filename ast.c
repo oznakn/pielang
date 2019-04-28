@@ -5,6 +5,7 @@
 
 #define MAX_BUFFER_SIZE 10000
 
+
 void printf_alignment(unsigned int alignment) {
   if (alignment != 0u) {
     for (unsigned int i = 0; i < alignment; i += 1u) {
@@ -62,6 +63,34 @@ void printf_expression(Expression *expression, unsigned int alignment) {
       break;
     }
 
+
+    case ExpressionTypeMemberExpression: {
+      MemberExpression *member_expression = (MemberExpression *)expression;
+
+      printf(" (");
+      for (size_t i = 0; i < member_expression->expression_count; i++) {
+        printf_expression(member_expression->expressions[i], alignment);
+
+        if (i < member_expression->expression_count - 1) {
+          printf(".");
+        }
+      }
+      printf(") ");
+
+      break;
+    }
+
+    case ExpressionTypeIndexExpression: {
+      IndexExpression *index_expression = (IndexExpression *)expression;
+
+      printf_expression(index_expression->left_expression, alignment);
+      printf("[");
+      printf_expression(index_expression->right_expression, alignment);
+      printf("] ");
+
+      break;
+    }
+
     case ExpressionTypeCallExpression: {
       CallExpression *call_expression = (CallExpression *) expression;
 
@@ -96,22 +125,6 @@ void printf_expression(Expression *expression, unsigned int alignment) {
       } else {
         printf(") ");
       }
-
-      break;
-    }
-
-    case ExpressionTypeMemberExpression: {
-      MemberExpression *member_expression = (MemberExpression *)expression;
-
-      printf(" (");
-      for (size_t i = 0; i < member_expression->expression_count; i++) {
-        printf_expression(member_expression->expressions[i], alignment);
-
-        if (i < member_expression->expression_count - 1) {
-          printf(".");
-        }
-      }
-      printf(") ");
 
       break;
     }
@@ -718,6 +731,8 @@ bool has_finished(Token token, ParserLimiter limiter) {
     case ARRAY_EXPRESSION_PARSER_LIMITER:
       return token.token_type == R_BRACKET_TOKEN || token.token_type == R_PARENTHESIS_TOKEN;
 
+    case INDEX_EXPRESSION_PARSER_LIMITER:
+      return token.token_type == R_BRACKET_TOKEN;
 
     case IF_BLOCK_EXPRESSION_PARSER_LIMITER:
     case FOR_BLOCK_EXPRESSION_PARSER_LIMITER:
@@ -798,6 +813,7 @@ Expression *force_tuple(Expression *expression) {
     array_expression->expression_count = 0;
     array_expression->expressions = malloc(0);
     array_expression->array_expression_type = ArrayExpressionTypeTuple;
+    array_expression->has_finished = false;
 
     return (Expression *) array_expression;
   }
@@ -814,6 +830,7 @@ Expression *force_tuple(Expression *expression) {
     array_expression->expression_count = 1;
     array_expression->expressions = malloc(sizeof(Expression *));
     array_expression->array_expression_type = ArrayExpressionTypeTuple;
+    array_expression->has_finished = false;
 
     array_expression->expressions[0] = expression;
 
@@ -826,6 +843,7 @@ Expression *force_tuple(Expression *expression) {
     array_expression->expression_count = 1;
     array_expression->expressions = malloc(sizeof(Expression *));
     array_expression->array_expression_type = ArrayExpressionTypeTuple;
+    array_expression->has_finished = false;
 
     array_expression->expressions[0] = expression;
 
@@ -907,6 +925,7 @@ Expression *parse_array_expression(Lexer *lexer, Expression *left) {
     array_expression->expression_count = 1;
     array_expression->expressions = malloc(array_expression->expression_count * sizeof(Expression *));
     array_expression->array_expression_type = ArrayExpressionTypeTuple;
+    array_expression->has_finished = false;
 
     array_expression->expressions[0] = left;
 
@@ -962,6 +981,25 @@ Expression *parse_member_expression(Lexer *lexer, Expression *left) {
 }
 
 
+Expression *parse_index_expression(Lexer *lexer, Expression *identifier) {
+  if (peek_token(lexer).token_type != L_BRACKET_TOKEN) return parser_error();
+  next_token(lexer);
+
+  Expression *right_expression = parse_expression(lexer, 0, INDEX_EXPRESSION_PARSER_LIMITER);
+
+  if (peek_token(lexer).token_type != R_BRACKET_TOKEN) return parser_error();
+  next_token(lexer);
+
+  IndexExpression *index_expression = malloc(sizeof(IndexExpression));
+
+  index_expression->expression = (Expression) {.expression_type = ExpressionTypeIndexExpression};
+  index_expression->left_expression = identifier;
+  index_expression->right_expression = right_expression;
+
+  return (Expression *) index_expression;
+}
+
+
 Expression *parse_call_expression(Lexer *lexer, Expression *identifier) {
   if (peek_token(lexer).token_type != L_PARENTHESIS_TOKEN) return parser_error();
   next_token(lexer);
@@ -984,10 +1022,15 @@ Expression *parse_infix_expression(Lexer *lexer, ParserLimiter limiter, Expressi
 
   if (curr_token.token_type == L_PARENTHESIS_TOKEN) {
     return parse_call_expression(lexer, left);
-  } else if (curr_token.token_type == MEMBER_TOKEN) {
+  }
+  else if (curr_token.token_type == L_BRACKET_TOKEN) {
+    return parse_index_expression(lexer, left);
+  }
+  else if (curr_token.token_type == MEMBER_TOKEN) {
     next_token(lexer);
     return parse_member_expression(lexer, left);
-  } else if (curr_token.token_type == COMMA_TOKEN) {
+  }
+  else if (curr_token.token_type == COMMA_TOKEN) {
     next_token(lexer);
     return parse_array_expression(lexer, left);
   }

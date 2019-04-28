@@ -222,23 +222,25 @@ Value *new_function_value(Block *block, char *function_name, char **arguments, s
 }
 
 
-Value *new_tuple_value(Value **items, size_t length) {
+Value *new_tuple_value(Value **items, size_t length, bool has_finished) {
   TupleValue *tuple_value = malloc(sizeof(TupleValue));
 
-  tuple_value->value = (Value){.value_type =ValueTypeTupleValue};
+  tuple_value->value = (Value){.value_type = ValueTypeTupleValue};
   tuple_value->items = items;
   tuple_value->length = length;
+  tuple_value->has_finished = has_finished;
 
   return (Value *)tuple_value;
 }
 
 
-Value *new_list_value(Value **items, size_t length) {
+Value *new_list_value(Value **items, size_t length, bool has_finished) {
   ListValue *list_value = malloc(sizeof(ListValue));
 
   list_value->value = (Value){.value_type =ValueTypeListValue};
   list_value->items = items;
   list_value->length = length;
+  list_value->has_finished = has_finished;
 
   return (Value *)list_value;
 }
@@ -282,7 +284,7 @@ Value *copy_value(Value *value) {
 
       memcpy(items, tuple_value->items, tuple_value->length * sizeof(Value *));
 
-      result_value = new_tuple_value(items, tuple_value->length);
+      result_value = new_tuple_value(items, tuple_value->length, tuple_value->has_finished);
 
       break;
     }
@@ -294,7 +296,7 @@ Value *copy_value(Value *value) {
 
       memcpy(items, list_value->items, list_value->length * sizeof(Value *));
 
-      result_value = new_list_value(items, list_value->length);
+      result_value = new_list_value(items, list_value->length, list_value->has_finished);
 
       break;
     }

@@ -7,6 +7,50 @@
 #include "scope.h"
 #include "value.h"
 
+Value *_evaluate_or_apply_index_operation(Scope *scope, IndexExpression *index_expression, Value *assign_value) {
+  Value **items;
+  size_t items_length;
+
+  Value *index_expression_left_value = evaluate_expression(scope, index_expression->left_expression);
+  Value *index_expression_right_value = evaluate_expression(scope, index_expression->right_expression);
+
+  if ((index_expression_left_value->value_type != ValueTypeTupleValue &&
+       index_expression_left_value->value_type != ValueTypeListValue) ||
+      index_expression_right_value->value_type != ValueTypeIntegerValue) return new_null_value();
+
+  IntegerValue *index_expression_right_integer_value = (IntegerValue *) index_expression_right_value;
+
+  if (index_expression_left_value->value_type == ValueTypeListValue) {
+    items = ((ListValue *) index_expression_left_value)->items;
+    items_length = ((ListValue *) index_expression_left_value)->length;
+  }
+  else {
+    items = ((TupleValue *) index_expression_left_value)->items;
+    items_length = ((TupleValue *) index_expression_left_value)->length;
+  }
+
+  if (index_expression_right_integer_value->integer_value < 0 || index_expression_right_integer_value->integer_value >= items_length) return new_null_value();
+
+  if (assign_value == NULL) {
+    free_value(index_expression_left_value);
+    free_value(index_expression_right_value);
+
+    return items[index_expression_right_integer_value->integer_value];
+  }
+
+  Value *old_value = items[index_expression_right_integer_value->integer_value];
+  items[index_expression_right_integer_value->integer_value] = assign_value;
+
+  old_value->linked_variable_count--;
+  assign_value->linked_variable_count++;
+
+  free_value(old_value);
+  free_value(index_expression_left_value);
+  free_value(index_expression_right_value);
+
+  return new_null_value();
+}
+
 
 Value *apply_prefix_not_operation(Value *right_value) {
   if (right_value->value_type == ValueTypeBoolValue) {
@@ -38,6 +82,11 @@ Value *apply_prefix_minus_operation(Value *right_value) {
   }
 
   return new_null_value();
+}
+
+
+Value *apply_index_operation(Scope *scope, IndexExpression *index_expression, Value *assign_value) {
+  return _evaluate_or_apply_index_operation(scope, index_expression, assign_value);
 }
 
 
@@ -109,7 +158,7 @@ Value *apply_addition_operation(Value *left_value, Value *right_value) {
     memcpy(result_items, left_array_items, left_array_item_length * sizeof(Value *));
     memcpy(&result_items[left_array_item_length], right_array_items, right_array_item_length * sizeof(Value *));
 
-    return new_tuple_value(result_items, left_array_item_length + right_array_item_length);
+    return new_tuple_value(result_items, left_array_item_length + right_array_item_length, true);
   }
 
   return new_null_value();
@@ -160,7 +209,7 @@ Value *apply_multiplication_operation(Value *left_value, Value *right_value) {
 }
 
 
-Value *apply_division_operation(Value *left_value, Value *right_value) {
+Value *apply_division_operation(Value *left_value, Value *right_value, bool is_integer_division) {
   if ((left_value->value_type == ValueTypeIntegerValue || left_value->value_type == ValueTypeFloatValue) && (right_value->value_type == ValueTypeIntegerValue || right_value->value_type == ValueTypeFloatValue)) {
     double left_float, right_float, result;
 
@@ -172,7 +221,7 @@ Value *apply_division_operation(Value *left_value, Value *right_value) {
 
     result = left_float / right_float;
 
-    if (ceil(result) == floor(result)) {
+    if (is_integer_division || ceil(result) == floor(result)) {
       return new_integer_value((int) result);
     }
     else {
@@ -217,96 +266,48 @@ Value *apply_mod_operation(Value *left_value, Value *right_value) {
 }
 
 
-Value *apply_assign_operation(Scope *scope, char *identifier, Value *right_value) {
-  set_variable(scope, identifier, right_value);
+Value *apply_assign_operation(Value *left_value, Value *right_value, Operator operator) {
+  Value *result_value = NULL;
 
-  return new_null_value();
-}
-
-
-Value *evaluate_infix_expression(Scope *scope, InfixExpression *infix_expression) {
-  Value *left_value, *right_value, *result_value;
-
-  switch (infix_expression->operator) {
+  switch (operator) {
     case ASSIGN_OP: {
-      if (infix_expression->left_expression->literal->literal_type != LiteralTypeStringLiteral) {
-        result_value = new_null_value();
-      }
-      else {
-        char *identifier = ((StringLiteral *) infix_expression->left_expression->literal)->string_literal;
-
-        right_value = evaluate_expression(scope, infix_expression->right_expression);
-
-        result_value = apply_assign_operation(scope, identifier, right_value);
-
-        free_value(right_value);
-      }
+      result_value = right_value;
       break;
     }
 
-    case ADDITION_OP: {
-      left_value = evaluate_expression(scope, infix_expression->left_expression);
-      right_value = evaluate_expression(scope, infix_expression->right_expression);
-
+    case ASSIGN_ADDITION_OP:{
       result_value = apply_addition_operation(left_value, right_value);
 
-      free_value(left_value);
-      free_value(right_value);
       break;
     }
 
-    case SUBTRACTION_OP: {
-      left_value = evaluate_expression(scope, infix_expression->left_expression);
-      right_value = evaluate_expression(scope, infix_expression->right_expression);
-
+    case ASSIGN_SUBTRACTION_OP:{
       result_value = apply_subtraction_operation(left_value, right_value);
-
-      free_value(left_value);
-      free_value(right_value);
       break;
     }
 
-    case MULTIPLICATION_OP: {
-      left_value = evaluate_expression(scope, infix_expression->left_expression);
-      right_value = evaluate_expression(scope, infix_expression->right_expression);
-
+    case ASSIGN_MULTIPLICATION_OP:{
       result_value = apply_multiplication_operation(left_value, right_value);
-
-      free_value(left_value);
-      free_value(right_value);
       break;
     }
 
-    case DIVISION_OP: {
-      left_value = evaluate_expression(scope, infix_expression->left_expression);
-      right_value = evaluate_expression(scope, infix_expression->right_expression);
-
-      result_value = apply_division_operation(left_value, right_value);
-
-      free_value(left_value);
-      free_value(right_value);
+    case ASSIGN_DIVISION_OP:{
+      result_value = apply_division_operation(left_value, right_value, false);
       break;
     }
 
-    case EXPONENT_OP: {
-      left_value = evaluate_expression(scope, infix_expression->left_expression);
-      right_value = evaluate_expression(scope, infix_expression->right_expression);
+    case ASSIGN_INTEGER_DIVISION_OP:{
+      result_value = apply_division_operation(left_value, right_value, true);
+      break;
+    }
 
+    case ASSIGN_EXPONENT_OP:{
       result_value = apply_exponent_operation(left_value, right_value);
-
-      free_value(left_value);
-      free_value(right_value);
       break;
     }
 
-    case MOD_OP: {
-      left_value = evaluate_expression(scope, infix_expression->left_expression);
-      right_value = evaluate_expression(scope, infix_expression->right_expression);
-
+    case ASSIGN_MOD_OP:{
       result_value = apply_mod_operation(left_value, right_value);
-
-      free_value(left_value);
-      free_value(right_value);
       break;
     }
 
@@ -317,6 +318,151 @@ Value *evaluate_infix_expression(Scope *scope, InfixExpression *infix_expression
   }
 
   return result_value;
+}
+
+
+Value *evaluate_index_expression(Scope *scope, IndexExpression *index_expression) {
+ return _evaluate_or_apply_index_operation(scope, index_expression, NULL);
+}
+
+
+Value *evaluate_infix_expression(Scope *scope, InfixExpression *infix_expression) {
+  Value *left_value = NULL, *right_value = NULL, *result_value;
+
+  switch (infix_expression->operator) {
+    case ASSIGN_OP:
+    case ASSIGN_ADDITION_OP:
+    case ASSIGN_SUBTRACTION_OP:
+    case ASSIGN_MULTIPLICATION_OP:
+    case ASSIGN_DIVISION_OP:
+    case ASSIGN_INTEGER_DIVISION_OP:
+    case ASSIGN_EXPONENT_OP:
+    case ASSIGN_MOD_OP: {
+      if (infix_expression->left_expression->expression_type == ExpressionTypeIdentifierExpression) {
+        char *identifier = ((StringLiteral *) infix_expression->left_expression->literal)->string_literal;
+
+        if (infix_expression->operator != ASSIGN_OP) {
+          Variable *variable = get_variable(scope, identifier);
+          left_value = variable != NULL ? variable->value : NULL;
+        }
+
+        right_value = evaluate_expression(scope, infix_expression->right_expression);
+        result_value = apply_assign_operation(left_value, right_value, infix_expression->operator);
+
+        set_variable(scope, identifier, result_value);
+
+        if (left_value != NULL) free_value(left_value);
+        free_value(right_value);
+
+        return new_null_value();
+      }
+      else if (infix_expression->left_expression->expression_type == ExpressionTypeIndexExpression) {
+        if (infix_expression->operator != ASSIGN_OP) {
+          left_value = evaluate_expression(scope, infix_expression->left_expression);
+        }
+
+        right_value = evaluate_expression(scope, infix_expression->right_expression);
+        result_value = apply_assign_operation(left_value, right_value, infix_expression->operator);
+
+        free_value(apply_index_operation(scope, (IndexExpression *) infix_expression->left_expression, result_value));
+
+        if (left_value != NULL) free_value(left_value);
+        free_value(right_value);
+
+        return new_null_value();
+      }
+
+      return new_null_value();
+    }
+
+    case ADDITION_OP: {
+      left_value = evaluate_expression(scope, infix_expression->left_expression);
+      right_value = evaluate_expression(scope, infix_expression->right_expression);
+
+      result_value = apply_addition_operation(left_value, right_value);
+
+      free_value(left_value);
+      free_value(right_value);
+
+      return result_value;
+    }
+
+    case SUBTRACTION_OP: {
+      left_value = evaluate_expression(scope, infix_expression->left_expression);
+      right_value = evaluate_expression(scope, infix_expression->right_expression);
+
+      result_value = apply_subtraction_operation(left_value, right_value);
+
+      free_value(left_value);
+      free_value(right_value);
+
+      return result_value;
+    }
+
+    case MULTIPLICATION_OP: {
+      left_value = evaluate_expression(scope, infix_expression->left_expression);
+      right_value = evaluate_expression(scope, infix_expression->right_expression);
+
+      result_value = apply_multiplication_operation(left_value, right_value);
+
+      free_value(left_value);
+      free_value(right_value);
+
+      return result_value;
+    }
+
+    case DIVISION_OP: {
+      left_value = evaluate_expression(scope, infix_expression->left_expression);
+      right_value = evaluate_expression(scope, infix_expression->right_expression);
+
+      result_value = apply_division_operation(left_value, right_value, false);
+
+      free_value(left_value);
+      free_value(right_value);
+
+      return result_value;
+    }
+
+    case INTEGER_DIVISION_OP: {
+      left_value = evaluate_expression(scope, infix_expression->left_expression);
+      right_value = evaluate_expression(scope, infix_expression->right_expression);
+
+      result_value = apply_division_operation(left_value, right_value, true);
+
+      free_value(left_value);
+      free_value(right_value);
+
+      return result_value;
+    }
+
+    case EXPONENT_OP: {
+      left_value = evaluate_expression(scope, infix_expression->left_expression);
+      right_value = evaluate_expression(scope, infix_expression->right_expression);
+
+      result_value = apply_exponent_operation(left_value, right_value);
+
+      free_value(left_value);
+      free_value(right_value);
+
+      return result_value;
+    }
+
+    case MOD_OP: {
+      left_value = evaluate_expression(scope, infix_expression->left_expression);
+      right_value = evaluate_expression(scope, infix_expression->right_expression);
+
+      result_value = apply_mod_operation(left_value, right_value);
+
+      free_value(left_value);
+      free_value(right_value);
+
+      return result_value;
+    }
+
+    default: {
+      return new_null_value();
+    }
+  }
 }
 
 
@@ -382,10 +528,10 @@ Value *evaluate_expression(Scope *scope, Expression *expression) {
       }
 
       if (array_expression->array_expression_type == ArrayExpressionTypeTuple) {
-        return new_tuple_value(items, array_expression->expression_count);
+        return new_tuple_value(items, array_expression->expression_count, array_expression->has_finished);
       }
       else if (array_expression->array_expression_type == ArrayExpressionTypeList) {
-        return new_list_value(items, array_expression->expression_count);
+        return new_list_value(items, array_expression->expression_count, array_expression->has_finished);
       }
     }
 
@@ -408,6 +554,12 @@ Value *evaluate_expression(Scope *scope, Expression *expression) {
     case ExpressionTypePrefixExpression: {
       return evaluate_prefix_expression(scope, (PrefixExpression *) expression);
     }
+
+    case ExpressionTypeIndexExpression: {
+      IndexExpression *index_expression = (IndexExpression *) expression;
+
+      return evaluate_index_expression(scope, index_expression);
+    }
   }
 
   return new_null_value();
@@ -416,6 +568,27 @@ Value *evaluate_expression(Scope *scope, Expression *expression) {
 
 bool evaluate_print_statement(Scope *scope, PrintStatement *print_statement) {
   Value *value = evaluate_expression(scope, print_statement->right_expression);
+
+  if (value->value_type == ValueTypeTupleValue) {
+    TupleValue *tuple_value = (TupleValue *) value;
+
+    if (!tuple_value->has_finished) {
+      for (size_t i = 0; i < tuple_value->length; i++) {
+        StringValue *string_value = (StringValue *) convert_to_string_value(tuple_value->items[i]);
+
+        printf("%s", string_value->string_value);
+
+        free_value((Value *) string_value);
+
+        if (i != tuple_value->length - 1) {
+          printf(" ");
+        }
+      }
+
+      free_value(value);
+      return true;
+    }
+  }
 
   StringValue *string_value = (StringValue *) convert_to_string_value(value);
 

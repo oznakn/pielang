@@ -74,7 +74,8 @@ void run(FILE *file) {
   AST *ast = parse_ast(lexer);
 
 #if TEST_MODE
-  // printf_ast(ast);
+  //printf_ast(ast);
+  //printf("\n");
 #endif
 
   evaluate_ast(ast);

@@ -142,7 +142,7 @@ HashTable *new_variable_map(size_t size);
 void variable_map_set(HashTable *variable_map, Variable *variable);
 
 
-void *variable_map_get(HashTable *variable_map, char *variable_name);
+Variable *variable_map_get(HashTable *variable_map, char *variable_name);
 
 
 void free_variable_map(HashTable *variable_map);

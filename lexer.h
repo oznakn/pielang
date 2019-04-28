@@ -99,9 +99,9 @@ typedef struct {
 } Token;
 
 typedef struct {
+  FILE *file;
   Token curr_token;
   Token next_token;
-  FILE *file;
   char curr_char;
   char next_char;
 } Lexer;

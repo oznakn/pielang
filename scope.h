@@ -13,10 +13,17 @@ typedef struct Scope {
   Block *block;
 } Scope;
 
+
 Scope *new_scope(Scope *inherited_scope, Block *block);
+
 
 void free_scope(Scope *scope);
 
+
 Variable *get_variable(Scope *scope, char *name);
+
+
+void set_variable(Scope *scope, char *name, Value *value);
+
 
 #endif //PIELANG_SCOPE_H

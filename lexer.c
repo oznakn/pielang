@@ -6,6 +6,7 @@
 
 #define MAX_BUFFER_SIZE 10000
 
+
 bool is_digit(char c) {
   return ('0' <= c && c <= '9');
 }

@@ -1,38 +1,43 @@
-#define TEST_MODE true
-
 #include <stdio.h>
-#include <sys/time.h>
 
 #include "bool.h"
 #include "lexer.h"
 #include "ast.h"
 #include "evaluator.h"
 
-void run_repl() {
+#define TEST_MODE true
+
+/* void run_repl() {
   size_t buffer_size = 500000;
+
   char *buffer = malloc(buffer_size);
+
   FILE *file;
 
   Lexer *lexer = NULL;
 
+  Scope *scope = new_scope(NULL, NULL);
+
   while (true) {
-    printf(">>> ");
+    printf(">> ");
 
     getline(&buffer, &buffer_size, stdin);
 
     file = fmemopen(buffer, strlen(buffer), "r");
     if (lexer == NULL) {
       lexer = new_lexer(file);
-    } else {
+    }
+    else {
       update_lexer(lexer, file);
     }
 
     Statement *statement = parse_statement(lexer);
 
-    printf_statement(statement, 0);
+    evaluate_statement(scope, statement);
+
     free_statement(statement);
   }
-}
+} */
 
 /*
 char *read_file(const char *filename) {
@@ -65,35 +70,26 @@ char *read_file(const char *filename) {
 */
 
 void run(FILE *file) {
-  struct timeval start, end;
-  gettimeofday(&start, NULL);
-
   Lexer *lexer = new_lexer(file);
   AST *ast = parse_ast(lexer);
 
-  printf_ast(ast);
+#if TEST_MODE
+  // printf_ast(ast);
+#endif
 
   evaluate_ast(ast);
 
   free_ast(ast);
   free_lexer(lexer);
-
-  gettimeofday(&end, NULL);
-
-  double delta_us = (end.tv_sec - start.tv_sec) * 1000.0;
-  delta_us += (end.tv_usec - start.tv_usec) / 1000.0;
-
-  printf("\nTime elapsed: %fms\n", delta_us);
 }
 
 int main(int argc, char **argv) {
-  #if TEST_MODE
-
-  FILE *file = fopen("../index.pie", "r");
+#if TEST_MODE
+  FILE *file = fopen("../main.pie", "r");
   if (file) {
     run(file);
   }
-  #else
+#else
   if (argc == 2) {
     char *filename = argv[1];
 
@@ -102,11 +98,14 @@ int main(int argc, char **argv) {
     if (file) {
       run(file);
     }
-  } else {
-    run_repl();
   }
-  #endif
-
+  else {
+    FILE *file = fopen("./main.pie", "r");
+    if (file) {
+      run(file);
+    }
+  }
+#endif
 
   return 0;
 }

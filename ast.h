@@ -58,7 +58,7 @@ typedef enum {
 } StatementType;
 
 typedef enum {
-  ExpressionTypeNullExpression = 1,
+  ExpressionTypeNullExpression = 0,
   ExpressionTypeIntegerExpression,
   ExpressionTypeFloatExpression,
   ExpressionTypeStringExpression,

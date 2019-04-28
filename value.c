@@ -14,6 +14,7 @@ Value *new_null_value() {
   Value *value = malloc(sizeof(Value));
 
   value->value_type = ValueTypeNullValue;
+  value->linked_variable_count = 0; // no need for others since they are not taken with malloc, the default value for an int in a struct is 0
 
   return value;
 }
@@ -25,7 +26,7 @@ Value *new_bool_value(bool val) {
   bool_value->value = (Value){.value_type = ValueTypeBoolValue};
   bool_value->bool_value = val;
 
-  return (Value *)bool_value;
+  return (Value *) bool_value;
 }
 
 
@@ -92,8 +93,23 @@ Value *convert_to_string_value(Value *value) {
       return new_string_value(s, 5);
     }
 
-    case ValueTypeStringValue: {
-      return copy_value(value);
+    case ValueTypeBoolValue: {
+      BoolValue *bool_value = (BoolValue *) value;
+
+      if (bool_value->bool_value) {
+        char *s = calloc(5, sizeof(char));
+
+        strcpy(s, "true");
+
+        return new_string_value(s, 5);
+      }
+      else {
+        char *s = calloc(6, sizeof(char));
+
+        strcpy(s, "false");
+
+        return new_string_value(s, 6);
+      }
     }
 
     case ValueTypeIntegerValue: {
@@ -116,11 +132,15 @@ Value *convert_to_string_value(Value *value) {
 
       FloatValue *float_value = (FloatValue *) value;
 
-      sprintf(buffer, "%f", float_value->float_value);
+      sprintf(buffer, "%.2f", float_value->float_value);
 
       size_t length = strlen(buffer);
 
       return new_string_value(create_string_from_buffer(buffer, length), length);
+    }
+
+    case ValueTypeStringValue: {
+      return copy_value(value);
     }
 
     case ValueTypeTupleValue: {
@@ -310,8 +330,8 @@ void variable_map_set(HashTable *variable_map, Variable *variable) {
 }
 
 
-void *variable_map_get(HashTable *variable_map, char *variable_name) {
-  return hash_table_get(variable_map, variable_name);
+Variable *variable_map_get(HashTable *variable_map, char *variable_name) {
+  return (Variable *) hash_table_get(variable_map, variable_name);
 }
 
 

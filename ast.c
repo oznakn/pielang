@@ -1,6 +1,5 @@
 #include "ast.h"
 
-#include <math.h>
 #include "bool.h"
 #include "lexer.h"
 

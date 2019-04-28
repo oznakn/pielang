@@ -66,7 +66,6 @@ typedef enum {
   ExpressionTypeIdentifierExpression,
   ExpressionTypeInfixExpression,
   ExpressionTypePrefixExpression,
-  ExpressionTypePostfixExpression,
   ExpressionTypeCallExpression,
   ExpressionTypeArrayExpression,
   ExpressionTypeMemberExpression,
@@ -113,12 +112,6 @@ typedef struct {
   Operator operator;
   Expression *right_expression;
 } PrefixExpression;
-
-typedef struct {
-  Expression expression;
-  Operator operator;
-  Expression *left_expression;
-} PostfixExpression;
 
 typedef struct {
   Expression expression;
@@ -234,9 +227,6 @@ Operator token_to_operator(Token token);
 bool check_if_token_is_operator(Token token);
 
 
-bool check_if_token_is_postfix_operator(Token token);
-
-
 bool is_operator_right_associative(Operator operator);
 
 
@@ -262,9 +252,6 @@ Expression *parse_list_expression(Lexer *lexer);
 
 
 Expression *parse_prefix_expression(Lexer *lexer, ParserLimiter limiter);
-
-
-Expression *parse_postfix_expression(Lexer *lexer, ParserLimiter limiter, Expression *left);
 
 
 Expression *parse_array_expression(Lexer *lexer, Expression *left);

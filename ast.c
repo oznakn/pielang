@@ -324,15 +324,6 @@ void free_expression(Expression *expression) {
       break;
     }
 
-    case ExpressionTypePostfixExpression: {
-      PostfixExpression *postfix_expression = (PostfixExpression *)expression;
-
-      free_expression(postfix_expression->left_expression);
-      free(postfix_expression);
-
-      break;
-    }
-
     case ExpressionTypeCallExpression: {
       CallExpression *call_expression = (CallExpression *)expression;
 
@@ -611,13 +602,6 @@ Operator token_to_operator(Token token) {
 
 bool check_if_token_is_operator(Token token) {
   return token_to_operator(token) != -1;
-}
-
-
-bool check_if_token_is_postfix_operator(Token token) {
-  Operator operator = token_to_operator(token);
-
-  return false; //operator == PLUS_PLUS_OP || operator == MINUS_MINUS_OP;
 }
 
 
@@ -911,20 +895,6 @@ Expression *parse_prefix_expression(Lexer *lexer, ParserLimiter limiter) {
 }
 
 
-Expression *parse_postfix_expression(Lexer *lexer, ParserLimiter limiter, Expression *left) {
-  Token curr_token = next_token(lexer);
-  if (has_finished(curr_token, limiter)) return left;
-
-  PostfixExpression *postfixExpression = malloc(sizeof(PostfixExpression));
-
-  postfixExpression->expression = (Expression){.expression_type = ExpressionTypePostfixExpression};
-  postfixExpression->left_expression = left;
-  postfixExpression->operator = token_to_operator(curr_token);
-
-  return (Expression *)postfixExpression;
-}
-
-
 Expression *parse_array_expression(Lexer *lexer, Expression *left) {
   ArrayExpression *array_expression = NULL;
 
@@ -1085,9 +1055,6 @@ Expression *parse_expression(Lexer *lexer, unsigned short precedence, ParserLimi
 
   while (precedence < get_operator_precedence(token_to_operator(curr_token), false)) {
     if (has_finished(curr_token, limiter)) return left;
-    else if (check_if_token_is_postfix_operator(curr_token)) {
-      left = parse_postfix_expression(lexer, limiter, left);
-    }
 
     curr_token = peek_token(lexer);
 

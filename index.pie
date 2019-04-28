@@ -1,9 +1,1 @@
-data = [a, 1, 2, 3, fun () {
-    print 'hello'
-}]
-
-a = reduce(data, fun() { print 'heyo' })
-
-for item in a(data, NULL) {
-    print(item.name)
-}
+print ozan, 22

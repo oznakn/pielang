@@ -11,10 +11,9 @@
 #define ADDITION_SUBTRACTION_PRECEDENCE 6
 #define MULTIPLICATION_DIVISION_MOD_PRECEDENCE 7
 #define EXPONENT_PRECEDENCE 8
-#define PLUS_PLUS_MINUS_MINUS_PRECEDENCE 9
-#define CALL_PRECEDENCE 10
-#define LIST_PRECEDENCE 11
-#define MEMBER_PRECEDENCE 12
+#define CALL_PRECEDENCE 9
+#define LIST_PRECEDENCE 10
+#define MEMBER_PRECEDENCE 11
 
 #include "lexer.h"
 
@@ -35,8 +34,6 @@ typedef enum {
   ASSIGN_EXPONENT_OP,
   MOD_OP,
   ASSIGN_MOD_OP,
-  PLUS_PLUS_OP,
-  MINUS_MINUS_OP,
   L_PARENTHESIS_OP,
   L_BRACKET_OP,
   NOT_OP,
@@ -61,7 +58,7 @@ typedef enum {
 } StatementType;
 
 typedef enum {
-  ExpressionTypeNullExpression = 0,
+  ExpressionTypeNullExpression = 1,
   ExpressionTypeIntegerExpression,
   ExpressionTypeFloatExpression,
   ExpressionTypeStringExpression,
@@ -128,6 +125,7 @@ typedef struct {
   Expression **expressions;
   size_t expression_count;
   ArrayExpressionType array_expression_type;
+  bool has_finished;
 } ArrayExpression;
 
 typedef struct {
@@ -187,36 +185,137 @@ typedef struct {
   Block *block;
 } AST;
 
+typedef enum {
+  DEFAULT_BLOCK_PARSER_LIMITER = 1,
+  DEFAULT_EXPRESSION_PARSER_LIMITER,
+  GROUPED_EXPRESSION_PARSER_LIMITER,
+  ARRAY_EXPRESSION_PARSER_LIMITER,
+  IF_BLOCK_EXPRESSION_PARSER_LIMITER,
+  FOR_BLOCK_EXPRESSION_PARSER_LIMITER,
+} ParserLimiter;
+
+
 void printf_alignment(unsigned int alignment);
+
 
 void printf_expression(Expression *expression, unsigned int alignment);
 
+
 void printf_block(Block *block, unsigned int alignment);
+
 
 void printf_block_definition(BlockDefinition *block_definition, unsigned int alignment);
 
+
 void printf_statement(Statement *statement, unsigned int alignment);
+
 
 void printf_ast(AST *ast);
 
+
 void free_expression(Expression *expression);
+
 
 void free_statement(Statement *statement);
 
+
 void free_block(Block *block);
+
 
 void free_block_definition(BlockDefinition *block_definition);
 
+
 void free_ast(AST *ast);
+
 
 Operator token_to_operator(Token token);
 
+
 bool check_if_token_is_operator(Token token);
+
 
 bool check_if_token_is_postfix_operator(Token token);
 
+
 bool is_operator_right_associative(Operator operator);
 
+
 unsigned short get_operator_precedence(Operator operator, bool next);
+
+
+bool has_finished(Token token, ParserLimiter limiter);
+
+
+void *parser_error();
+
+
+Expression *eval_token(Token token);
+
+
+Expression *force_tuple(Expression *expression);
+
+
+Expression *parse_grouped_expression(Lexer *lexer);
+
+
+Expression *parse_list_expression(Lexer *lexer);
+
+
+Expression *parse_prefix_expression(Lexer *lexer, ParserLimiter limiter);
+
+
+Expression *parse_postfix_expression(Lexer *lexer, ParserLimiter limiter, Expression *left);
+
+
+Expression *parse_array_expression(Lexer *lexer, Expression *left);
+
+
+Expression *parse_member_expression(Lexer *lexer, Expression *left);
+
+
+Expression *parse_call_expression(Lexer *lexer, Expression *identifier);
+
+
+Expression *parse_infix_expression(Lexer *lexer, ParserLimiter limiter, Expression *left);
+
+
+Expression *parse_function_expression(Lexer *lexer);
+
+
+Expression *parse_expression(Lexer *lexer, unsigned short precedence, ParserLimiter limiter);
+
+
+Block *parse_block(Lexer *lexer, ParserLimiter limiter);
+
+
+BlockDefinition *parse_if_block_definition(Lexer *lexer, ParserLimiter limiter);
+
+
+BlockDefinition *parse_for_block_definition(Lexer *lexer, ParserLimiter limiter);
+
+
+BlockDefinition *parse_block_definition(Lexer *lexer, ParserLimiter limiter);
+
+
+Statement *parse_block_definition_statement(Lexer *lexer, ParserLimiter limiter);
+
+
+Statement *parse_print_statement(Lexer *lexer, ParserLimiter limiter);
+
+
+Statement *parse_return_statement(Lexer *lexer, ParserLimiter limiter);
+
+
+Statement *parse_import_statement(Lexer *lexer, ParserLimiter limiter);
+
+
+Statement *parse_expression_statement(Lexer *lexer, ParserLimiter limiter);
+
+
+Statement *parse_statement(Lexer *lexer);
+
+
+AST *parse_ast(Lexer *lexer);
+
 
 #endif //PIELANG_AST_H

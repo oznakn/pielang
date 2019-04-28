@@ -6,6 +6,8 @@
 #include "ast.h"
 #include "hashtable.h"
 
+struct Variable;
+
 typedef struct {
   char *class_name;
   HashTable *variable_map;
@@ -13,6 +15,7 @@ typedef struct {
 
 
 typedef enum {
+  ValueTypeNullValue = 0,
   ValueTypeBoolValue,
   ValueTypeIntegerValue,
   ValueTypeFloatValue,
@@ -77,11 +80,15 @@ typedef struct {
   HashTable *variable_map;
 } ObjectValue;
 
-
-typedef struct {
+struct Variable {
   char *variable_name;
   Value *value;
-} Variable;
+  bool is_readonly;
+};
+typedef struct Variable Variable;
+
+
+Value *new_null_value();
 
 
 Value *new_bool_value(bool val);
@@ -108,6 +115,9 @@ Value *new_string_value(char *val, size_t length);
 Value *new_string_value_from_literal(StringLiteral *literal);
 
 
+Value *convert_to_string_value(Value *value);
+
+
 Value *new_function_value(Block *block, char *function_name, char **arguments, size_t argument_count);
 
 
@@ -118,6 +128,9 @@ Value *new_tuple_value(Value **items, size_t length);
 
 
 Value *new_list_value(Value **items, size_t length);
+
+
+Value *copy_value(Value *value);
 
 
 Variable *new_variable(char *variable_name, Value *value);
@@ -133,9 +146,6 @@ void *variable_map_get(HashTable *variable_map, char *variable_name);
 
 
 void free_variable_map(HashTable *variable_map);
-
-
-void safe_free_value(Value *value);
 
 
 void free_value(Value *value);

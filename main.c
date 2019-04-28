@@ -6,7 +6,7 @@
 #include "bool.h"
 #include "lexer.h"
 #include "ast.h"
-#include "parser.h"
+#include "evaluator.h"
 
 void run_repl() {
   size_t buffer_size = 500000;
@@ -72,6 +72,8 @@ void run(FILE *file) {
   AST *ast = parse_ast(lexer);
 
   printf_ast(ast);
+
+  evaluate_ast(ast);
 
   free_ast(ast);
   free_lexer(lexer);

@@ -109,22 +109,24 @@ void *hash_table_get(HashTable *hash_table, char *key) {
 }
 
 void free_hash_table_entry(HashTable *hash_table, HashTableEntry *hash_table_entry) {
-  if (hash_table_entry->next != NULL) {
-    free_hash_table_entry(hash_table, hash_table_entry->next);
-  }
-
-  switch (hash_table->hash_table_type) {
-    case HashTableTypeVariableMap: {
-      free_variable((Variable *)hash_table_entry->literal); // TODO
-      break;
+  if (hash_table_entry != NULL) {
+    if (hash_table_entry->next != NULL) {
+      free_hash_table_entry(hash_table, hash_table_entry->next);
     }
 
-    default: {
-      free(hash_table_entry->literal);
-    }
-  }
+    switch (hash_table->hash_table_type) {
+      case HashTableTypeVariableMap: {
+        free_variable((Variable *)hash_table_entry->literal); // TODO
+        break;
+      }
 
-  free(hash_table_entry);
+      default: {
+        free(hash_table_entry->literal);
+      }
+    }
+
+    free(hash_table_entry);
+  }
 }
 
 void free_hash_table(HashTable *hash_table) {
@@ -132,5 +134,6 @@ void free_hash_table(HashTable *hash_table) {
     free_hash_table_entry(hash_table, hash_table->table[i]);
   }
 
+  free(hash_table->table);
   free(hash_table);
 }

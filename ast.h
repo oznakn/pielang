@@ -5,7 +5,7 @@
 
 #define ASSIGN_PRECEDENCE 1
 #define COMMA_PRECEDENCE 2
-#define LET_ASYNC_AWAIT_PRECEDENCE 3
+#define ASYNC_AWAIT_PRECEDENCE 3
 #define IN_OP_PRECEDENCE 4
 #define CONDITIONAL_PRECEDENCE 5
 #define ADDITION_SUBTRACTION_PRECEDENCE 6
@@ -44,7 +44,6 @@ typedef enum {
   CHECK_SMALLER_OP,
   CHECK_SMALLER_EQUAL_OP,
   IN_OP,
-  LET_OP,
   COMMA_OP,
   ASYNC_OP,
   AWAIT_OP,
@@ -75,8 +74,8 @@ typedef enum {
 
 typedef enum {
   BlockDefinitionTypeIfBlock = 1,
-  BlockDefinitionTypeElseIfBlock,
   BlockDefinitionTypeElseBlock,
+  BlockDefinitionTypeIfElseGroupBlock,
   BlockDefinitionTypeForBlock,
   BlockDefinitionTypeClassBlock,
 } BlockDefinitionType;
@@ -162,12 +161,21 @@ typedef struct {
   Block *block;
   Expression *pre_expression;
   Expression *condition;
-} IfBlockDefinition, ElseIfBlockDefinition;
+} IfBlockDefinition;
 
 typedef struct {
   BlockDefinition block_definition;
   Block *block;
 } ElseBlockDefinition;
+
+
+typedef struct {
+  BlockDefinition block_definition;
+  size_t if_block_definitions_length;
+  IfBlockDefinition **if_block_definitions;
+  ElseBlockDefinition *else_block_definition;
+} IfElseGroupBlockDefinition;
+
 
 typedef struct {
   BlockDefinition block_definition;
@@ -302,9 +310,6 @@ Block *parse_block(Lexer *lexer, ParserLimiter limiter);
 
 
 BlockDefinition *parse_if_block_definition(Lexer *lexer, ParserLimiter limiter);
-
-
-BlockDefinition *parse_else_block_definition(Lexer *lexer, ParserLimiter limiter);
 
 
 BlockDefinition *parse_for_block_definition(Lexer *lexer, ParserLimiter limiter);

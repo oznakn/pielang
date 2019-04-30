@@ -8,9 +8,6 @@
 #include "scope.h"
 
 
-Value *system_function_print(TupleValue *parameter_values);
-
-
 void build_main_scope(Scope *scope);
 
 

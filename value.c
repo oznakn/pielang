@@ -7,7 +7,188 @@
 
 #define MAX_BUFFER_SIZE 10000
 
-#include "stringutils.h"
+#include "utils.h"
+
+
+
+char *convert_to_string(Value *value) {
+  switch (value->value_type) {
+    case ValueTypeNullValue: {
+      return copy_string("null");
+    }
+
+    case ValueTypeBoolValue: {
+      BoolValue *bool_value = (BoolValue *) value;
+
+      if (bool_value->bool_value) {
+        return copy_string("true");
+      }
+      else {
+        return copy_string("false");
+      }
+    }
+
+    case ValueTypeIntegerValue: {
+      char buffer[MAX_BUFFER_SIZE] = {};
+
+      IntegerValue *integer_value = (IntegerValue *) value;
+
+      sprintf(buffer, "%lld", integer_value->integer_value);
+
+      return copy_string(buffer);
+    }
+
+    case ValueTypeFloatValue: {
+      char buffer[MAX_BUFFER_SIZE] = {};
+
+      FloatValue *float_value = (FloatValue *) value;
+
+      sprintf(buffer, "%.2Lf", float_value->float_value);
+
+      return copy_string(buffer);
+    }
+
+    case ValueTypeStringValue: {
+      return copy_string(((StringValue *) value)->string_value);
+    }
+
+    case ValueTypeTupleValue: {
+      char buffer[MAX_BUFFER_SIZE] = {};
+
+      TupleValue *tuple_value = (TupleValue *) value;
+
+      strcpy(buffer, "T(");
+
+      for (size_t i = 0; i < tuple_value->length; i++) {
+        StringValue *string_value = (StringValue *) convert_to_string_value(tuple_value->items[i]);
+
+        if (tuple_value->items[i]->value_type == ValueTypeStringValue) {
+          strcat(buffer, "\'");
+          strcat(buffer, string_value->string_value);
+          strcat(buffer, "\'");
+        }
+        else {
+          strcat(buffer, string_value->string_value);
+        }
+
+        free_value((Value *) string_value);
+
+        if (i != tuple_value->length - 1) {
+          strcat(buffer, ", ");
+        }
+      }
+
+      strcat(buffer, ")");
+
+      return copy_string(buffer);
+    }
+
+    case ValueTypeListValue: {
+      char buffer[MAX_BUFFER_SIZE] = {};
+
+      ListValue *list_value = (ListValue *) value;
+
+      strcpy(buffer, "[");
+
+      for (size_t i = 0; i < list_value->length; i++) {
+        StringValue *string_value = (StringValue *) convert_to_string_value(list_value->items[i]);
+
+        strcat(buffer, string_value->string_value);
+
+        free_value((Value *) string_value);
+
+        if (i != list_value->length - 1) {
+          strcat(buffer, ", ");
+        }
+      }
+
+      strcat(buffer, "]");
+
+      return copy_string(buffer);
+    }
+
+    default: {
+      return NULL;
+    }
+  }
+}
+
+
+bool convert_to_bool(Value *value) {
+  switch (value->value_type) {
+    case ValueTypeNullValue: {
+      return false;
+    }
+
+    case ValueTypeBoolValue: {
+      return ((BoolValue *) value)->bool_value;
+    }
+
+    case ValueTypeIntegerValue: {
+      return ((IntegerValue *) value)->integer_value != 0;
+    }
+
+    case ValueTypeFloatValue: {
+      return ((FloatValue *) value)->float_value != 0;
+    }
+
+    case ValueTypeStringValue: {
+      return ((StringValue *) value)->length != 0;
+    }
+
+    case ValueTypeTupleValue: {
+      return ((TupleValue *) value)->length != 0;
+    }
+
+    case ValueTypeListValue: {
+      return ((ListValue *) value)->length != 0;
+    }
+
+    default: {
+      return false;
+    }
+  }
+}
+
+
+long long int convert_to_integer(Value *value) {
+  switch (value->value_type) {
+    case ValueTypeNullValue: {
+      return 0;
+    }
+
+    case ValueTypeBoolValue: {
+      return ((BoolValue *) value)->bool_value;
+    }
+
+    case ValueTypeIntegerValue: {
+      return ((IntegerValue *) value)->integer_value;
+    }
+
+    case ValueTypeFloatValue: {
+      return (long long int) ((FloatValue *) value)->float_value;
+    }
+
+    case ValueTypeStringValue: {
+      return ((StringValue *) value)->length;
+    }
+
+    case ValueTypeTupleValue: {
+      return ((TupleValue *) value)->length;
+    }
+
+    case ValueTypeListValue: {
+      return ((ListValue *) value)->length;
+    }
+
+    default: {
+      return 0;
+    }
+  }
+}
+
+
+
 
 
 Value *new_null_value() {
@@ -89,167 +270,7 @@ Value *new_string_value_from_literal(StringLiteral *literal) {
 }
 
 
-Value *convert_to_string_value(Value *value) {
-  switch (value->value_type) {
-    case ValueTypeNullValue: {
-      char *s = calloc(5, sizeof(char));
-      strcpy(s, "null");
-      return new_string_value(s, 5);
-    }
 
-    case ValueTypeBoolValue: {
-      BoolValue *bool_value = (BoolValue *) value;
-
-      if (bool_value->bool_value) {
-        char *s = calloc(5, sizeof(char));
-
-        strcpy(s, "true");
-
-        return new_string_value(s, 5);
-      }
-      else {
-        char *s = calloc(6, sizeof(char));
-
-        strcpy(s, "false");
-
-        return new_string_value(s, 6);
-      }
-    }
-
-    case ValueTypeIntegerValue: {
-      char buffer[MAX_BUFFER_SIZE] = {};
-
-      IntegerValue *integer_value = (IntegerValue *) value;
-
-      sprintf(buffer, "%lld", integer_value->integer_value);
-
-      int length = strlen(buffer);
-      char *s = calloc(length + 1, sizeof(length));
-
-      strcpy(s, buffer);
-
-      return new_string_value(s, length);
-    }
-
-    case ValueTypeFloatValue: {
-      char buffer[MAX_BUFFER_SIZE] = {};
-
-      FloatValue *float_value = (FloatValue *) value;
-
-      sprintf(buffer, "%.2Lf", float_value->float_value);
-
-      size_t length = strlen(buffer);
-
-      return new_string_value(create_string_from_buffer(buffer, length), length);
-    }
-
-    case ValueTypeStringValue: {
-      return copy_value(value);
-    }
-
-    case ValueTypeTupleValue: {
-      char buffer[MAX_BUFFER_SIZE] = {};
-
-      TupleValue *tuple_value = (TupleValue *) value;
-
-      strcpy(buffer, "T(");
-
-      for (size_t i = 0; i < tuple_value->length; i++) {
-        StringValue *string_value = (StringValue *) convert_to_string_value(tuple_value->items[i]);
-
-        if (tuple_value->items[i]->value_type == ValueTypeStringValue) {
-          strcat(buffer, "\'");
-          strcat(buffer, string_value->string_value);
-          strcat(buffer, "\'");
-        }
-        else {
-          strcat(buffer, string_value->string_value);
-        }
-
-        free_value((Value *) string_value);
-
-        if (i != tuple_value->length - 1) {
-          strcat(buffer, ", ");
-        }
-      }
-
-      strcat(buffer, ")");
-
-      size_t length = strlen(buffer);
-
-      return new_string_value(create_string_from_buffer(buffer, length), length);
-    }
-
-    case ValueTypeListValue: {
-      char buffer[MAX_BUFFER_SIZE] = {};
-
-      ListValue *list_value = (ListValue *) value;
-
-      strcpy(buffer, "[");
-
-      for (size_t i = 0; i < list_value->length; i++) {
-        StringValue *string_value = (StringValue *) convert_to_string_value(list_value->items[i]);
-
-        strcat(buffer, string_value->string_value);
-
-        free_value((Value *) string_value);
-
-        if (i != list_value->length - 1) {
-          strcat(buffer, ", ");
-        }
-      }
-
-      strcat(buffer, "]");
-
-      size_t length = strlen(buffer);
-
-      return new_string_value(create_string_from_buffer(buffer, length), length);
-    }
-
-    default: {
-      return NULL;
-    }
-  }
-}
-
-
-Value *convert_to_bool_value(Value *value) {
-  switch (value->value_type) {
-    case ValueTypeNullValue: {
-      return new_bool_value(false);
-    }
-
-    case ValueTypeBoolValue: {
-      return copy_value(value);
-    }
-
-    case ValueTypeIntegerValue: {
-      return new_bool_value(((IntegerValue *) value)->integer_value != 0);
-    }
-
-    case ValueTypeFloatValue: {
-      return new_bool_value(((FloatValue *) value)->float_value != 0);
-    }
-
-    case ValueTypeStringValue: {
-      StringValue *string_value = (StringValue *) value;
-
-      return new_bool_value(string_value->length != 0);
-    }
-
-    case ValueTypeTupleValue: {
-      return new_bool_value(((TupleValue *) value)->length != 0);
-    }
-
-    case ValueTypeListValue: {
-      return new_bool_value(((ListValue *) value)->length != 0);
-    }
-
-    default: {
-      return NULL;
-    }
-  }
-}
 
 Value *new_function_value(Block *block, char **arguments, size_t argument_count) {
   FunctionValue *function_value = malloc(sizeof(FunctionValue));
@@ -318,35 +339,46 @@ Value *new_object_value(Class *class) {
 }
 
 
-Value *copy_value(Value *value) {
-  Value *result_value;
 
+
+
+Value *convert_to_string_value(Value *value) {
+  char *s = convert_to_string(value);
+
+  if (s == NULL) return new_null_value();
+
+  return new_string_value(s, strlen(s));
+}
+
+
+Value *convert_to_bool_value(Value *value) {
+  return new_bool_value(convert_to_bool(value));
+}
+
+
+Value *convert_to_integer_value(Value *value) {
+  return new_integer_value(convert_to_integer(value));
+}
+
+
+Value *copy_value(Value *value) {
   switch(value->value_type) {
     case ValueTypeBoolValue: {
-      result_value = new_bool_value(((BoolValue*) value)->bool_value);
-      break;
+      return new_bool_value(((BoolValue*) value)->bool_value);
     }
 
     case ValueTypeIntegerValue: {
-      result_value = new_integer_value(((IntegerValue*) value)->integer_value);
-      break;
+     return new_integer_value(((IntegerValue*) value)->integer_value);
     }
 
     case ValueTypeFloatValue: {
-      result_value = new_float_value(((FloatValue*) value)->float_value);
-      break;
+      return new_float_value(((FloatValue*) value)->float_value);
     }
 
     case ValueTypeStringValue: {
-      StringValue *string_value = (StringValue *) value;
+      char *s = copy_string(((StringValue *) value)->string_value);
 
-      char *s = calloc(string_value->length + 1, sizeof(char));
-
-      strcpy(s, string_value->string_value);
-
-      result_value = new_string_value(s, string_value->length);
-
-      break;
+      return new_string_value(s, strlen(s));
     }
 
     case ValueTypeTupleValue: {
@@ -356,9 +388,7 @@ Value *copy_value(Value *value) {
 
       memcpy(items, tuple_value->items, tuple_value->length * sizeof(Value *));
 
-      result_value = new_tuple_value(items, tuple_value->length, tuple_value->has_finished);
-
-      break;
+      return new_tuple_value(items, tuple_value->length, tuple_value->has_finished);
     }
 
     case ValueTypeListValue: {
@@ -368,19 +398,18 @@ Value *copy_value(Value *value) {
 
       memcpy(items, list_value->items, list_value->length * sizeof(Value *));
 
-      result_value = new_list_value(items, list_value->length, list_value->has_finished);
-
-      break;
+      return new_list_value(items, list_value->length, list_value->has_finished);
     }
 
     default: {
-      result_value = new_null_value();
-      break;
+      return new_null_value();
     }
   }
-
-  return result_value;
 }
+
+
+
+
 
 
 Variable *new_variable(char *variable_name, Value *value) {
@@ -411,7 +440,7 @@ Variable *variable_map_get(HashTable *variable_map, char *variable_name) {
 
 
 Variable *object_value_set_variable(ObjectValue *object_value, char *name, Value *value) {
-  return scope_set_variable(object_value->scope, name, value, 0, true);
+  return scope_set_variable(object_value->scope, name, value);
 }
 
 
@@ -460,7 +489,6 @@ void free_value(Value *value) {
           free(function_value->arguments[i]);
         }
 
-        free_block(function_value->block);
         free(function_value);
         break;
       }

@@ -200,6 +200,20 @@ void printf_block(Block *block, unsigned int alignment) {
 
 void printf_block_definition(BlockDefinition *block_definition, unsigned int alignment) {
   switch (block_definition->block_definition_type) {
+    case BlockDefinitionTypeIfElseGroupBlock: {
+      IfElseGroupBlockDefinition *if_else_group_block_definition = (IfElseGroupBlockDefinition *)block_definition;
+
+      for (size_t i = 0; i < if_else_group_block_definition->if_block_definitions_length; i++) {
+        printf_block_definition((BlockDefinition *) if_else_group_block_definition->if_block_definitions[i], alignment);
+      }
+
+      if (if_else_group_block_definition->else_block_definition) {
+        printf_block_definition((BlockDefinition *) if_else_group_block_definition->else_block_definition, alignment);
+      }
+
+      break;
+    }
+
     case BlockDefinitionTypeIfBlock: {
       IfBlockDefinition *if_block_definition = (IfBlockDefinition *)block_definition;
 
@@ -214,6 +228,13 @@ void printf_block_definition(BlockDefinition *block_definition, unsigned int ali
       printf_expression(if_block_definition->condition, alignment);
       printf("\n");
       printf_block(if_block_definition->block, alignment);
+
+      break;
+    }
+
+    case BlockDefinitionTypeElseBlock: {
+      ElseBlockDefinition *else_block_definition = (ElseBlockDefinition *) block_definition;
+      printf_block(else_block_definition->block, alignment);
 
       break;
     }
@@ -239,10 +260,6 @@ void printf_block_definition(BlockDefinition *block_definition, unsigned int ali
       printf_block(for_block_definition->block, alignment);
 
       break;
-    }
-
-    default: {
-
     }
   }
 }
@@ -427,10 +444,23 @@ void free_block(Block *block) {
 
 void free_block_definition(BlockDefinition *block_definition) {
   switch (block_definition->block_definition_type) {
+    case BlockDefinitionTypeIfElseGroupBlock: {
+      IfElseGroupBlockDefinition *if_else_group_block_definition = (IfElseGroupBlockDefinition *)block_definition;
+
+      for (size_t i = 0; i < if_else_group_block_definition->if_block_definitions_length; i++) {
+        free_block_definition((BlockDefinition *) if_else_group_block_definition->if_block_definitions[i]);
+      }
+      free(if_else_group_block_definition->if_block_definitions);
+
+      if (if_else_group_block_definition->else_block_definition) free_block_definition((BlockDefinition *) if_else_group_block_definition->else_block_definition);
+      free(if_else_group_block_definition);
+
+      break;
+    }
+
     case BlockDefinitionTypeIfBlock: {
       IfBlockDefinition *if_block_definition = (IfBlockDefinition *)block_definition;
 
-      free_block(if_block_definition->block);
       free_expression(if_block_definition->condition);
       if (if_block_definition->pre_expression) free_expression(if_block_definition->pre_expression);
       free(block_definition);
@@ -438,10 +468,13 @@ void free_block_definition(BlockDefinition *block_definition) {
       break;
     }
 
+    case BlockDefinitionTypeElseBlock: {
+      break;
+    }
+
     case BlockDefinitionTypeForBlock: {
       ForBlockDefinition *for_block_definition = (ForBlockDefinition *)block_definition;
 
-      free_block(for_block_definition->block);
       free_expression(for_block_definition->condition);
       if (for_block_definition->pre_expression) free_expression(for_block_definition->pre_expression);
       if (for_block_definition->post_expression) free_expression(for_block_definition->post_expression);
@@ -594,9 +627,6 @@ Operator token_to_operator(Token token) {
     case COMMA_TOKEN:
       return COMMA_OP;
 
-    case LET_TOKEN:
-      return LET_OP;
-
     case ASYNC_TOKEN:
       return ASYNC_OP;
 
@@ -689,10 +719,9 @@ unsigned short get_operator_precedence(Operator operator, bool next) {
       break;
     }
 
-    case LET_OP:
     case ASYNC_OP:
     case AWAIT_OP: {
-      result = LET_ASYNC_AWAIT_PRECEDENCE;
+      result = ASYNC_AWAIT_PRECEDENCE;
       break;
     }
 
@@ -1158,67 +1187,72 @@ Block *parse_block(Lexer *lexer, ParserLimiter limiter) {
 
 
 BlockDefinition *parse_if_block_definition(Lexer *lexer, ParserLimiter limiter) {
-  next_token(lexer);
+  IfElseGroupBlockDefinition *if_else_group_block_definition = malloc(sizeof(IfElseGroupBlockDefinition));
 
-  Expression *expression1 = NULL;
-  Expression *expression2 = NULL;
+  if_else_group_block_definition->block_definition = (BlockDefinition) {.block_definition_type = BlockDefinitionTypeIfElseGroupBlock};
+  if_else_group_block_definition->else_block_definition = NULL;
+  if_else_group_block_definition->if_block_definitions_length = 0;
+  if_else_group_block_definition->if_block_definitions = malloc(0);
 
-  expression1 = parse_expression(lexer, 0, IF_BLOCK_EXPRESSION_PARSER_LIMITER);
-
-  if (peek_token(lexer).token_type == SEMICOLON_TOKEN) {
+  while (peek_token(lexer).token_type == IF_TOKEN) {
     next_token(lexer);
 
-    expression2 = parse_expression(lexer, 0, IF_BLOCK_EXPRESSION_PARSER_LIMITER);
-  }
+    Expression *expression1 = NULL;
+    Expression *expression2 = NULL;
 
-  if (peek_token(lexer).token_type != L_BRACE_TOKEN) return parser_error();
-  next_token(lexer);
+    expression1 = parse_expression(lexer, 0, IF_BLOCK_EXPRESSION_PARSER_LIMITER);
 
-  Block *block = parse_block(lexer, limiter);
+    if (peek_token(lexer).token_type == SEMICOLON_TOKEN) {
+      next_token(lexer);
 
-  if (peek_token(lexer).token_type != R_BRACE_TOKEN) return parser_error();
-  next_token(lexer);
+      expression2 = parse_expression(lexer, 0, IF_BLOCK_EXPRESSION_PARSER_LIMITER);
+    }
 
-  IfBlockDefinition *if_block_definition = malloc(sizeof(IfBlockDefinition));
-  if_block_definition->block_definition = (BlockDefinition){.block_definition_type = BlockDefinitionTypeIfBlock};
-  if_block_definition->block = block;
-
-  if (expression2 == NULL) {
-    if_block_definition->condition = expression1;
-  } else {
-    if_block_definition->pre_expression = expression1;
-    if_block_definition->condition = expression2;
-  }
-
-  return (BlockDefinition *)if_block_definition;
-}
-
-
-BlockDefinition *parse_else_block_definition(Lexer *lexer, ParserLimiter limiter) {
-  next_token(lexer);
-
-  if (peek_token(lexer).token_type == IF_TOKEN) {
+    if (peek_token(lexer).token_type != L_BRACE_TOKEN) return parser_error();
     next_token(lexer);
 
-    IfBlockDefinition *if_block_definition = (IfBlockDefinition *) parse_if_block_definition(lexer, limiter);
-    if_block_definition->block_definition.block_definition_type = BlockDefinitionTypeElseIfBlock;
+    Block *block = parse_block(lexer, limiter);
 
-    return (BlockDefinition *) if_block_definition;
+    if (peek_token(lexer).token_type != R_BRACE_TOKEN) return parser_error();
+    next_token(lexer);
+
+    IfBlockDefinition *if_block_definition = malloc(sizeof(IfBlockDefinition));
+    if_block_definition->block_definition = (BlockDefinition){.block_definition_type = BlockDefinitionTypeIfBlock};
+    if_block_definition->block = block;
+
+    if (expression2 == NULL) {
+      if_block_definition->pre_expression = NULL;
+      if_block_definition->condition = expression1;
+    }
+    else {
+      if_block_definition->pre_expression = expression1;
+      if_block_definition->condition = expression2;
+    }
+
+    if_else_group_block_definition->if_block_definitions = realloc(if_else_group_block_definition->if_block_definitions, (if_else_group_block_definition->if_block_definitions_length + 1) * sizeof(IfBlockDefinition *));
+    if_else_group_block_definition->if_block_definitions[if_else_group_block_definition->if_block_definitions_length++] = if_block_definition;
   }
-  else if (peek_token(lexer).token_type != L_BRACE_TOKEN) return parser_error();
-  next_token(lexer);
 
-  Block *block = parse_block(lexer, limiter);
+  if (peek_token(lexer).token_type == ELSE_TOKEN) {
+    next_token(lexer);
 
-  if (peek_token(lexer).token_type != R_BRACE_TOKEN) return parser_error();
-  next_token(lexer);
+    if (peek_token(lexer).token_type != L_BRACE_TOKEN) return parser_error();
+    next_token(lexer);
 
-  ElseBlockDefinition *else_block_definition = malloc(sizeof(ElseBlockDefinition));
+    Block *block = parse_block(lexer, limiter);
 
-  else_block_definition->block_definition = (BlockDefinition) {.block_definition_type = BlockDefinitionTypeElseBlock};
-  else_block_definition->block = block;
+    if (peek_token(lexer).token_type != R_BRACE_TOKEN) return parser_error();
+    next_token(lexer);
 
-  return (BlockDefinition *) else_block_definition;
+    ElseBlockDefinition *else_block_definition = malloc(sizeof(ElseBlockDefinition));
+
+    else_block_definition->block_definition = (BlockDefinition) {.block_definition_type = BlockDefinitionTypeElseBlock};
+    else_block_definition->block = block;
+
+    if_else_group_block_definition->else_block_definition = else_block_definition;
+  }
+
+  return (BlockDefinition *) if_else_group_block_definition;
 }
 
 
@@ -1281,11 +1315,16 @@ BlockDefinition *parse_for_block_definition(Lexer *lexer, ParserLimiter limiter)
   for_block_definition->block = block;
 
   if (expression2 == NULL) {
+    for_block_definition->pre_expression = NULL;
     for_block_definition->condition = expression1;
-  } else if (expression3 == NULL) {
+    for_block_definition->post_expression = NULL;
+  }
+  else if (expression3 == NULL) {
     for_block_definition->pre_expression = expression1;
     for_block_definition->condition = expression2;
-  } else {
+    for_block_definition->post_expression = NULL;
+  }
+  else {
     for_block_definition->pre_expression = expression1;
     for_block_definition->condition = expression2;
     for_block_definition->post_expression = expression3;
@@ -1300,9 +1339,6 @@ BlockDefinition *parse_block_definition(Lexer *lexer, ParserLimiter limiter) {
 
   if (token.token_type == IF_TOKEN) {
     return parse_if_block_definition(lexer, limiter);
-  }
-  else if (token.token_type == ELSE_TOKEN) {
-    return parse_else_block_definition(lexer, limiter);
   }
   else if (token.token_type == FOR_TOKEN) {
     return parse_for_block_definition(lexer, limiter);

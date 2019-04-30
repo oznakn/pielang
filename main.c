@@ -7,7 +7,7 @@
 #include "system.h"
 #include "linenoise.h"
 
-#define TEST_MODE false
+#define TEST_MODE true
 
 void run_repl() {
   char *s;

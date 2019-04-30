@@ -1,3 +1,9 @@
-let a = 10^13
-a = a * 2
-print (a)
+a = 'test'
+
+print(a)
+
+for i = 0; i < 5; i += 1 {
+    print (i, 'printed')
+}
+
+if !s { print ('yass') }

@@ -24,16 +24,19 @@ typedef struct Scope {
 } Scope;
 
 
-Scope *new_scope(Scope *inherited_scope, Block *block, bool is_function_scope);
+Scope *new_scope(Scope *inherited_scope, Block *block, ScopeType scope_type);
 
 
 void free_scope(Scope *scope);
 
 
+void scope_set_return_value(Scope *scope, struct Value *value);
+
+
 struct Variable *scope_get_variable(Scope *scope, char *name);
 
 
-struct Variable *scope_set_variable(Scope *scope, char *name, struct Value *value, int create_new, bool create_new_in_scope) ;
+struct Variable *scope_set_variable(Scope *scope, char *name, struct Value *value) ;
 
 
 #endif //PIELANG_SCOPE_H

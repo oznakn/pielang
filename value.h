@@ -110,6 +110,17 @@ typedef struct ObjectValue ObjectValue;
 typedef struct Variable Variable;
 
 
+char *convert_to_string(Value *value);
+
+
+bool convert_to_bool(Value *value);
+
+
+long long int convert_to_integer(Value *value);
+
+
+
+
 Value *new_null_value();
 
 
@@ -137,12 +148,6 @@ Value *new_string_value(char *val, size_t length);
 Value *new_string_value_from_literal(StringLiteral *literal);
 
 
-Value *convert_to_string_value(Value *value);
-
-
-Value *convert_to_bool_value(Value *value);
-
-
 Value *new_function_value(Block *block, char **arguments, size_t argument_count);
 
 
@@ -167,7 +172,20 @@ Variable *object_value_get_variable(ObjectValue *object_value, char *name);
 Value *new_object_value(Class *class);
 
 
+
+
+Value *convert_to_string_value(Value *value);
+
+
+Value *convert_to_bool_value(Value *value);
+
+
+Value *convert_to_integer_value(Value *value);
+
+
 Value *copy_value(Value *value);
+
+
 
 
 Variable *new_variable(char *variable_name, Value *value);

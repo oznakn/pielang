@@ -82,7 +82,7 @@ Value *call_function(Scope *scope, FunctionValue *function_value, TupleValue *pa
       variable_value = parameter_values->items[i];
     }
 
-    scope_set_variable(function_scope, function_value->arguments[i], variable_value, 1, true);
+    scope_set_variable(function_scope, function_value->arguments[i], variable_value);
   }
 
   return evaluate_scope(function_scope);
@@ -97,7 +97,7 @@ Value *apply_prefix_not_operation(Value *right_value) {
     return new_integer_value(!((IntegerValue *) right_value)->integer_value);
   }
 
-  return new_null_value();
+  return new_bool_value(!convert_to_bool(right_value));
 }
 
 
@@ -129,18 +129,18 @@ Value *apply_index_operation(Scope *scope, IndexExpression *index_expression, Va
 
 Value *apply_addition_operation(Value *left_value, Value *right_value) {
   if (left_value->value_type == ValueTypeStringValue || right_value->value_type == ValueTypeStringValue) {
-    StringValue *left_string_value = (StringValue *) convert_to_string_value(left_value);
-    StringValue *right_string_value = (StringValue *) convert_to_string_value(right_value);
+    char *s1 = convert_to_string(left_value);
+    char *s2 = convert_to_string(right_value);
 
-    size_t length = left_string_value->length + right_string_value->length;
+    size_t length = strlen(s1) + strlen(s2);
 
     char *result_string = calloc(length + 1, sizeof(char));
 
-    strcpy(result_string, left_string_value->string_value);
-    strcat(result_string, right_string_value->string_value);
+    strcpy(result_string, s1);
+    strcat(result_string, s2);
 
-    free_value((Value *) left_string_value);
-    free_value((Value *) right_string_value);
+    free(s1);
+    free(s2);
 
     return new_string_value(result_string, length);
   }
@@ -203,21 +203,19 @@ Value *apply_addition_operation(Value *left_value, Value *right_value) {
 
 
 Value *apply_subtraction_operation(Value *left_value, Value *right_value) {
-  if ((left_value->value_type == ValueTypeIntegerValue || left_value->value_type == ValueTypeFloatValue) && (right_value->value_type == ValueTypeIntegerValue || right_value->value_type == ValueTypeFloatValue)) {
-    if (left_value->value_type == ValueTypeIntegerValue && right_value->value_type == ValueTypeIntegerValue) {
-      return new_integer_value(((IntegerValue *) left_value)->integer_value - ((IntegerValue *) right_value)->integer_value);
-    }
-    else {
-      double left_float, right_float;
+  if (left_value->value_type == ValueTypeIntegerValue && right_value->value_type == ValueTypeIntegerValue) {
+    return new_integer_value(((IntegerValue *) left_value)->integer_value - ((IntegerValue *) right_value)->integer_value);
+  }
+  else if ((left_value->value_type == ValueTypeIntegerValue || left_value->value_type == ValueTypeFloatValue) && (right_value->value_type == ValueTypeIntegerValue || right_value->value_type == ValueTypeFloatValue)) {
+    double left_float, right_float;
 
-      if (left_value->value_type == ValueTypeFloatValue) left_float = ((FloatValue *) left_value)->float_value;
-      else left_float = ((IntegerValue *) left_value)->integer_value;
+    if (left_value->value_type == ValueTypeFloatValue) left_float = ((FloatValue *) left_value)->float_value;
+    else left_float = ((IntegerValue *) left_value)->integer_value;
 
-      if (right_value->value_type == ValueTypeFloatValue) right_float = ((FloatValue *) right_value)->float_value;
-      else right_float = ((IntegerValue *) right_value)->integer_value;
+    if (right_value->value_type == ValueTypeFloatValue) right_float = ((FloatValue *) right_value)->float_value;
+    else right_float = ((IntegerValue *) right_value)->integer_value;
 
-      return new_float_value(left_float - right_float);
-    }
+    return new_float_value(left_float - right_float);
   }
 
   return new_null_value();
@@ -225,21 +223,19 @@ Value *apply_subtraction_operation(Value *left_value, Value *right_value) {
 
 
 Value *apply_multiplication_operation(Value *left_value, Value *right_value) {
-  if ((left_value->value_type == ValueTypeIntegerValue || left_value->value_type == ValueTypeFloatValue) && (right_value->value_type == ValueTypeIntegerValue || right_value->value_type == ValueTypeFloatValue)) {
-    if (left_value->value_type == ValueTypeIntegerValue && right_value->value_type == ValueTypeIntegerValue) {
-      return new_integer_value(((IntegerValue *) left_value)->integer_value * ((IntegerValue *) right_value)->integer_value);
-    }
-    else {
-      long double left_float, right_float;
+  if (left_value->value_type == ValueTypeIntegerValue && right_value->value_type == ValueTypeIntegerValue) {
+    return new_integer_value(((IntegerValue *) left_value)->integer_value * ((IntegerValue *) right_value)->integer_value);
+  }
+  else if ((left_value->value_type == ValueTypeIntegerValue || left_value->value_type == ValueTypeFloatValue) && (right_value->value_type == ValueTypeIntegerValue || right_value->value_type == ValueTypeFloatValue)) {
+    long double left_float, right_float;
 
-      if (left_value->value_type == ValueTypeFloatValue) left_float = ((FloatValue *) left_value)->float_value;
-      else left_float = ((IntegerValue *) left_value)->integer_value;
+    if (left_value->value_type == ValueTypeFloatValue) left_float = ((FloatValue *) left_value)->float_value;
+    else left_float = ((IntegerValue *) left_value)->integer_value;
 
-      if (right_value->value_type == ValueTypeFloatValue) right_float = ((FloatValue *) right_value)->float_value;
-      else right_float = ((IntegerValue *) right_value)->integer_value;
+    if (right_value->value_type == ValueTypeFloatValue) right_float = ((FloatValue *) right_value)->float_value;
+    else right_float = ((IntegerValue *) right_value)->integer_value;
 
-      return new_float_value(left_float * right_float);
-    }
+    return new_float_value(left_float * right_float);
   }
 
   return new_null_value();
@@ -358,6 +354,132 @@ Value *apply_assign_operation(Value *left_value, Value *right_value, Operator op
 }
 
 
+Value *apply_check_equality_operation(Value *left_value, Value *right_value) {
+  if (left_value->value_type == ValueTypeIntegerValue && right_value->value_type == ValueTypeIntegerValue) {
+    return new_bool_value(((IntegerValue *) left_value)->integer_value == ((IntegerValue *) right_value)->integer_value);
+  }
+  else if ((left_value->value_type == ValueTypeIntegerValue || left_value->value_type == ValueTypeFloatValue) && (right_value->value_type == ValueTypeIntegerValue || right_value->value_type == ValueTypeFloatValue)) {
+    long double left_float, right_float;
+
+    if (left_value->value_type == ValueTypeFloatValue) left_float = ((FloatValue *) left_value)->float_value;
+    else left_float = ((IntegerValue *) left_value)->integer_value;
+
+    if (right_value->value_type == ValueTypeFloatValue) right_float = ((FloatValue *) right_value)->float_value;
+    else right_float = ((IntegerValue *) right_value)->integer_value;
+
+    return new_bool_value(left_float == right_float);
+  }
+  else if (left_value->value_type == ValueTypeStringValue  && right_value->value_type == ValueTypeStringValue) {
+    return new_bool_value(strcmp(((StringValue *) left_value)->string_value, ((StringValue *) left_value)->string_value) == 0);
+  }
+
+  return new_bool_value(convert_to_integer(left_value) == convert_to_integer(right_value));
+}
+
+
+Value *apply_check_not_equality_operation(Value *left_value, Value *right_value) {
+  if (left_value->value_type == ValueTypeIntegerValue && right_value->value_type == ValueTypeIntegerValue) {
+    return new_bool_value(((IntegerValue *) left_value)->integer_value != ((IntegerValue *) right_value)->integer_value);
+  }
+  else if ((left_value->value_type == ValueTypeIntegerValue || left_value->value_type == ValueTypeFloatValue) && (right_value->value_type == ValueTypeIntegerValue || right_value->value_type == ValueTypeFloatValue)) {
+    long double left_float, right_float;
+
+    if (left_value->value_type == ValueTypeFloatValue) left_float = ((FloatValue *) left_value)->float_value;
+    else left_float = ((IntegerValue *) left_value)->integer_value;
+
+    if (right_value->value_type == ValueTypeFloatValue) right_float = ((FloatValue *) right_value)->float_value;
+    else right_float = ((IntegerValue *) right_value)->integer_value;
+
+    return new_bool_value(left_float != right_float);
+  }
+  else if (left_value->value_type == ValueTypeStringValue  && right_value->value_type == ValueTypeStringValue) {
+    return new_bool_value(strcmp(((StringValue *) left_value)->string_value, ((StringValue *) left_value)->string_value) == 0);
+  }
+
+  return new_bool_value(convert_to_integer(left_value) != convert_to_integer(right_value));
+}
+
+
+Value *apply_check_bigger_operation(Value *left_value, Value *right_value) {
+  if (left_value->value_type == ValueTypeIntegerValue && right_value->value_type == ValueTypeIntegerValue) {
+    return new_bool_value(((IntegerValue *) left_value)->integer_value > ((IntegerValue *) right_value)->integer_value);
+  }
+  else if ((left_value->value_type == ValueTypeIntegerValue || left_value->value_type == ValueTypeFloatValue) && (right_value->value_type == ValueTypeIntegerValue || right_value->value_type == ValueTypeFloatValue)) {
+    long double left_float, right_float;
+
+    if (left_value->value_type == ValueTypeFloatValue) left_float = ((FloatValue *) left_value)->float_value;
+    else left_float = ((IntegerValue *) left_value)->integer_value;
+
+    if (right_value->value_type == ValueTypeFloatValue) right_float = ((FloatValue *) right_value)->float_value;
+    else right_float = ((IntegerValue *) right_value)->integer_value;
+
+    return new_bool_value(left_float > right_float);
+  }
+
+  return new_bool_value(convert_to_integer(left_value) > convert_to_integer(right_value));
+}
+
+
+Value *apply_check_bigger_equal_operation(Value *left_value, Value *right_value) {
+  if (left_value->value_type == ValueTypeIntegerValue && right_value->value_type == ValueTypeIntegerValue) {
+    return new_bool_value(((IntegerValue *) left_value)->integer_value >= ((IntegerValue *) right_value)->integer_value);
+  }
+  else if ((left_value->value_type == ValueTypeIntegerValue || left_value->value_type == ValueTypeFloatValue) && (right_value->value_type == ValueTypeIntegerValue || right_value->value_type == ValueTypeFloatValue)) {
+    long double left_float, right_float;
+
+    if (left_value->value_type == ValueTypeFloatValue) left_float = ((FloatValue *) left_value)->float_value;
+    else left_float = ((IntegerValue *) left_value)->integer_value;
+
+    if (right_value->value_type == ValueTypeFloatValue) right_float = ((FloatValue *) right_value)->float_value;
+    else right_float = ((IntegerValue *) right_value)->integer_value;
+
+    return new_bool_value(left_float >= right_float);
+  }
+
+  return new_bool_value(convert_to_integer(left_value) >= convert_to_integer(right_value));
+}
+
+
+Value *apply_check_smaller_operation(Value *left_value, Value *right_value) {
+  if (left_value->value_type == ValueTypeIntegerValue && right_value->value_type == ValueTypeIntegerValue) {
+    return new_bool_value(((IntegerValue *) left_value)->integer_value < ((IntegerValue *) right_value)->integer_value);
+  }
+  else if ((left_value->value_type == ValueTypeIntegerValue || left_value->value_type == ValueTypeFloatValue) && (right_value->value_type == ValueTypeIntegerValue || right_value->value_type == ValueTypeFloatValue)) {
+    long double left_float, right_float;
+
+    if (left_value->value_type == ValueTypeFloatValue) left_float = ((FloatValue *) left_value)->float_value;
+    else left_float = ((IntegerValue *) left_value)->integer_value;
+
+    if (right_value->value_type == ValueTypeFloatValue) right_float = ((FloatValue *) right_value)->float_value;
+    else right_float = ((IntegerValue *) right_value)->integer_value;
+
+    return new_bool_value(left_float < right_float);
+  }
+
+  return new_bool_value(convert_to_integer(left_value) < convert_to_integer(right_value));
+}
+
+
+Value *apply_check_smaller_equal_operation(Value *left_value, Value *right_value) {
+  if (left_value->value_type == ValueTypeIntegerValue && right_value->value_type == ValueTypeIntegerValue) {
+    return new_bool_value(((IntegerValue *) left_value)->integer_value <= ((IntegerValue *) right_value)->integer_value);
+  }
+  else if ((left_value->value_type == ValueTypeIntegerValue || left_value->value_type == ValueTypeFloatValue) && (right_value->value_type == ValueTypeIntegerValue || right_value->value_type == ValueTypeFloatValue)) {
+    long double left_float, right_float;
+
+    if (left_value->value_type == ValueTypeFloatValue) left_float = ((FloatValue *) left_value)->float_value;
+    else left_float = ((IntegerValue *) left_value)->integer_value;
+
+    if (right_value->value_type == ValueTypeFloatValue) right_float = ((FloatValue *) right_value)->float_value;
+    else right_float = ((IntegerValue *) right_value)->integer_value;
+
+    return new_bool_value(left_float <= right_float);
+  }
+
+  return new_bool_value(convert_to_integer(left_value) <= convert_to_integer(right_value));
+}
+
+
 Value *evaluate_call_expression(Scope *scope, CallExpression *call_expression) {
   Value *identifier_value = evaluate_expression(scope, call_expression->identifier_expression);
   Value *parameter_values = evaluate_expression(scope, call_expression->tuple_expression);
@@ -388,163 +510,135 @@ Value *evaluate_index_expression(Scope *scope, IndexExpression *index_expression
 Value *evaluate_infix_expression(Scope *scope, InfixExpression *infix_expression) {
   Value *left_value = NULL, *right_value = NULL, *result_value;
 
-  switch (infix_expression->operator) {
-    case ASSIGN_OP:
-    case ASSIGN_ADDITION_OP:
-    case ASSIGN_SUBTRACTION_OP:
-    case ASSIGN_MULTIPLICATION_OP:
-    case ASSIGN_DIVISION_OP:
-    case ASSIGN_INTEGER_DIVISION_OP:
-    case ASSIGN_EXPONENT_OP:
-    case ASSIGN_MOD_OP: {
-      if (infix_expression->left_expression->expression_type == ExpressionTypePrefixExpression && ((PrefixExpression *) infix_expression->left_expression)->operator == LET_OP) {
-        PrefixExpression *let_expression = (PrefixExpression *) infix_expression->left_expression;
+  Operator operator = infix_expression->operator;
 
-        if (let_expression->right_expression->literal != NULL && let_expression->right_expression->literal->literal_type == LiteralTypeStringLiteral) {
-          char *identifier = ((StringLiteral *) let_expression->right_expression->literal)->string_literal;
+  if (operator == ASSIGN_OP ||
+    operator == ASSIGN_ADDITION_OP ||
+    operator == ASSIGN_SUBTRACTION_OP ||
+    operator == ASSIGN_MULTIPLICATION_OP ||
+    operator == ASSIGN_DIVISION_OP ||
+    operator == ASSIGN_INTEGER_DIVISION_OP ||
+    operator == ASSIGN_EXPONENT_OP ||
+    operator == ASSIGN_MOD_OP) {
 
-          right_value = evaluate_expression(scope, infix_expression->right_expression);
-          result_value = apply_assign_operation(NULL, right_value, infix_expression->operator);
+    if (infix_expression->left_expression->expression_type == ExpressionTypeIdentifierExpression) {
+      char *identifier = ((StringLiteral *) infix_expression->left_expression->literal)->string_literal;
 
-          char *variable_name = calloc(strlen(identifier) + 1, sizeof(char));
-          strcpy(variable_name, identifier);
+      Variable *variable = scope_get_variable(scope, identifier);
 
-          scope_set_variable(scope, variable_name, result_value, 1, true);
+      left_value = new_null_value();
 
-          free_value(right_value);
-        }
-
-        return new_null_value();
+      if (variable != NULL) {
+        left_value = variable->value;
       }
-      else if (infix_expression->left_expression->expression_type == ExpressionTypeIdentifierExpression) {
-        char *identifier = ((StringLiteral *) infix_expression->left_expression->literal)->string_literal;
 
-        Variable *variable = scope_get_variable(scope, identifier);
+      right_value = evaluate_expression(scope, infix_expression->right_expression);
+      result_value = apply_assign_operation(left_value, right_value, operator);
 
-        if (variable != NULL) {
-          left_value = variable->value;
+      scope_set_variable(scope, identifier, result_value);
 
-          right_value = evaluate_expression(scope, infix_expression->right_expression);
-          result_value = apply_assign_operation(left_value, right_value, infix_expression->operator);
+      if (left_value != NULL) free_value(left_value);
+      free_value(right_value);
 
-          char *variable_name = calloc(strlen(identifier) + 1, sizeof(char));
-          strcpy(variable_name, identifier);
-
-          scope_set_variable(scope, variable_name, result_value, -1, false);
-
-          free_value(left_value);
-          free_value(right_value);
-        }
-
-        return new_null_value();
+      return new_null_value();
+    }
+    else if (infix_expression->left_expression->expression_type == ExpressionTypeIndexExpression) {
+      if (infix_expression->operator != ASSIGN_OP) {
+        left_value = evaluate_expression(scope, infix_expression->left_expression);
       }
-      else if (infix_expression->left_expression->expression_type == ExpressionTypeIndexExpression) {
-        if (infix_expression->operator != ASSIGN_OP) {
-          left_value = evaluate_expression(scope, infix_expression->left_expression);
-        }
 
-        right_value = evaluate_expression(scope, infix_expression->right_expression);
-        result_value = apply_assign_operation(left_value, right_value, infix_expression->operator);
+      right_value = evaluate_expression(scope, infix_expression->right_expression);
+      result_value = apply_assign_operation(left_value, right_value, infix_expression->operator);
 
-        free_value(apply_index_operation(scope, (IndexExpression *) infix_expression->left_expression, result_value));
+      free_value(apply_index_operation(scope, (IndexExpression *) infix_expression->left_expression, result_value));
 
-        if (left_value != NULL) free_value(left_value);
-        free_value(right_value);
-
-        return new_null_value();
-      }
+      if (left_value != NULL) free_value(left_value);
+      free_value(right_value);
 
       return new_null_value();
     }
 
+    return new_null_value();
+  }
+
+  left_value = evaluate_expression(scope, infix_expression->left_expression);
+  right_value = evaluate_expression(scope, infix_expression->right_expression);
+
+  switch (infix_expression->operator) {
     case ADDITION_OP: {
-      left_value = evaluate_expression(scope, infix_expression->left_expression);
-      right_value = evaluate_expression(scope, infix_expression->right_expression);
-
       result_value = apply_addition_operation(left_value, right_value);
-
-      free_value(left_value);
-      free_value(right_value);
-
-      return result_value;
+      break;
     }
 
     case SUBTRACTION_OP: {
-      left_value = evaluate_expression(scope, infix_expression->left_expression);
-      right_value = evaluate_expression(scope, infix_expression->right_expression);
-
       result_value = apply_subtraction_operation(left_value, right_value);
-
-      free_value(left_value);
-      free_value(right_value);
-
-      return result_value;
+      break;
     }
 
     case MULTIPLICATION_OP: {
-      left_value = evaluate_expression(scope, infix_expression->left_expression);
-      right_value = evaluate_expression(scope, infix_expression->right_expression);
-
       result_value = apply_multiplication_operation(left_value, right_value);
-
-      free_value(left_value);
-      free_value(right_value);
-
-      return result_value;
+      break;
     }
 
     case DIVISION_OP: {
-      left_value = evaluate_expression(scope, infix_expression->left_expression);
-      right_value = evaluate_expression(scope, infix_expression->right_expression);
-
       result_value = apply_division_operation(left_value, right_value, false);
-
-      free_value(left_value);
-      free_value(right_value);
-
-      return result_value;
+      break;
     }
 
     case INTEGER_DIVISION_OP: {
-      left_value = evaluate_expression(scope, infix_expression->left_expression);
-      right_value = evaluate_expression(scope, infix_expression->right_expression);
-
       result_value = apply_division_operation(left_value, right_value, true);
-
-      free_value(left_value);
-      free_value(right_value);
-
-      return result_value;
+      break;
     }
 
     case EXPONENT_OP: {
-      left_value = evaluate_expression(scope, infix_expression->left_expression);
-      right_value = evaluate_expression(scope, infix_expression->right_expression);
-
       result_value = apply_exponent_operation(left_value, right_value);
-
-      free_value(left_value);
-      free_value(right_value);
-
-      return result_value;
+      break;
     }
 
     case MOD_OP: {
-      left_value = evaluate_expression(scope, infix_expression->left_expression);
-      right_value = evaluate_expression(scope, infix_expression->right_expression);
-
       result_value = apply_mod_operation(left_value, right_value);
+      break;
+    }
 
-      free_value(left_value);
-      free_value(right_value);
+    case CHECK_EQUALITY_OP: {
+      result_value = apply_check_equality_operation(left_value, right_value);
+      break;
+    }
 
-      return result_value;
+    case CHECK_NOT_EQUALITY_OP: {
+      result_value = apply_check_not_equality_operation(left_value, right_value);
+      break;
+    }
+
+    case CHECK_BIGGER_OP: {
+      result_value = apply_check_bigger_operation(left_value, right_value);
+      break;
+    }
+
+    case CHECK_BIGGER_EQUAL_OP: {
+      result_value = apply_check_bigger_equal_operation(left_value, right_value);
+      break;
+    }
+
+    case CHECK_SMALLER_OP: {
+      result_value = apply_check_smaller_operation(left_value, right_value);
+      break;
+    }
+
+    case CHECK_SMALLER_EQUAL_OP: {
+      result_value = apply_check_smaller_equal_operation(left_value, right_value);
+      break;
     }
 
     default: {
-      return new_null_value();
+      result_value = new_null_value();
     }
   }
+
+  free_value(left_value);
+  free_value(right_value);
+
+  return result_value;
 }
 
 
@@ -676,6 +770,97 @@ Value *evaluate_expression(Scope *scope, Expression *expression) {
   return new_null_value();
 }
 
+// return value means if true move on
+bool evaluate_block_definition(Scope *scope, BlockDefinition *block_definition) {
+  Scope *block_scope;
+
+  switch (block_definition->block_definition_type) {
+    case BlockDefinitionTypeIfElseGroupBlock: {
+      IfElseGroupBlockDefinition *if_else_group_block_definition = (IfElseGroupBlockDefinition *) block_definition;
+
+      size_t i;
+
+      for (i = 0; i < if_else_group_block_definition->if_block_definitions_length; i++) {
+        if (evaluate_block_definition(scope, (BlockDefinition *) if_else_group_block_definition->if_block_definitions[i])) {
+          break;
+        }
+      }
+
+      if (i == if_else_group_block_definition->if_block_definitions_length && if_else_group_block_definition->else_block_definition != NULL) {
+        evaluate_block_definition(scope, (BlockDefinition *) if_else_group_block_definition->else_block_definition);
+      }
+
+      return true;
+    }
+
+    case BlockDefinitionTypeIfBlock: {
+      IfBlockDefinition *if_block_definition = (IfBlockDefinition *) block_definition;
+
+      block_scope = new_scope(scope, if_block_definition->block, false);
+
+      if (if_block_definition->pre_expression != NULL) {
+        free_value(evaluate_expression(block_scope, if_block_definition->pre_expression));
+      }
+
+      Value *condition_value = evaluate_expression(block_scope, if_block_definition->condition);
+      bool condition = convert_to_bool(condition_value);
+
+      if (condition) {
+        free_value(evaluate_scope(block_scope));
+      }
+
+      free_value(condition_value);
+      free_scope(block_scope);
+
+      return condition;
+    }
+
+    case BlockDefinitionTypeElseBlock: {
+      ElseBlockDefinition *else_block_definition = (ElseBlockDefinition *) block_definition;
+
+      block_scope = new_scope(scope, else_block_definition->block, false);
+
+      free_value(evaluate_scope(block_scope));
+      free_scope(block_scope);
+
+      return true;
+    }
+
+    case BlockDefinitionTypeForBlock: {
+      ForBlockDefinition *for_block_definition = (ForBlockDefinition *) block_definition;
+
+      block_scope = new_scope(scope, for_block_definition->block, false);
+
+      if (for_block_definition->pre_expression != NULL) {
+        free_value(evaluate_expression(block_scope, for_block_definition->pre_expression));
+      }
+
+      Value *condition_value = evaluate_expression(block_scope, for_block_definition->condition);
+
+      while (convert_to_bool(condition_value)) {
+        free_value(condition_value);
+
+        free_value(evaluate_scope(block_scope));
+
+        if (for_block_definition->post_expression != NULL) {
+          free_value(evaluate_expression(block_scope, for_block_definition->post_expression));
+        }
+
+        condition_value = evaluate_expression(block_scope, for_block_definition->condition);
+      }
+
+      free_value(condition_value);
+      free_scope(block_scope);
+
+      return true;
+    }
+
+    default: {
+      return true;
+    }
+  }
+}
+
 
 bool evaluate_statement(Scope *scope, Statement *statement, bool print_if_not_null) {
   switch (statement->statement_type) {
@@ -683,9 +868,9 @@ bool evaluate_statement(Scope *scope, Statement *statement, bool print_if_not_nu
       Value *value = evaluate_expression(scope, ((ExpressionStatement *) statement)->expression);
 
       if (print_if_not_null && value->value_type != ValueTypeNullValue) {
-        StringValue *string_value = (StringValue *) convert_to_string_value(value);
-        printf("%s\n", string_value->string_value);
-        free_value((Value *) string_value);
+        char *s = convert_to_string(value);
+        printf("%s\n", s);
+        free(s);
       }
 
       free_value(value);
@@ -694,28 +879,31 @@ bool evaluate_statement(Scope *scope, Statement *statement, bool print_if_not_nu
     }
 
     case StatementTypeReturnStatement: {
-      scope->return_value = evaluate_expression(scope, ((ReturnStatement *) statement)->right_expression);
+      scope_set_return_value(scope, evaluate_expression(scope, ((ReturnStatement *) statement)->right_expression));
 
       return false;
     }
 
     case StatementTypeImportStatement: {
       ImportStatement *import_statement = (ImportStatement *) statement;
-      break;
+
+      return true;
     }
 
     case StatementTypeBlockDefinitionStatement: {
       BlockDefinitionStatement *block_definition_statement = (BlockDefinitionStatement *) statement;
 
-      return false; /* TODO add here */
+      BlockDefinition *block_definition = block_definition_statement->block_definition;
+
+      evaluate_block_definition(scope, block_definition);
+
+      return true;
     }
 
     default: {
-      break;
+      return true;
     }
   }
-
-  return false;
 }
 
 

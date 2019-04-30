@@ -2,7 +2,7 @@
 
 #include <string.h>
 #include "bool.h"
-#include "stringutils.h"
+#include "utils.h"
 
 #define MAX_BUFFER_SIZE 10000
 
@@ -461,12 +461,6 @@ Token _next_token(Lexer *lexer) {
         free(s);
 
         return (Token) {.token_type = IMPORT_TOKEN};
-      }
-
-      if (strcmp(s, "let") == 0) {
-        free(s);
-
-        return (Token) {.token_type = LET_TOKEN};
       }
 
       if (strcmp(s, "fun") == 0) {

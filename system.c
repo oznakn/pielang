@@ -25,13 +25,9 @@ Value *system_function_print(TupleValue *parameter_values) {
 }
 
 
-void _build_system_function(Scope *scope, char *s, Value *value) {
-  int length = strlen(s);
-  char *name = calloc(length + 1, sizeof(char));
+void _build_system_function(Scope *scope, char *name, Value *value) {
+  Variable *variable = scope_set_variable(scope, name, value);
 
-  strcpy(name, s);
-
-  Variable *variable = scope_set_variable(scope, name, value, 1, true);
   variable->is_readonly = true;
 }
 

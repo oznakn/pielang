@@ -27,6 +27,9 @@ Value *evaluate_prefix_expression(Scope *scope, PrefixExpression *prefix_express
 Value *evaluate_expression(Scope *scope, Expression *expression);
 
 
+bool evaluate_block_definition(Scope *scope, BlockDefinition *block_definition);
+
+
 bool evaluate_statement(Scope *scope, Statement *statement, bool print_if_not_null);
 
 

@@ -176,7 +176,6 @@ typedef struct {
   ElseBlockDefinition *else_block_definition;
 } IfElseGroupBlockDefinition;
 
-
 typedef struct {
   BlockDefinition block_definition;
   Block *block;
@@ -195,7 +194,8 @@ typedef struct {
   Expression expression;
   Block *block;
   Expression *identifier;
-  Expression *arguments;
+  char **arguments;
+  size_t argument_count;
 } FunctionExpression;
 
 typedef struct {

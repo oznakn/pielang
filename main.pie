@@ -1,9 +1,23 @@
-a = 'test'
-
-print(a)
-
-for i = 0; i < 5; i += 1 {
-    print (i, 'printed')
+test = fun (val) {
+    print ('test', val)
 }
 
-if !s { print ('yass') }
+fun mult(val1, val2) {
+    print ('mult', val1, val2)
+    return val1 * val2
+}
+
+a = 'done'
+
+test(a)
+
+for i = 0; i < 1; i += 1 {
+    print (i, 'printed')
+}
+print (i)
+
+if s = true; s { print ('yass') }
+
+print(mult(3, 3.5))
+
+print (max(3, 4))

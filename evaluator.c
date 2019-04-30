@@ -10,6 +10,7 @@
 #include "value.h"
 #include "system.h"
 
+
 Value *_evaluate_or_apply_index_operation(Scope *scope, IndexExpression *index_expression, Value *assign_value) {
   Value **items;
   size_t items_length;
@@ -68,24 +69,27 @@ Value *call_system_function(SystemFunctionValue *system_function_value, TupleVal
 
 
 Value *call_function(Scope *scope, FunctionValue *function_value, TupleValue *parameter_values) {
-  Scope *function_scope = new_scope(scope, function_value->block, true);
+  Scope *function_scope = new_scope(scope, function_value->block, ScopeTypeFunctionScope);
 
   if (parameter_values->length > function_value->argument_count) return new_null_value();
 
   Value *variable_value;
 
   for (size_t i = 0; i < function_value->argument_count; i++) {
-    if (parameter_values->length >= i) {
+    if (parameter_values->length <= i) {
       variable_value = new_null_value();
     }
     else {
       variable_value = parameter_values->items[i];
     }
 
-    scope_set_variable(function_scope, function_value->arguments[i], variable_value);
+    scope_set_variable(function_scope, function_value->arguments[i], variable_value, true);
   }
 
-  return evaluate_scope(function_scope);
+  Value *result = evaluate_scope(function_scope);
+  free_scope(function_scope);
+
+  return result;
 }
 
 
@@ -535,7 +539,7 @@ Value *evaluate_infix_expression(Scope *scope, InfixExpression *infix_expression
       right_value = evaluate_expression(scope, infix_expression->right_expression);
       result_value = apply_assign_operation(left_value, right_value, operator);
 
-      scope_set_variable(scope, identifier, result_value);
+      scope_set_variable(scope, identifier, result_value, false);
 
       if (left_value != NULL) free_value(left_value);
       free_value(right_value);
@@ -765,6 +769,20 @@ Value *evaluate_expression(Scope *scope, Expression *expression) {
 
       return value;
     }
+
+    case ExpressionTypeFunctionExpression: {
+      FunctionExpression *function_expression = (FunctionExpression *) expression;
+
+      FunctionValue *function_value = (FunctionValue *) new_function_value(function_expression->block, function_expression->arguments, function_expression->argument_count);
+
+      if (function_expression->identifier != NULL) {
+        char *function_name = ((StringLiteral *) function_expression->identifier->literal)->string_literal;
+
+        scope_set_variable(scope, function_name, (Value *) function_value, false);
+      }
+
+      return (Value *) function_value;
+    }
   }
 
   return new_null_value();
@@ -796,7 +814,7 @@ bool evaluate_block_definition(Scope *scope, BlockDefinition *block_definition) 
     case BlockDefinitionTypeIfBlock: {
       IfBlockDefinition *if_block_definition = (IfBlockDefinition *) block_definition;
 
-      block_scope = new_scope(scope, if_block_definition->block, false);
+      block_scope = new_scope(scope, if_block_definition->block, ScopeTypeNormalScope);
 
       if (if_block_definition->pre_expression != NULL) {
         free_value(evaluate_expression(block_scope, if_block_definition->pre_expression));
@@ -818,7 +836,7 @@ bool evaluate_block_definition(Scope *scope, BlockDefinition *block_definition) 
     case BlockDefinitionTypeElseBlock: {
       ElseBlockDefinition *else_block_definition = (ElseBlockDefinition *) block_definition;
 
-      block_scope = new_scope(scope, else_block_definition->block, false);
+      block_scope = new_scope(scope, else_block_definition->block, ScopeTypeNormalScope);
 
       free_value(evaluate_scope(block_scope));
       free_scope(block_scope);
@@ -829,7 +847,7 @@ bool evaluate_block_definition(Scope *scope, BlockDefinition *block_definition) 
     case BlockDefinitionTypeForBlock: {
       ForBlockDefinition *for_block_definition = (ForBlockDefinition *) block_definition;
 
-      block_scope = new_scope(scope, for_block_definition->block, false);
+      block_scope = new_scope(scope, for_block_definition->block, ScopeTypeNormalScope);
 
       if (for_block_definition->pre_expression != NULL) {
         free_value(evaluate_expression(block_scope, for_block_definition->pre_expression));
@@ -917,7 +935,7 @@ Value *evaluate_scope(Scope *scope) {
 
 
 void evaluate_ast(AST *ast) {
-  Scope *main_scope = new_scope(NULL, ast->block, false);
+  Scope *main_scope = new_scope(NULL, ast->block, ScopeTypeNormalScope);
 
   build_main_scope(main_scope);
 

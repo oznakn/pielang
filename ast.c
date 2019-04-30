@@ -2,6 +2,7 @@
 
 #include "bool.h"
 #include "lexer.h"
+#include "utils.h"
 
 #define MAX_BUFFER_SIZE 10000
 
@@ -135,7 +136,15 @@ void printf_expression(Expression *expression, unsigned int alignment) {
       printf("FUNCTION");
 
       if (function_expression->identifier) printf_expression(function_expression->identifier, alignment);
-      printf_expression(function_expression->arguments, alignment);
+      printf("(");
+      for (size_t i = 0; i < function_expression->argument_count; i++) {
+        printf("%s", function_expression->arguments[i]);
+
+        if (i != function_expression->argument_count - 1) {
+          printf(", ");
+        }
+      }
+      printf(")");
       printf("\n");
       printf_block(function_expression->block, alignment);
 
@@ -200,6 +209,16 @@ void printf_block(Block *block, unsigned int alignment) {
 
 void printf_block_definition(BlockDefinition *block_definition, unsigned int alignment) {
   switch (block_definition->block_definition_type) {
+    case BlockDefinitionTypeClassBlock: {
+      ClassBlockDefinition *class_block_definition = (ClassBlockDefinition *)block_definition;
+
+      printf("class ");
+      printf_expression(class_block_definition->identifier_expression, 0);
+      printf_block(class_block_definition->block, alignment);
+
+      break;
+    }
+
     case BlockDefinitionTypeIfElseGroupBlock: {
       IfElseGroupBlockDefinition *if_else_group_block_definition = (IfElseGroupBlockDefinition *)block_definition;
 
@@ -324,6 +343,11 @@ void printf_ast(AST *ast) {
 
 void free_expression(Expression *expression) {
   switch (expression->expression_type) {
+    case ExpressionTypeNullExpression: {
+      free(expression);
+      break;
+    }
+
     case ExpressionTypeIndexExpression: {
       IndexExpression *index_expression = (IndexExpression *) expression;
 
@@ -392,42 +416,31 @@ void free_expression(Expression *expression) {
     case ExpressionTypeFunctionExpression: {
       FunctionExpression *function_expression = (FunctionExpression *)expression;
 
+      for (size_t i = 0; i < function_expression->argument_count; i++) {
+        free(function_expression->arguments[i]);
+      }
+      free(function_expression->arguments);
+
       if (function_expression->identifier) free_expression(function_expression->identifier);
-      free_expression(function_expression->arguments);
-      free_block(function_expression->block);
       free(function_expression);
 
       break;
     }
 
-    case ExpressionTypeIntegerExpression: {
-      free(expression->literal);
-      free(expression);
-      break;
-    }
-
+    case ExpressionTypeBoolExpression:
+    case ExpressionTypeIntegerExpression:
     case ExpressionTypeFloatExpression: {
       free(expression->literal);
       free(expression);
       break;
     }
 
-    case ExpressionTypeStringExpression: {
-      free(((StringLiteral *) expression->literal)->string_literal);
-      free(expression->literal);
-      free(expression);
-      break;
-    }
-
+    case ExpressionTypeStringExpression:
     case ExpressionTypeIdentifierExpression: {
       free(((StringLiteral *) expression->literal)->string_literal);
       free(expression->literal);
       free(expression);
       break;
-    }
-
-    default: {
-
     }
   }
 }
@@ -462,7 +475,7 @@ void free_block_definition(BlockDefinition *block_definition) {
       IfBlockDefinition *if_block_definition = (IfBlockDefinition *)block_definition;
 
       free_expression(if_block_definition->condition);
-      if (if_block_definition->pre_expression) free_expression(if_block_definition->pre_expression);
+      if (if_block_definition->pre_expression != NULL) free_expression(if_block_definition->pre_expression);
       free(block_definition);
 
       break;
@@ -476,8 +489,8 @@ void free_block_definition(BlockDefinition *block_definition) {
       ForBlockDefinition *for_block_definition = (ForBlockDefinition *)block_definition;
 
       free_expression(for_block_definition->condition);
-      if (for_block_definition->pre_expression) free_expression(for_block_definition->pre_expression);
-      if (for_block_definition->post_expression) free_expression(for_block_definition->post_expression);
+      if (for_block_definition->pre_expression != NULL) free_expression(for_block_definition->pre_expression);
+      if (for_block_definition->post_expression != NULL) free_expression(for_block_definition->post_expression);
       free(block_definition);
 
       break;
@@ -523,10 +536,6 @@ void free_statement(Statement *statement) {
       free_block_definition(block_definition_statement->block_definition);
       free(block_definition_statement);
       break;
-    }
-
-    default: {
-
     }
   }
 }
@@ -724,7 +733,6 @@ unsigned short get_operator_precedence(Operator operator, bool next) {
       result = ASYNC_AWAIT_PRECEDENCE;
       break;
     }
-
 
     default: {
       result = 0;
@@ -1087,7 +1095,7 @@ Expression *parse_function_expression(Lexer *lexer) {
   if (peek_token(lexer).token_type != L_PARENTHESIS_TOKEN) return parser_error();
   next_token(lexer);
 
-  Expression *arguments = force_tuple(parse_expression(lexer, 0, GROUPED_EXPRESSION_PARSER_LIMITER));
+  ArrayExpression *arguments_expression = (ArrayExpression *) force_tuple(parse_expression(lexer, 0, GROUPED_EXPRESSION_PARSER_LIMITER));
 
   if (peek_token(lexer).token_type != R_PARENTHESIS_TOKEN) return parser_error();
   next_token(lexer);
@@ -1100,11 +1108,20 @@ Expression *parse_function_expression(Lexer *lexer) {
   if (peek_token(lexer).token_type != R_BRACE_TOKEN) return parser_error();
   next_token(lexer);
 
+  char **arguments = malloc(arguments_expression->expression_count * sizeof(char *));
+
+  for (size_t i = 0; i < arguments_expression->expression_count; i++) {
+    arguments[i] = copy_string(((StringLiteral *) arguments_expression->expressions[i]->literal)->string_literal);
+  }
+
   FunctionExpression *function_expression = (FunctionExpression *)malloc(sizeof(FunctionExpression));
   function_expression->expression = (Expression){.expression_type = ExpressionTypeFunctionExpression};
+  function_expression->block = block;
   function_expression->identifier = identifier;
   function_expression->arguments = arguments;
-  function_expression->block = block;
+  function_expression->argument_count = arguments_expression->expression_count;
+
+  free_expression((Expression *) arguments_expression);
 
   return (Expression *)function_expression;
 }

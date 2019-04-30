@@ -15,7 +15,7 @@ void run_repl() {
   FILE *file;
 
   Lexer *lexer = NULL;
-  Scope *scope = new_scope(NULL, NULL, false);
+  Scope *scope = new_scope(NULL, NULL, ScopeTypeNormalScope);
 
   build_main_scope(scope);
 

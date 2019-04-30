@@ -29,7 +29,7 @@ char *convert_to_string(Value *value) {
     }
 
     case ValueTypeIntegerValue: {
-      char buffer[MAX_BUFFER_SIZE] = {};
+      char buffer[MAX_BUFFER_SIZE] = {0};
 
       IntegerValue *integer_value = (IntegerValue *) value;
 
@@ -39,7 +39,7 @@ char *convert_to_string(Value *value) {
     }
 
     case ValueTypeFloatValue: {
-      char buffer[MAX_BUFFER_SIZE] = {};
+      char buffer[MAX_BUFFER_SIZE] = {0};
 
       FloatValue *float_value = (FloatValue *) value;
 
@@ -53,7 +53,7 @@ char *convert_to_string(Value *value) {
     }
 
     case ValueTypeTupleValue: {
-      char buffer[MAX_BUFFER_SIZE] = {};
+      char buffer[MAX_BUFFER_SIZE] = {0};
 
       TupleValue *tuple_value = (TupleValue *) value;
 
@@ -84,7 +84,7 @@ char *convert_to_string(Value *value) {
     }
 
     case ValueTypeListValue: {
-      char buffer[MAX_BUFFER_SIZE] = {};
+      char buffer[MAX_BUFFER_SIZE] = {0};
 
       ListValue *list_value = (ListValue *) value;
 
@@ -262,11 +262,7 @@ Value *new_string_value(char *val, size_t length) {
 
 
 Value *new_string_value_from_literal(StringLiteral *literal) {
-  char *s = calloc(literal->length + 1, sizeof(char));
-
-  strcpy(s, literal->string_literal);
-
-  return new_string_value(s, literal->length);
+  return new_string_value(copy_string(literal->string_literal), literal->length);
 }
 
 
@@ -275,9 +271,14 @@ Value *new_string_value_from_literal(StringLiteral *literal) {
 Value *new_function_value(Block *block, char **arguments, size_t argument_count) {
   FunctionValue *function_value = malloc(sizeof(FunctionValue));
 
+  char **ss = malloc(argument_count * sizeof(char *));
+  for (size_t i = 0; i < argument_count; i++) {
+    ss[i] = copy_string(arguments[i]);
+  }
+
   function_value->value = (Value){.value_type = ValueTypeFunctionValue};
   function_value->block = block;
-  function_value->arguments = arguments;
+  function_value->arguments = ss;
   function_value->argument_count = argument_count;
 
   return (Value *)function_value;
@@ -322,7 +323,7 @@ Class *new_class(char *class_name, Scope *scope) {
   Class *class = malloc(sizeof(Class));
 
   class->class_name = class_name;
-  class->scope = new_scope(scope, NULL, false);
+  class->scope = new_scope(scope, NULL, ScopeTypeNormalScope);
 
   return class;
 }
@@ -333,7 +334,7 @@ Value *new_object_value(Class *class) {
 
   object_value->value = (Value) {.value_type = ValueTypeObjectValue};
   object_value->class = class;
-  object_value->scope = new_scope(class->scope, NULL, false);
+  object_value->scope = new_scope(class->scope, NULL, ScopeTypeNormalScope);
 
   return (Value *) object_value;
 }
@@ -440,7 +441,7 @@ Variable *variable_map_get(HashTable *variable_map, char *variable_name) {
 
 
 Variable *object_value_set_variable(ObjectValue *object_value, char *name, Value *value) {
-  return scope_set_variable(object_value->scope, name, value);
+  return scope_set_variable(object_value->scope, name, value, true);
 }
 
 
@@ -457,6 +458,10 @@ void free_variable_map(HashTable *variable_map) {
 void free_value(Value *value) {
   if (value->value_type != ValueTypeNullValue && value->linked_variable_count == 0) {
     switch (value->value_type) {
+      case ValueTypeNullValue: {
+        break;
+      }
+
       case ValueTypeBoolValue: {
         BoolValue *bool_value = (BoolValue *)value;
         free(bool_value);
@@ -489,6 +494,7 @@ void free_value(Value *value) {
           free(function_value->arguments[i]);
         }
 
+        free(function_value->arguments);
         free(function_value);
         break;
       }
@@ -532,10 +538,6 @@ void free_value(Value *value) {
         free_scope(object_value->scope);
         free(object_value);
         break;
-      }
-
-      default: {
-
       }
     }
   }

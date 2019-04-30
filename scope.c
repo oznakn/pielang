@@ -56,10 +56,17 @@ Variable *scope_get_variable(Scope *scope, char *name) {
 }
 
 
-Variable *scope_set_variable(Scope *scope, char *name, Value *value) {
+Variable *scope_set_variable(Scope *scope, char *name, Value *value, int create_new_if_even_exists) {
   Variable *variable = scope_get_variable(scope, name);
 
-  if (variable != NULL) {
+  if (variable == NULL || create_new_if_even_exists) {
+    variable = new_variable(copy_string(name), value);
+
+    variable_map_set(scope->variable_map, variable);
+
+    return variable;
+  }
+  else {
     if (!variable->is_readonly)  {
       Value *old_value = variable->value;
       old_value->linked_variable_count--;
@@ -70,13 +77,6 @@ Variable *scope_set_variable(Scope *scope, char *name, Value *value) {
     else {
       // TODO error
     }
-  }
-  else {
-    variable = new_variable(copy_string(name), value);
-
-    variable_map_set(scope->variable_map, variable);
-
-    return variable;
   }
 
   return NULL;

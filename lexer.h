@@ -25,12 +25,12 @@ typedef struct {
 
 typedef struct {
   Literal literal;
-  long int integer_literal;
+  long long int integer_literal;
 } IntegerLiteral;
 
 typedef struct {
   Literal literal;
-  double float_literal;
+  long double float_literal;
 } FloatLiteral;
 
 typedef struct {
@@ -89,6 +89,7 @@ typedef enum {
   IF_TOKEN,
   ELSE_TOKEN,
   FOR_TOKEN,
+  CLASS_TOKEN,
   FUNCTION_TOKEN,
   IN_TOKEN,
 } TokenType;

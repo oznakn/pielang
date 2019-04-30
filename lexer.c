@@ -38,7 +38,9 @@ bool is_identifier_char(char c) {
 
 
 char _next_char(Lexer *lexer) {
-  return (char) fgetc(lexer->file);
+  char c = (char) fgetc(lexer->file);
+
+  return c;
 }
 
 
@@ -79,8 +81,10 @@ void free_lexer(Lexer *lexer) {
 }
 
 
-void skip_whitespace(Lexer *lexer) {
-  while (peek_char(lexer) == ' ' || peek_char(lexer) == '\r' || peek_char(lexer) == '\t') next_char(lexer);
+void skip_whitespace(Lexer *lexer, bool aggressive) {
+  while (peek_char(lexer) == ' ' ||
+    peek_char(lexer) == '\r' ||
+      peek_char(lexer) == '\t' || (aggressive || peek_char(lexer) == '\n')) next_char(lexer);
 }
 
 
@@ -190,7 +194,7 @@ Token parse_string_literal_token(Lexer *lexer, char c) {
 
 
 Token _next_token(Lexer *lexer) {
-  skip_whitespace(lexer);
+  skip_whitespace(lexer, false);
 
   switch (peek_char(lexer)) {
     case EOF:
@@ -201,7 +205,7 @@ Token _next_token(Lexer *lexer) {
     case '\n': {
       next_char(lexer);
 
-      while (peek_char(lexer) == '\n') next_char(lexer);
+      skip_whitespace(lexer, false);
 
       return (Token) {.token_type = EOL_TOKEN};
     }
@@ -467,6 +471,7 @@ Token _next_token(Lexer *lexer) {
 
       if (strcmp(s, "fun") == 0) {
         free(s);
+
         return (Token) {.token_type = FUNCTION_TOKEN};
       }
 
@@ -492,6 +497,12 @@ Token _next_token(Lexer *lexer) {
         free(s);
 
         return (Token) {.token_type = IN_TOKEN};
+      }
+
+      if (strcmp(s, "class") == 0) {
+        free(s);
+
+        return (Token) {.token_type = CLASS_TOKEN};
       }
 
       if (strcmp(s, "async") == 0) {

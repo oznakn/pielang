@@ -21,8 +21,8 @@ Scope *new_scope(Scope *inherited_scope, Block *block, bool is_function_scope) {
 
 
 void free_scope(Scope *scope) {
-  if (scope->block != NULL) free_block(scope->block);
   free_hash_table(scope->variable_map);
+  if (scope->block != NULL) free_block(scope->block);
   free(scope);
 }
 
@@ -42,17 +42,16 @@ Variable *scope_get_variable(Scope *scope, char *name) {
 }
 
 
-Variable *scope_set_variable(Scope *scope, char *name, Value *value, int override, bool create_new_in_scope) {
+Variable *scope_set_variable(Scope *scope, char *name, Value *value, int create_new, bool create_new_in_scope) {
   Variable *variable;
 
-  if (override == 0) {
+  if (create_new == 0) {
     variable = variable_map_get(scope->variable_map, name);
 
-    if (variable == NULL) return scope_set_variable(scope, name, value, -1, create_new_in_scope);
-    else return scope_set_variable(scope, name, value, 1, create_new_in_scope);
+    if (variable == NULL) return scope_set_variable(scope, name, value, 1, create_new_in_scope);
+    else return scope_set_variable(scope, name, value, -1, create_new_in_scope);
   }
-
-  if (override == 1) {
+  else if (create_new == -1) {
     variable = variable_map_get(scope->variable_map, name);
 
     if (variable != NULL) {
@@ -69,7 +68,7 @@ Variable *scope_set_variable(Scope *scope, char *name, Value *value, int overrid
 
     return variable;
   }
-  else if (override == -1) {
+  else if (create_new == 1) {
     variable = new_variable(name, value);
 
     if (create_new_in_scope) {
@@ -81,4 +80,6 @@ Variable *scope_set_variable(Scope *scope, char *name, Value *value, int overrid
 
     return variable;
   }
+
+  return NULL;
 }

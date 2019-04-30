@@ -33,12 +33,12 @@ struct BoolValue {
 
 struct IntegerValue {
   struct Value value;
-  long int integer_value;
+  long long int integer_value;
 };
 
 struct FloatValue {
   struct Value value;
-  double float_value;
+  long double float_value;
 };
 
 struct StringValue {
@@ -119,13 +119,13 @@ Value *new_bool_value(bool val);
 Value *new_bool_value_from_literal(BoolLiteral *literal);
 
 
-Value *new_integer_value(long int val);
+Value *new_integer_value(long long int val);
 
 
 Value *new_integer_value_from_literal(IntegerLiteral *literal);
 
 
-Value *new_float_value(double val);
+Value *new_float_value(long double val);
 
 
 Value *new_float_value_from_literal(FloatLiteral *literal);
@@ -140,15 +140,16 @@ Value *new_string_value_from_literal(StringLiteral *literal);
 Value *convert_to_string_value(Value *value);
 
 
+Value *convert_to_bool_value(Value *value);
+
+
 Value *new_function_value(Block *block, char **arguments, size_t argument_count);
 
 
 Value *new_system_function_value(SystemFunctionCallback *callback);
 
 
-
 Value *new_tuple_value(Value **items, size_t length, bool has_finished);
-
 
 
 Value *new_list_value(Value **items, size_t length, bool has_finished);

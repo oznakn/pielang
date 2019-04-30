@@ -39,7 +39,7 @@ Value *new_bool_value_from_literal(BoolLiteral *literal) {
 }
 
 
-Value *new_integer_value(long int val) {
+Value *new_integer_value(long long int val) {
   IntegerValue *integer_value = malloc(sizeof(IntegerValue));
 
   integer_value->value = (Value){.value_type = ValueTypeIntegerValue};
@@ -54,7 +54,7 @@ Value *new_integer_value_from_literal(IntegerLiteral *literal) {
 }
 
 
-Value *new_float_value(double val) {
+Value *new_float_value(long double val) {
   FloatValue *float_value = malloc(sizeof(FloatValue));
 
   float_value->value = (Value){.value_type = ValueTypeFloatValue};
@@ -121,7 +121,7 @@ Value *convert_to_string_value(Value *value) {
 
       IntegerValue *integer_value = (IntegerValue *) value;
 
-      sprintf(buffer, "%ld", integer_value->integer_value);
+      sprintf(buffer, "%lld", integer_value->integer_value);
 
       int length = strlen(buffer);
       char *s = calloc(length + 1, sizeof(length));
@@ -136,7 +136,7 @@ Value *convert_to_string_value(Value *value) {
 
       FloatValue *float_value = (FloatValue *) value;
 
-      sprintf(buffer, "%.2f", float_value->float_value);
+      sprintf(buffer, "%.2Lf", float_value->float_value);
 
       size_t length = strlen(buffer);
 
@@ -212,6 +212,44 @@ Value *convert_to_string_value(Value *value) {
   }
 }
 
+
+Value *convert_to_bool_value(Value *value) {
+  switch (value->value_type) {
+    case ValueTypeNullValue: {
+      return new_bool_value(false);
+    }
+
+    case ValueTypeBoolValue: {
+      return copy_value(value);
+    }
+
+    case ValueTypeIntegerValue: {
+      return new_bool_value(((IntegerValue *) value)->integer_value != 0);
+    }
+
+    case ValueTypeFloatValue: {
+      return new_bool_value(((FloatValue *) value)->float_value != 0);
+    }
+
+    case ValueTypeStringValue: {
+      StringValue *string_value = (StringValue *) value;
+
+      return new_bool_value(string_value->length != 0);
+    }
+
+    case ValueTypeTupleValue: {
+      return new_bool_value(((TupleValue *) value)->length != 0);
+    }
+
+    case ValueTypeListValue: {
+      return new_bool_value(((ListValue *) value)->length != 0);
+    }
+
+    default: {
+      return NULL;
+    }
+  }
+}
 
 Value *new_function_value(Block *block, char **arguments, size_t argument_count) {
   FunctionValue *function_value = malloc(sizeof(FunctionValue));
@@ -351,6 +389,7 @@ Variable *new_variable(char *variable_name, Value *value) {
   variable->variable_name = variable_name;
   variable->value = value;
   variable->value->linked_variable_count++;
+  variable->is_readonly = false;
 
   return variable;
 }

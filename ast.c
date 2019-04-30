@@ -149,13 +149,13 @@ void printf_expression(Expression *expression, unsigned int alignment) {
     }
 
     case ExpressionTypeIntegerExpression: {
-      printf(" %lu ", ((IntegerLiteral *)expression->literal)->integer_literal);
+      printf(" %lld ", ((IntegerLiteral *)expression->literal)->integer_literal);
 
       break;
     }
 
     case ExpressionTypeFloatExpression: {
-      printf(" %f ", ((FloatLiteral *)expression->literal)->float_literal);
+      printf(" %Lf ", ((FloatLiteral *)expression->literal)->float_literal);
 
       break;
     }
@@ -301,6 +301,7 @@ void printf_ast(AST *ast) {
   for (size_t i = 0; i < ast->block->statement_count; i++) {
     printf_statement(ast->block->statements[i], 0);
   }
+  printf("\n");
 }
 
 
@@ -402,6 +403,7 @@ void free_expression(Expression *expression) {
     }
 
     case ExpressionTypeIdentifierExpression: {
+      free(((StringLiteral *) expression->literal)->string_literal);
       free(expression->literal);
       free(expression);
       break;
@@ -418,6 +420,7 @@ void free_block(Block *block) {
   for (size_t i = 0; i < block->statement_count; i++) {
     free_statement(block->statements[i]);
   }
+  free(block->statements);
   free(block);
 }
 
@@ -497,7 +500,7 @@ void free_statement(Statement *statement) {
 
 
 void free_ast(AST *ast) {
-  free_block(ast->block);
+  // no need to free block, because scope automatically frees it, TODO move maybe again here
   free(ast);
 }
 
@@ -728,6 +731,9 @@ bool has_finished(Token token, ParserLimiter limiter) {
 
     case INDEX_EXPRESSION_PARSER_LIMITER:
       return token.token_type == R_BRACKET_TOKEN;
+
+    case CLASS_BLOCK_EXPRESSION_PARSER_LIMITER:
+      return token.token_type == L_BRACE_TOKEN;
 
     case IF_BLOCK_EXPRESSION_PARSER_LIMITER:
     case FOR_BLOCK_EXPRESSION_PARSER_LIMITER:
@@ -1130,7 +1136,11 @@ Block *parse_block(Lexer *lexer, ParserLimiter limiter) {
       items_buffer_length = 0;
     }
 
-    items_buffer[items_buffer_length++] = parse_statement(lexer);
+    Statement *statement = parse_statement(lexer);
+
+    if (statement == NULL) continue;
+
+    items_buffer[items_buffer_length++] = statement;
     block->statement_count++;
   }
 
@@ -1162,13 +1172,11 @@ BlockDefinition *parse_if_block_definition(Lexer *lexer, ParserLimiter limiter) 
   }
 
   if (peek_token(lexer).token_type != L_BRACE_TOKEN) return parser_error();
-
   next_token(lexer);
 
   Block *block = parse_block(lexer, limiter);
 
   if (peek_token(lexer).token_type != R_BRACE_TOKEN) return parser_error();
-
   next_token(lexer);
 
   IfBlockDefinition *if_block_definition = malloc(sizeof(IfBlockDefinition));
@@ -1183,6 +1191,57 @@ BlockDefinition *parse_if_block_definition(Lexer *lexer, ParserLimiter limiter) 
   }
 
   return (BlockDefinition *)if_block_definition;
+}
+
+
+BlockDefinition *parse_else_block_definition(Lexer *lexer, ParserLimiter limiter) {
+  next_token(lexer);
+
+  if (peek_token(lexer).token_type == IF_TOKEN) {
+    next_token(lexer);
+
+    IfBlockDefinition *if_block_definition = (IfBlockDefinition *) parse_if_block_definition(lexer, limiter);
+    if_block_definition->block_definition.block_definition_type = BlockDefinitionTypeElseIfBlock;
+
+    return (BlockDefinition *) if_block_definition;
+  }
+  else if (peek_token(lexer).token_type != L_BRACE_TOKEN) return parser_error();
+  next_token(lexer);
+
+  Block *block = parse_block(lexer, limiter);
+
+  if (peek_token(lexer).token_type != R_BRACE_TOKEN) return parser_error();
+  next_token(lexer);
+
+  ElseBlockDefinition *else_block_definition = malloc(sizeof(ElseBlockDefinition));
+
+  else_block_definition->block_definition = (BlockDefinition) {.block_definition_type = BlockDefinitionTypeElseBlock};
+  else_block_definition->block = block;
+
+  return (BlockDefinition *) else_block_definition;
+}
+
+
+BlockDefinition *parse_class_block_definition(Lexer *lexer, ParserLimiter limiter) {
+  next_token(lexer);
+
+  Expression *identifier_expression = parse_expression(lexer, 0, CLASS_BLOCK_EXPRESSION_PARSER_LIMITER);
+
+  if (peek_token(lexer).token_type != L_BRACE_TOKEN) return parser_error();
+  next_token(lexer);
+
+  Block *block = parse_block(lexer, limiter);
+
+  if (peek_token(lexer).token_type != R_BRACE_TOKEN) return parser_error();
+  next_token(lexer);
+
+  ClassBlockDefinition *class_block_definition = malloc(sizeof(ClassBlockDefinition));
+
+  class_block_definition->block_definition = (BlockDefinition) {.block_definition_type = BlockDefinitionTypeClassBlock};
+  class_block_definition->identifier_expression = identifier_expression;
+  class_block_definition->block = block;
+
+  return (BlockDefinition *) class_block_definition;
 }
 
 
@@ -1241,8 +1300,15 @@ BlockDefinition *parse_block_definition(Lexer *lexer, ParserLimiter limiter) {
 
   if (token.token_type == IF_TOKEN) {
     return parse_if_block_definition(lexer, limiter);
-  } else if (token.token_type == FOR_TOKEN) {
+  }
+  else if (token.token_type == ELSE_TOKEN) {
+    return parse_else_block_definition(lexer, limiter);
+  }
+  else if (token.token_type == FOR_TOKEN) {
     return parse_for_block_definition(lexer, limiter);
+  }
+  else if (token.token_type == CLASS_TOKEN) {
+    return parse_class_block_definition(lexer, limiter);
   }
 
   return NULL;
@@ -1286,7 +1352,7 @@ Statement *parse_expression_statement(Lexer *lexer, ParserLimiter limiter) {
   expression_statement->statement = (Statement){.statement_type = StatementTypeExpressionStatement};
   expression_statement->expression = parse_expression(lexer, 0, limiter);
 
-  next_token(lexer);
+  // next_token(lexer); // todo i removed but idk that what it does
 
   return (Statement *)expression_statement;
 }
@@ -1297,7 +1363,10 @@ Statement *parse_statement(Lexer *lexer) {
 
   Statement *statement;
 
-  if (token.token_type == RETURN_TOKEN) {
+  if (token.token_type == EOF_TOKEN) {
+    return NULL;
+  }
+  else if (token.token_type == RETURN_TOKEN) {
     statement = parse_return_statement(lexer, DEFAULT_EXPRESSION_PARSER_LIMITER);
   }
   else if (token.token_type == IMPORT_TOKEN) {

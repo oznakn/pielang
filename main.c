@@ -4,26 +4,24 @@
 #include "lexer.h"
 #include "ast.h"
 #include "evaluator.h"
+#include "system.h"
+#include "linenoise.h"
 
-#define TEST_MODE true
+#define TEST_MODE false
 
-/* void run_repl() {
-  size_t buffer_size = 500000;
-
-  char *buffer = malloc(buffer_size);
+void run_repl() {
+  char *s;
 
   FILE *file;
 
   Lexer *lexer = NULL;
+  Scope *scope = new_scope(NULL, NULL, false);
 
-  Scope *scope = new_scope(NULL, NULL);
+  build_main_scope(scope);
 
-  while (true) {
-    printf(">> ");
+  while ((s = linenoise(">> ")) != NULL) {
+    file = fmemopen(s, strlen(s), "r");
 
-    getline(&buffer, &buffer_size, stdin);
-
-    file = fmemopen(buffer, strlen(buffer), "r");
     if (lexer == NULL) {
       lexer = new_lexer(file);
     }
@@ -33,11 +31,17 @@
 
     Statement *statement = parse_statement(lexer);
 
-    evaluate_statement(scope, statement);
+    if (statement != NULL) {
+      linenoiseHistoryAdd(s);
 
-    free_statement(statement);
+      evaluate_statement(scope, statement, true);
+
+      free_statement(statement);
+    }
+
+    free(s);
   }
-} */
+}
 
 /*
 char *read_file(const char *filename) {
@@ -74,8 +78,9 @@ void run(FILE *file) {
   AST *ast = parse_ast(lexer);
 
 #if TEST_MODE
+
   // printf_ast(ast);
-  // printf("\n");
+
 #endif
 
   evaluate_ast(ast);
@@ -101,10 +106,7 @@ int main(int argc, char **argv) {
     }
   }
   else {
-    FILE *file = fopen("./main.pie", "r");
-    if (file) {
-      run(file);
-    }
+    run_repl();
   }
 #endif
 

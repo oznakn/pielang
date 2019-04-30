@@ -33,7 +33,7 @@ void free_scope(Scope *scope);
 struct Variable *scope_get_variable(Scope *scope, char *name);
 
 
-struct Variable *scope_set_variable(Scope *scope, char *name, struct Value *value, int override, bool create_new_in_scope) ;
+struct Variable *scope_set_variable(Scope *scope, char *name, struct Value *value, int create_new, bool create_new_in_scope) ;
 
 
 #endif //PIELANG_SCOPE_H

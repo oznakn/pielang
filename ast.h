@@ -75,7 +75,10 @@ typedef enum {
 
 typedef enum {
   BlockDefinitionTypeIfBlock = 1,
+  BlockDefinitionTypeElseIfBlock,
+  BlockDefinitionTypeElseBlock,
   BlockDefinitionTypeForBlock,
+  BlockDefinitionTypeClassBlock,
 } BlockDefinitionType;
 
 typedef enum {
@@ -159,7 +162,12 @@ typedef struct {
   Block *block;
   Expression *pre_expression;
   Expression *condition;
-} IfBlockDefinition;
+} IfBlockDefinition, ElseIfBlockDefinition;
+
+typedef struct {
+  BlockDefinition block_definition;
+  Block *block;
+} ElseBlockDefinition;
 
 typedef struct {
   BlockDefinition block_definition;
@@ -168,6 +176,12 @@ typedef struct {
   Expression *condition;
   Expression *post_expression;
 } ForBlockDefinition;
+
+typedef struct {
+  BlockDefinition block_definition;
+  Expression *identifier_expression;
+  Block *block;
+} ClassBlockDefinition;
 
 typedef struct {
   Expression expression;
@@ -193,6 +207,7 @@ typedef enum {
   INDEX_EXPRESSION_PARSER_LIMITER,
   IF_BLOCK_EXPRESSION_PARSER_LIMITER,
   FOR_BLOCK_EXPRESSION_PARSER_LIMITER,
+  CLASS_BLOCK_EXPRESSION_PARSER_LIMITER,
 } ParserLimiter;
 
 
@@ -289,7 +304,13 @@ Block *parse_block(Lexer *lexer, ParserLimiter limiter);
 BlockDefinition *parse_if_block_definition(Lexer *lexer, ParserLimiter limiter);
 
 
+BlockDefinition *parse_else_block_definition(Lexer *lexer, ParserLimiter limiter);
+
+
 BlockDefinition *parse_for_block_definition(Lexer *lexer, ParserLimiter limiter);
+
+
+BlockDefinition *parse_class_block_definition(Lexer *lexer, ParserLimiter limiter);
 
 
 BlockDefinition *parse_block_definition(Lexer *lexer, ParserLimiter limiter);

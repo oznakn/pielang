@@ -15,11 +15,11 @@ Value *system_function_print(TupleValue *parameter_values) {
     if (i != parameter_values->length - 1) {
       printf(" ");
     }
+
+    free_value((Value *) string_value);
   }
 
   printf("\n");
-
-  free_value((Value *) parameter_values);
 
   return new_null_value();
 }
@@ -31,7 +31,7 @@ void _build_system_function(Scope *scope, char *s, Value *value) {
 
   strcpy(name, s);
 
-  Variable *variable = scope_set_variable(scope, name, value, -1, true);
+  Variable *variable = scope_set_variable(scope, name, value, 1, true);
   variable->is_readonly = true;
 }
 

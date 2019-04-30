@@ -149,7 +149,7 @@ Value *apply_addition_operation(Value *left_value, Value *right_value) {
       return new_integer_value(((IntegerValue *) left_value)->integer_value + ((IntegerValue *) right_value)->integer_value);
     }
     else {
-      double left_float, right_float;
+      long double left_float, right_float;
 
       if (left_value->value_type == ValueTypeFloatValue) left_float = ((FloatValue *) left_value)->float_value;
       else left_float = ((IntegerValue *) left_value)->integer_value;
@@ -230,7 +230,7 @@ Value *apply_multiplication_operation(Value *left_value, Value *right_value) {
       return new_integer_value(((IntegerValue *) left_value)->integer_value * ((IntegerValue *) right_value)->integer_value);
     }
     else {
-      double left_float, right_float;
+      long double left_float, right_float;
 
       if (left_value->value_type == ValueTypeFloatValue) left_float = ((FloatValue *) left_value)->float_value;
       else left_float = ((IntegerValue *) left_value)->integer_value;
@@ -248,7 +248,7 @@ Value *apply_multiplication_operation(Value *left_value, Value *right_value) {
 
 Value *apply_division_operation(Value *left_value, Value *right_value, bool is_integer_division) {
   if ((left_value->value_type == ValueTypeIntegerValue || left_value->value_type == ValueTypeFloatValue) && (right_value->value_type == ValueTypeIntegerValue || right_value->value_type == ValueTypeFloatValue)) {
-    double left_float, right_float, result;
+    long double left_float, right_float, result;
 
     if (left_value->value_type == ValueTypeFloatValue) left_float = ((FloatValue *) left_value)->float_value;
     else left_float = ((IntegerValue *) left_value)->integer_value;
@@ -259,7 +259,7 @@ Value *apply_division_operation(Value *left_value, Value *right_value, bool is_i
     result = left_float / right_float;
 
     if (is_integer_division || ceil(result) == floor(result)) {
-      return new_integer_value((int) result);
+      return new_integer_value((long long int) result);
     }
     else {
       return new_float_value(result);
@@ -272,7 +272,7 @@ Value *apply_division_operation(Value *left_value, Value *right_value, bool is_i
 
 Value *apply_exponent_operation(Value *left_value, Value *right_value) {
   if ((left_value->value_type == ValueTypeIntegerValue || left_value->value_type == ValueTypeFloatValue) && (right_value->value_type == ValueTypeIntegerValue || right_value->value_type == ValueTypeFloatValue)) {
-    double left_float, right_float, result;
+    long double left_float, right_float, result;
 
     if (left_value->value_type == ValueTypeFloatValue) left_float = ((FloatValue *) left_value)->float_value;
     else left_float = ((IntegerValue *) left_value)->integer_value;
@@ -283,7 +283,7 @@ Value *apply_exponent_operation(Value *left_value, Value *right_value) {
     result = pow(left_float, right_float);
 
     if (ceil(result) == floor(result)) {
-      return new_integer_value((int) result);
+      return new_integer_value((long long int) result);
     }
     else {
       return new_float_value(result);
@@ -362,16 +362,21 @@ Value *evaluate_call_expression(Scope *scope, CallExpression *call_expression) {
   Value *identifier_value = evaluate_expression(scope, call_expression->identifier_expression);
   Value *parameter_values = evaluate_expression(scope, call_expression->tuple_expression);
 
+  Value *result_value = new_null_value();
+
   if (parameter_values->value_type == ValueTypeTupleValue) {
     if (identifier_value->value_type == ValueTypeFunctionValue) {
-      return call_function(scope, (FunctionValue *) identifier_value, (TupleValue *) parameter_values);
+      result_value = call_function(scope, (FunctionValue *) identifier_value, (TupleValue *) parameter_values);
     }
     if (identifier_value->value_type == ValueTypeSystemFunctionValue) {
-      return call_system_function((SystemFunctionValue *) identifier_value, (TupleValue *) parameter_values);
+      result_value = call_system_function((SystemFunctionValue *) identifier_value, (TupleValue *) parameter_values);
     }
   }
 
-  return new_null_value();
+  free_value(identifier_value);
+  free_value(parameter_values);
+
+  return result_value;
 }
 
 
@@ -395,13 +400,16 @@ Value *evaluate_infix_expression(Scope *scope, InfixExpression *infix_expression
       if (infix_expression->left_expression->expression_type == ExpressionTypePrefixExpression && ((PrefixExpression *) infix_expression->left_expression)->operator == LET_OP) {
         PrefixExpression *let_expression = (PrefixExpression *) infix_expression->left_expression;
 
-        if ( let_expression->right_expression->literal != NULL && let_expression->right_expression->literal->literal_type == LiteralTypeStringLiteral) {
+        if (let_expression->right_expression->literal != NULL && let_expression->right_expression->literal->literal_type == LiteralTypeStringLiteral) {
           char *identifier = ((StringLiteral *) let_expression->right_expression->literal)->string_literal;
 
           right_value = evaluate_expression(scope, infix_expression->right_expression);
           result_value = apply_assign_operation(NULL, right_value, infix_expression->operator);
 
-          scope_set_variable(scope, identifier, result_value, -1, true);
+          char *variable_name = calloc(strlen(identifier) + 1, sizeof(char));
+          strcpy(variable_name, identifier);
+
+          scope_set_variable(scope, variable_name, result_value, 1, true);
 
           free_value(right_value);
         }
@@ -410,6 +418,7 @@ Value *evaluate_infix_expression(Scope *scope, InfixExpression *infix_expression
       }
       else if (infix_expression->left_expression->expression_type == ExpressionTypeIdentifierExpression) {
         char *identifier = ((StringLiteral *) infix_expression->left_expression->literal)->string_literal;
+
         Variable *variable = scope_get_variable(scope, identifier);
 
         if (variable != NULL) {
@@ -418,7 +427,10 @@ Value *evaluate_infix_expression(Scope *scope, InfixExpression *infix_expression
           right_value = evaluate_expression(scope, infix_expression->right_expression);
           result_value = apply_assign_operation(left_value, right_value, infix_expression->operator);
 
-          scope_set_variable(scope, identifier, result_value, 1, false);
+          char *variable_name = calloc(strlen(identifier) + 1, sizeof(char));
+          strcpy(variable_name, identifier);
+
+          scope_set_variable(scope, variable_name, result_value, -1, false);
 
           free_value(left_value);
           free_value(right_value);
@@ -638,16 +650,45 @@ Value *evaluate_expression(Scope *scope, Expression *expression) {
     case ExpressionTypeCallExpression: {
       return evaluate_call_expression(scope, (CallExpression *) expression);
     }
+
+    case ExpressionTypeMemberExpression: {
+      MemberExpression *member_expression = (MemberExpression *) expression;
+
+      Scope *current_scope = scope;
+      Value *value = NULL;
+
+      for (size_t i = 0; i < member_expression->expression_count; i++) {
+        value = evaluate_expression(current_scope, member_expression->expressions[i]);
+
+        if (value->value_type == ValueTypeObjectValue) {
+          current_scope = ((ObjectValue *) value)->scope;
+        }
+        else {
+          // TODO give error
+          break;
+        }
+      }
+
+      return value;
+    }
   }
 
   return new_null_value();
 }
 
 
-bool evaluate_statement(Scope *scope, Statement *statement) {
+bool evaluate_statement(Scope *scope, Statement *statement, bool print_if_not_null) {
   switch (statement->statement_type) {
     case StatementTypeExpressionStatement: {
-      free_value(evaluate_expression(scope, ((ExpressionStatement *) statement)->expression));
+      Value *value = evaluate_expression(scope, ((ExpressionStatement *) statement)->expression);
+
+      if (print_if_not_null && value->value_type != ValueTypeNullValue) {
+        StringValue *string_value = (StringValue *) convert_to_string_value(value);
+        printf("%s\n", string_value->string_value);
+        free_value((Value *) string_value);
+      }
+
+      free_value(value);
 
       return true;
     }
@@ -665,7 +706,8 @@ bool evaluate_statement(Scope *scope, Statement *statement) {
 
     case StatementTypeBlockDefinitionStatement: {
       BlockDefinitionStatement *block_definition_statement = (BlockDefinitionStatement *) statement;
-      break;
+
+      return false; /* TODO add here */
     }
 
     default: {
@@ -679,7 +721,7 @@ bool evaluate_statement(Scope *scope, Statement *statement) {
 
 Value *evaluate_scope(Scope *scope) {
   for (size_t i = 0; i < scope->block->statement_count; i++) {
-    if (!evaluate_statement(scope, scope->block->statements[i])) break;
+    if (!evaluate_statement(scope, scope->block->statements[i], false)) break;
   }
 
   return scope->return_value;

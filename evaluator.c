@@ -762,7 +762,6 @@ Value *evaluate_expression(Scope *scope, Expression *expression) {
           current_scope = ((ObjectValue *) value)->scope;
         }
         else {
-          // TODO give error
           break;
         }
       }
@@ -881,6 +880,7 @@ bool evaluate_block_definition(Scope *scope, BlockDefinition *block_definition) 
 
 
 bool evaluate_statement(Scope *scope, Statement *statement, bool print_if_not_null) {
+
   switch (statement->statement_type) {
     case StatementTypeExpressionStatement: {
       Value *value = evaluate_expression(scope, ((ExpressionStatement *) statement)->expression);

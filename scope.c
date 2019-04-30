@@ -23,7 +23,6 @@ Scope *new_scope(Scope *inherited_scope, Block *block, ScopeType scope_type) {
 
 void free_scope(Scope *scope) {
   free_hash_table(scope->variable_map);
-  if (scope->block != NULL) free_block(scope->block);
   free(scope);
 }
 

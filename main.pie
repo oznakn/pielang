@@ -20,4 +20,4 @@ if s = true; s { print ('yass') }
 
 print(mult(3, 3.5))
 
-print (max(3, 4))
+print (mult(3, 4), mult(3, 5))

@@ -422,6 +422,7 @@ void free_expression(Expression *expression) {
       free(function_expression->arguments);
 
       if (function_expression->identifier) free_expression(function_expression->identifier);
+      free_block(function_expression->block);
       free(function_expression);
 
       break;
@@ -476,6 +477,7 @@ void free_block_definition(BlockDefinition *block_definition) {
 
       free_expression(if_block_definition->condition);
       if (if_block_definition->pre_expression != NULL) free_expression(if_block_definition->pre_expression);
+      free_block(if_block_definition->block);
       free(block_definition);
 
       break;
@@ -491,6 +493,7 @@ void free_block_definition(BlockDefinition *block_definition) {
       free_expression(for_block_definition->condition);
       if (for_block_definition->pre_expression != NULL) free_expression(for_block_definition->pre_expression);
       if (for_block_definition->post_expression != NULL) free_expression(for_block_definition->post_expression);
+      free_block(for_block_definition->block);
       free(block_definition);
 
       break;
@@ -543,6 +546,7 @@ void free_statement(Statement *statement) {
 
 void free_ast(AST *ast) {
   // no need to free block, because scope automatically frees it, TODO move maybe again here
+  free_block(ast->block);
   free(ast);
 }
 

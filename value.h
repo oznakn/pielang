@@ -24,7 +24,7 @@ typedef enum {
 struct Value {
   ValueType value_type;
   size_t linked_variable_count;
-} ;
+};
 
 struct BoolValue {
   struct Value value;

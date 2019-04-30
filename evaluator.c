@@ -1,11 +1,14 @@
 #include "evaluator.h"
 
 #include <string.h>
+#include <stdlib.h>
 #include <math.h>
+
 #include "bool.h"
 #include "ast.h"
 #include "scope.h"
 #include "value.h"
+#include "system.h"
 
 Value *_evaluate_or_apply_index_operation(Scope *scope, IndexExpression *index_expression, Value *assign_value) {
   Value **items;
@@ -29,17 +32,24 @@ Value *_evaluate_or_apply_index_operation(Scope *scope, IndexExpression *index_e
     items_length = ((TupleValue *) index_expression_left_value)->length;
   }
 
-  if (index_expression_right_integer_value->integer_value < 0 || index_expression_right_integer_value->integer_value >= items_length) return new_null_value();
+  size_t index_of_item = index_expression_right_integer_value->integer_value;
+
+  if (index_of_item >= items_length) {
+    index_of_item = index_of_item % items_length;
+  }
+  else if (index_of_item < 0) {
+    index_of_item = items_length + (index_of_item % items_length);
+  }
 
   if (assign_value == NULL) {
     free_value(index_expression_left_value);
     free_value(index_expression_right_value);
 
-    return items[index_expression_right_integer_value->integer_value];
+    return items[index_of_item];
   }
 
-  Value *old_value = items[index_expression_right_integer_value->integer_value];
-  items[index_expression_right_integer_value->integer_value] = assign_value;
+  Value *old_value = items[index_of_item];
+  items[index_of_item] = assign_value;
 
   old_value->linked_variable_count--;
   assign_value->linked_variable_count++;
@@ -49,6 +59,33 @@ Value *_evaluate_or_apply_index_operation(Scope *scope, IndexExpression *index_e
   free_value(index_expression_right_value);
 
   return new_null_value();
+}
+
+
+Value *call_system_function(SystemFunctionValue *system_function_value, TupleValue *parameter_values) {
+  return system_function_value->callback(parameter_values);
+}
+
+
+Value *call_function(Scope *scope, FunctionValue *function_value, TupleValue *parameter_values) {
+  Scope *function_scope = new_scope(scope, function_value->block, true);
+
+  if (parameter_values->length > function_value->argument_count) return new_null_value();
+
+  Value *variable_value;
+
+  for (size_t i = 0; i < function_value->argument_count; i++) {
+    if (parameter_values->length >= i) {
+      variable_value = new_null_value();
+    }
+    else {
+      variable_value = parameter_values->items[i];
+    }
+
+    scope_set_variable(function_scope, function_value->arguments[i], variable_value, 1, true);
+  }
+
+  return evaluate_scope(function_scope);
 }
 
 
@@ -321,6 +358,23 @@ Value *apply_assign_operation(Value *left_value, Value *right_value, Operator op
 }
 
 
+Value *evaluate_call_expression(Scope *scope, CallExpression *call_expression) {
+  Value *identifier_value = evaluate_expression(scope, call_expression->identifier_expression);
+  Value *parameter_values = evaluate_expression(scope, call_expression->tuple_expression);
+
+  if (parameter_values->value_type == ValueTypeTupleValue) {
+    if (identifier_value->value_type == ValueTypeFunctionValue) {
+      return call_function(scope, (FunctionValue *) identifier_value, (TupleValue *) parameter_values);
+    }
+    if (identifier_value->value_type == ValueTypeSystemFunctionValue) {
+      return call_system_function((SystemFunctionValue *) identifier_value, (TupleValue *) parameter_values);
+    }
+  }
+
+  return new_null_value();
+}
+
+
 Value *evaluate_index_expression(Scope *scope, IndexExpression *index_expression) {
  return _evaluate_or_apply_index_operation(scope, index_expression, NULL);
 }
@@ -338,21 +392,37 @@ Value *evaluate_infix_expression(Scope *scope, InfixExpression *infix_expression
     case ASSIGN_INTEGER_DIVISION_OP:
     case ASSIGN_EXPONENT_OP:
     case ASSIGN_MOD_OP: {
-      if (infix_expression->left_expression->expression_type == ExpressionTypeIdentifierExpression) {
-        char *identifier = ((StringLiteral *) infix_expression->left_expression->literal)->string_literal;
+      if (infix_expression->left_expression->expression_type == ExpressionTypePrefixExpression && ((PrefixExpression *) infix_expression->left_expression)->operator == LET_OP) {
+        PrefixExpression *let_expression = (PrefixExpression *) infix_expression->left_expression;
 
-        if (infix_expression->operator != ASSIGN_OP) {
-          Variable *variable = get_variable(scope, identifier);
-          left_value = variable != NULL ? variable->value : NULL;
+        if ( let_expression->right_expression->literal != NULL && let_expression->right_expression->literal->literal_type == LiteralTypeStringLiteral) {
+          char *identifier = ((StringLiteral *) let_expression->right_expression->literal)->string_literal;
+
+          right_value = evaluate_expression(scope, infix_expression->right_expression);
+          result_value = apply_assign_operation(NULL, right_value, infix_expression->operator);
+
+          scope_set_variable(scope, identifier, result_value, -1, true);
+
+          free_value(right_value);
         }
 
-        right_value = evaluate_expression(scope, infix_expression->right_expression);
-        result_value = apply_assign_operation(left_value, right_value, infix_expression->operator);
+        return new_null_value();
+      }
+      else if (infix_expression->left_expression->expression_type == ExpressionTypeIdentifierExpression) {
+        char *identifier = ((StringLiteral *) infix_expression->left_expression->literal)->string_literal;
+        Variable *variable = scope_get_variable(scope, identifier);
 
-        set_variable(scope, identifier, result_value);
+        if (variable != NULL) {
+          left_value = variable->value;
 
-        if (left_value != NULL) free_value(left_value);
-        free_value(right_value);
+          right_value = evaluate_expression(scope, infix_expression->right_expression);
+          result_value = apply_assign_operation(left_value, right_value, infix_expression->operator);
+
+          scope_set_variable(scope, identifier, result_value, 1, false);
+
+          free_value(left_value);
+          free_value(right_value);
+        }
 
         return new_null_value();
       }
@@ -501,6 +571,10 @@ Value *evaluate_prefix_expression(Scope *scope, PrefixExpression *prefix_express
 
 Value *evaluate_expression(Scope *scope, Expression *expression) {
   switch (expression->expression_type) {
+    case ExpressionTypeNullExpression: {
+      return new_null_value();
+    }
+
     case ExpressionTypeBoolExpression: {
       return new_bool_value(((BoolLiteral *) expression->literal)->bool_literal);
     }
@@ -515,6 +589,20 @@ Value *evaluate_expression(Scope *scope, Expression *expression) {
 
     case ExpressionTypeStringExpression: {
       return new_string_value_from_literal((StringLiteral *) expression->literal);
+    }
+
+    case ExpressionTypeInfixExpression: {
+      return evaluate_infix_expression(scope, (InfixExpression *) expression);
+    }
+
+    case ExpressionTypePrefixExpression: {
+      return evaluate_prefix_expression(scope, (PrefixExpression *) expression);
+    }
+
+    case ExpressionTypeIndexExpression: {
+      IndexExpression *index_expression = (IndexExpression *) expression;
+
+      return evaluate_index_expression(scope, index_expression);
     }
 
     case ExpressionTypeArrayExpression: {
@@ -538,7 +626,7 @@ Value *evaluate_expression(Scope *scope, Expression *expression) {
     case ExpressionTypeIdentifierExpression: {
       StringLiteral *string_literal = (StringLiteral *) expression->literal;
 
-      Variable *variable = get_variable(scope, string_literal->string_literal);
+      Variable *variable = scope_get_variable(scope, string_literal->string_literal);
 
       if (variable == NULL) {
         return new_null_value();
@@ -547,18 +635,8 @@ Value *evaluate_expression(Scope *scope, Expression *expression) {
       return variable->value;
     }
 
-    case ExpressionTypeInfixExpression: {
-      return evaluate_infix_expression(scope, (InfixExpression *) expression);
-    }
-
-    case ExpressionTypePrefixExpression: {
-      return evaluate_prefix_expression(scope, (PrefixExpression *) expression);
-    }
-
-    case ExpressionTypeIndexExpression: {
-      IndexExpression *index_expression = (IndexExpression *) expression;
-
-      return evaluate_index_expression(scope, index_expression);
+    case ExpressionTypeCallExpression: {
+      return evaluate_call_expression(scope, (CallExpression *) expression);
     }
   }
 
@@ -566,60 +644,18 @@ Value *evaluate_expression(Scope *scope, Expression *expression) {
 }
 
 
-bool evaluate_print_statement(Scope *scope, PrintStatement *print_statement) {
-  Value *value = evaluate_expression(scope, print_statement->right_expression);
-
-  if (value->value_type == ValueTypeTupleValue) {
-    TupleValue *tuple_value = (TupleValue *) value;
-
-    if (!tuple_value->has_finished) {
-      for (size_t i = 0; i < tuple_value->length; i++) {
-        StringValue *string_value = (StringValue *) convert_to_string_value(tuple_value->items[i]);
-
-        printf("%s", string_value->string_value);
-
-        free_value((Value *) string_value);
-
-        if (i != tuple_value->length - 1) {
-          printf(" ");
-        }
-      }
-
-      free_value(value);
-      return true;
-    }
-  }
-
-  StringValue *string_value = (StringValue *) convert_to_string_value(value);
-
-  printf("%s\n", string_value->string_value);
-
-  free_value((Value *) string_value);
-  free_value(value);
-
-  return true;
-}
-
-
 bool evaluate_statement(Scope *scope, Statement *statement) {
   switch (statement->statement_type) {
-    case StatementTypePrintStatement: {
-      PrintStatement *print_statement = (PrintStatement *) statement;
-
-      return evaluate_print_statement(scope, print_statement);
-    }
-
     case StatementTypeExpressionStatement: {
-      ExpressionStatement *expression_statement = (ExpressionStatement *) statement;
-
-      free_value(evaluate_expression(scope, expression_statement->expression));
+      free_value(evaluate_expression(scope, ((ExpressionStatement *) statement)->expression));
 
       return true;
     }
 
     case StatementTypeReturnStatement: {
-      ReturnStatement *return_statement = (ReturnStatement *) statement;
-      break;
+      scope->return_value = evaluate_expression(scope, ((ReturnStatement *) statement)->right_expression);
+
+      return false;
     }
 
     case StatementTypeImportStatement: {
@@ -641,17 +677,21 @@ bool evaluate_statement(Scope *scope, Statement *statement) {
 }
 
 
-void evaluate_scope(Scope *scope) {
+Value *evaluate_scope(Scope *scope) {
   for (size_t i = 0; i < scope->block->statement_count; i++) {
     if (!evaluate_statement(scope, scope->block->statements[i])) break;
   }
+
+  return scope->return_value;
 }
 
 
 void evaluate_ast(AST *ast) {
-  Scope *main_scope = new_scope(NULL, ast->block);
+  Scope *main_scope = new_scope(NULL, ast->block, false);
 
-  evaluate_scope(main_scope);
+  build_main_scope(main_scope);
+
+  free_value(evaluate_scope(main_scope));
 
   free_scope(main_scope);
 }

@@ -5,7 +5,7 @@
 
 #define ASSIGN_PRECEDENCE 1
 #define COMMA_PRECEDENCE 2
-#define ASYNC_AWAIT_PRECEDENCE 3
+#define LET_ASYNC_AWAIT_PRECEDENCE 3
 #define IN_OP_PRECEDENCE 4
 #define CONDITIONAL_PRECEDENCE 5
 #define ADDITION_SUBTRACTION_PRECEDENCE 6
@@ -44,6 +44,7 @@ typedef enum {
   CHECK_SMALLER_OP,
   CHECK_SMALLER_EQUAL_OP,
   IN_OP,
+  LET_OP,
   COMMA_OP,
   ASYNC_OP,
   AWAIT_OP,
@@ -52,7 +53,6 @@ typedef enum {
 typedef enum {
   StatementTypeExpressionStatement = 1,
   StatementTypeBlockDefinitionStatement,
-  StatementTypePrintStatement,
   StatementTypeReturnStatement,
   StatementTypeImportStatement,
 } StatementType;
@@ -143,7 +143,7 @@ typedef struct {
 typedef struct {
   Statement statement;
   Expression *right_expression;
-} PrintStatement, ReturnStatement, ImportStatement;
+} ReturnStatement, ImportStatement;
 
 typedef struct {
   Statement **statements;
@@ -296,9 +296,6 @@ BlockDefinition *parse_block_definition(Lexer *lexer, ParserLimiter limiter);
 
 
 Statement *parse_block_definition_statement(Lexer *lexer, ParserLimiter limiter);
-
-
-Statement *parse_print_statement(Lexer *lexer, ParserLimiter limiter);
 
 
 Statement *parse_return_statement(Lexer *lexer, ParserLimiter limiter);

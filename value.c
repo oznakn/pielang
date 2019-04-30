@@ -11,10 +11,14 @@
 
 
 Value *new_null_value() {
-  Value *value = malloc(sizeof(Value));
+  static Value *value;
 
-  value->value_type = ValueTypeNullValue;
-  value->linked_variable_count = 0; // no need for others since they are not taken with malloc, the default value for an int in a struct is 0
+  if (value == NULL) {
+    value = malloc(sizeof(Value));
+
+    value->value_type = ValueTypeNullValue;
+    value->linked_variable_count = 0; // no need for others since they are not taken with malloc, the default value for an int in a struct is 0
+  }
 
   return value;
 }
@@ -209,16 +213,25 @@ Value *convert_to_string_value(Value *value) {
 }
 
 
-Value *new_function_value(Block *block, char *function_name, char **arguments, size_t argument_count) {
+Value *new_function_value(Block *block, char **arguments, size_t argument_count) {
   FunctionValue *function_value = malloc(sizeof(FunctionValue));
 
   function_value->value = (Value){.value_type = ValueTypeFunctionValue};
   function_value->block = block;
-  function_value->function_name = function_name;
   function_value->arguments = arguments;
   function_value->argument_count = argument_count;
 
   return (Value *)function_value;
+}
+
+
+Value *new_system_function_value(SystemFunctionCallback *callback) {
+  SystemFunctionValue *system_function_value = malloc(sizeof(SystemFunctionValue));
+
+  system_function_value->value = (Value) {.value_type = ValueTypeSystemFunctionValue};
+  system_function_value->callback = callback;
+
+  return (Value *) system_function_value;
 }
 
 
@@ -243,6 +256,27 @@ Value *new_list_value(Value **items, size_t length, bool has_finished) {
   list_value->has_finished = has_finished;
 
   return (Value *)list_value;
+}
+
+
+Class *new_class(char *class_name, Scope *scope) {
+  Class *class = malloc(sizeof(Class));
+
+  class->class_name = class_name;
+  class->scope = new_scope(scope, NULL, false);
+
+  return class;
+}
+
+
+Value *new_object_value(Class *class) {
+  ObjectValue *object_value = malloc(sizeof(ObjectValue));
+
+  object_value->value = (Value) {.value_type = ValueTypeObjectValue};
+  object_value->class = class;
+  object_value->scope = new_scope(class->scope, NULL, false);
+
+  return (Value *) object_value;
 }
 
 
@@ -328,12 +362,22 @@ HashTable *new_variable_map(size_t size) {
 
 
 void variable_map_set(HashTable *variable_map, Variable *variable) {
-  return hash_table_set(variable_map, variable->variable_name, variable);
+  hash_table_set(variable_map, variable->variable_name, variable);
 }
 
 
 Variable *variable_map_get(HashTable *variable_map, char *variable_name) {
   return (Variable *) hash_table_get(variable_map, variable_name);
+}
+
+
+Variable *object_value_set_variable(ObjectValue *object_value, char *name, Value *value) {
+  return scope_set_variable(object_value->scope, name, value, 0, true);
+}
+
+
+Variable *object_value_get_variable(ObjectValue *object_value, char *name) {
+  return scope_get_variable(object_value->scope, name);
 }
 
 
@@ -343,7 +387,7 @@ void free_variable_map(HashTable *variable_map) {
 
 
 void free_value(Value *value) {
-  if (value->linked_variable_count == 0) {
+  if (value->value_type != ValueTypeNullValue && value->linked_variable_count == 0) {
     switch (value->value_type) {
       case ValueTypeBoolValue: {
         BoolValue *bool_value = (BoolValue *)value;
@@ -382,8 +426,15 @@ void free_value(Value *value) {
         break;
       }
 
+      case ValueTypeSystemFunctionValue: {
+        SystemFunctionValue *system_function_value = (SystemFunctionValue *)value;
+
+        free(system_function_value);
+        break;
+      }
+
       case ValueTypeTupleValue: {
-        TupleValue *tuple_value = (TupleValue *)value;
+        TupleValue *tuple_value = (TupleValue *) value;
 
         for (size_t i = 0; i < tuple_value->length; i += 1u) {
           tuple_value->items[i]->linked_variable_count--;
@@ -411,7 +462,7 @@ void free_value(Value *value) {
       case ValueTypeObjectValue: {
         ObjectValue *object_value = (ObjectValue *)value;
 
-        free_hash_table(object_value->variable_map);
+        free_scope(object_value->scope);
         free(object_value);
         break;
       }
@@ -425,7 +476,11 @@ void free_value(Value *value) {
 
 
 void free_variable(Variable *variable) {
-  free_value(variable->value);
+  if (variable->value != NULL) {
+    variable->value->linked_variable_count--;
+
+    free_value(variable->value);
+  }
   free(variable->variable_name);
   free(variable);
 }

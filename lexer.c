@@ -447,12 +447,6 @@ Token _next_token(Lexer *lexer) {
         return (Token) {.token_type = NULL_TOKEN};
       }
 
-      if (strcmp(s, "print") == 0) {
-        free(s);
-
-        return (Token) {.token_type = PRINT_TOKEN};
-      }
-
       if (strcmp(s, "return") == 0) {
         free(s);
 
@@ -463,6 +457,12 @@ Token _next_token(Lexer *lexer) {
         free(s);
 
         return (Token) {.token_type = IMPORT_TOKEN};
+      }
+
+      if (strcmp(s, "let") == 0) {
+        free(s);
+
+        return (Token) {.token_type = LET_TOKEN};
       }
 
       if (strcmp(s, "fun") == 0) {

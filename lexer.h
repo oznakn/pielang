@@ -81,9 +81,9 @@ typedef enum {
   BIGGER_EQUAL_TOKEN,
   SMALLER_TOKEN,
   SMALLER_EQUAL_TOKEN,
+  LET_TOKEN,
   ASYNC_TOKEN,
   AWAIT_TOKEN,
-  PRINT_TOKEN,
   RETURN_TOKEN,
   IMPORT_TOKEN,
   IF_TOKEN,
@@ -114,9 +114,6 @@ void update_lexer(Lexer *lexer, FILE *file);
 
 
 void free_lexer(Lexer *lexer);
-
-
-Token parse_string_literal_token(Lexer *lexer, char c);
 
 
 Token _next_token(Lexer *lexer);

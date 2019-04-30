@@ -5,14 +5,7 @@
 #include "lexer.h"
 #include "ast.h"
 #include "hashtable.h"
-
-struct Variable;
-
-typedef struct {
-  char *class_name;
-  HashTable *variable_map;
-} Class;
-
+#include "scope.h"
 
 typedef enum {
   ValueTypeNullValue = 0,
@@ -21,71 +14,99 @@ typedef enum {
   ValueTypeFloatValue,
   ValueTypeStringValue,
   ValueTypeFunctionValue,
+  ValueTypeSystemFunctionValue,
   ValueTypeObjectValue,
   ValueTypeTupleValue,
   ValueTypeListValue,
 } ValueType;
 
 
-typedef struct {
+struct Value {
   ValueType value_type;
   size_t linked_variable_count;
-} Value;
+} ;
 
-
-typedef struct {
-  Value value;
+struct BoolValue {
+  struct Value value;
   bool bool_value;
-} BoolValue;
+};
 
-
-typedef struct {
-  Value value;
+struct IntegerValue {
+  struct Value value;
   long int integer_value;
-} IntegerValue;
+};
 
-
-typedef struct {
-  Value value;
+struct FloatValue {
+  struct Value value;
   double float_value;
-} FloatValue;
+};
 
-
-typedef struct {
-  Value value;
+struct StringValue {
+  struct Value value;
   char *string_value;
   size_t length;
-} StringValue;
+};
 
-
-typedef struct {
-  Value value;
-  Block *block;
-  char *function_name;
-  char **arguments;
-  size_t argument_count;
-} FunctionValue;
-
-
-typedef struct {
-  Value value;
-  Value **items;
+struct TupleValue {
+  struct Value value;
+  struct Value **items;
   size_t length;
   bool has_finished;
-} TupleValue, ListValue;
+};
 
+struct ListValue {
+  struct Value value;
+  struct Value **items;
+  size_t length;
+  bool has_finished;
+};
 
-typedef struct {
-  Value value;
-  Class *class;
-  HashTable *variable_map;
-} ObjectValue;
+struct FunctionValue {
+  struct Value value;
+  Block *block;
+  char **arguments;
+  size_t argument_count;
+};
+
+typedef struct Value *(SystemFunctionCallback)(struct TupleValue *);
+
+struct SystemFunctionValue {
+  struct Value value;
+  SystemFunctionCallback *callback;
+};
+
+struct Class;
+
+struct ObjectValue {
+  struct Value value;
+  struct Class *class;
+  struct Scope *scope;
+};
+
+typedef struct Value *(SystemClassFunction)(struct ObjectValue *);
+
+struct Class {
+  char *class_name;
+  struct Scope *scope;
+};
 
 struct Variable {
   char *variable_name;
-  Value *value;
+  struct Value *value;
   bool is_readonly;
 };
+
+typedef struct Value Value;
+typedef struct BoolValue BoolValue;
+typedef struct IntegerValue IntegerValue;
+typedef struct FloatValue FloatValue;
+typedef struct StringValue StringValue;
+typedef struct TupleValue TupleValue;
+typedef struct ListValue ListValue;
+typedef struct FunctionValue FunctionValue;
+typedef struct SystemFunctionValue SystemFunctionValue;
+typedef struct Class Class;
+typedef struct ObjectValue ObjectValue;
 typedef struct Variable Variable;
 
 
@@ -119,16 +140,30 @@ Value *new_string_value_from_literal(StringLiteral *literal);
 Value *convert_to_string_value(Value *value);
 
 
-Value *new_function_value(Block *block, char *function_name, char **arguments, size_t argument_count);
+Value *new_function_value(Block *block, char **arguments, size_t argument_count);
 
 
-Value *new_object_value();
+Value *new_system_function_value(SystemFunctionCallback *callback);
+
 
 
 Value *new_tuple_value(Value **items, size_t length, bool has_finished);
 
 
+
 Value *new_list_value(Value **items, size_t length, bool has_finished);
+
+
+Class *new_class(char *class_name, Scope *scope);
+
+
+Variable *object_value_set_variable(ObjectValue *object_value, char *name, Value *value);
+
+
+Variable *object_value_get_variable(ObjectValue *object_value, char *name);
+
+
+Value *new_object_value(Class *class);
 
 
 Value *copy_value(Value *value);

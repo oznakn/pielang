@@ -250,17 +250,6 @@ void printf_block_definition(BlockDefinition *block_definition, unsigned int ali
 
 void printf_statement(Statement *statement, unsigned int alignment) {
   switch (statement->statement_type) {
-    case StatementTypePrintStatement: {
-      PrintStatement *print_statement = (PrintStatement *)statement;
-
-      printf_alignment(alignment);
-      printf("print ");
-      printf_expression(print_statement->right_expression, alignment);
-      printf("\n");
-
-      break;
-    }
-
     case StatementTypeReturnStatement: {
       ReturnStatement *return_statement = (ReturnStatement *)statement;
 
@@ -317,6 +306,16 @@ void printf_ast(AST *ast) {
 
 void free_expression(Expression *expression) {
   switch (expression->expression_type) {
+    case ExpressionTypeIndexExpression: {
+      IndexExpression *index_expression = (IndexExpression *) expression;
+
+      free_expression(index_expression->left_expression);
+      free_expression(index_expression->right_expression);
+      free(index_expression);
+
+      break;
+    }
+
     case ExpressionTypeInfixExpression: {
       InfixExpression *infix_expression = (InfixExpression *)expression;
 
@@ -466,14 +465,6 @@ void free_statement(Statement *statement) {
       break;
     }
 
-    case StatementTypePrintStatement: {
-      PrintStatement *print_statement = (PrintStatement *)statement;
-
-      free_expression(print_statement->right_expression);
-      free(print_statement);
-      break;
-    }
-
     case StatementTypeImportStatement: {
       ImportStatement *import_statement = (ImportStatement *)statement;
 
@@ -600,6 +591,9 @@ Operator token_to_operator(Token token) {
     case COMMA_TOKEN:
       return COMMA_OP;
 
+    case LET_TOKEN:
+      return LET_OP;
+
     case ASYNC_TOKEN:
       return ASYNC_OP;
 
@@ -692,9 +686,10 @@ unsigned short get_operator_precedence(Operator operator, bool next) {
       break;
     }
 
+    case LET_OP:
     case ASYNC_OP:
     case AWAIT_OP: {
-      result = ASYNC_AWAIT_PRECEDENCE;
+      result = LET_ASYNC_AWAIT_PRECEDENCE;
       break;
     }
 
@@ -1104,6 +1099,7 @@ Expression *parse_expression(Lexer *lexer, unsigned short precedence, ParserLimi
     else if (check_if_token_is_operator(curr_token)) {
       left = parse_infix_expression(lexer, limiter, left);
       curr_token = peek_token(lexer);
+
     }
     else return left;
   }
@@ -1263,17 +1259,6 @@ Statement *parse_block_definition_statement(Lexer *lexer, ParserLimiter limiter)
 }
 
 
-Statement *parse_print_statement(Lexer *lexer, ParserLimiter limiter) {
-  next_token(lexer);
-
-  PrintStatement *print_statement = malloc(sizeof(PrintStatement));
-  print_statement->statement = (Statement){.statement_type = StatementTypePrintStatement};
-  print_statement->right_expression = parse_expression(lexer, 0, limiter);
-
-  return (Statement *)print_statement;
-}
-
-
 Statement *parse_return_statement(Lexer *lexer, ParserLimiter limiter) {
   next_token(lexer);
 
@@ -1312,15 +1297,16 @@ Statement *parse_statement(Lexer *lexer) {
 
   Statement *statement;
 
-  if (token.token_type == PRINT_TOKEN) {
-    statement = parse_print_statement(lexer, DEFAULT_EXPRESSION_PARSER_LIMITER);
-  } else if (token.token_type == RETURN_TOKEN) {
+  if (token.token_type == RETURN_TOKEN) {
     statement = parse_return_statement(lexer, DEFAULT_EXPRESSION_PARSER_LIMITER);
-  } else if (token.token_type == IMPORT_TOKEN) {
+  }
+  else if (token.token_type == IMPORT_TOKEN) {
     statement = parse_import_statement(lexer, DEFAULT_EXPRESSION_PARSER_LIMITER);
-  } else if (token.token_type == IF_TOKEN || token.token_type == FOR_TOKEN) {
+  }
+  else if (token.token_type == IF_TOKEN || token.token_type == FOR_TOKEN) {
     statement = parse_block_definition_statement(lexer, DEFAULT_BLOCK_PARSER_LIMITER);
-  } else {
+  }
+  else {
     statement = parse_expression_statement(lexer, DEFAULT_EXPRESSION_PARSER_LIMITER);
   }
 

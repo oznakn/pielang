@@ -13,6 +13,13 @@ char *copy_string(char *s) {
   return result;
 }
 
+char *create_string_from_char(char c) {
+  char *s = calloc(2, sizeof(char));
+
+  s[0] = c;
+
+  return s;
+}
 
 // usage for buffer with no \0 at end ex.
 char *create_string_from_buffer(char *buffer, size_t buffer_length) {

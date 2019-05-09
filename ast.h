@@ -13,13 +13,11 @@
 #define EXPONENT_PRECEDENCE 8
 #define CALL_PRECEDENCE 9
 #define LIST_PRECEDENCE 10
-#define MEMBER_PRECEDENCE 11
 
 #include "lexer.h"
 
 typedef enum {
   ASSIGN_OP = 1,
-  MEMBER_OP,
   ADDITION_OP,
   ASSIGN_ADDITION_OP,
   SUBTRACTION_OP,
@@ -67,7 +65,6 @@ typedef enum {
   ExpressionTypePrefixExpression,
   ExpressionTypeCallExpression,
   ExpressionTypeArrayExpression,
-  ExpressionTypeMemberExpression,
   ExpressionTypeIndexExpression,
   ExpressionTypeFunctionExpression,
 } ExpressionType;
@@ -77,7 +74,6 @@ typedef enum {
   BlockDefinitionTypeElseBlock,
   BlockDefinitionTypeIfElseGroupBlock,
   BlockDefinitionTypeForBlock,
-  BlockDefinitionTypeClassBlock,
 } BlockDefinitionType;
 
 typedef enum {
@@ -123,12 +119,6 @@ typedef struct {
   ArrayExpressionType array_expression_type;
   bool has_finished;
 } ArrayExpression;
-
-typedef struct {
-  Expression expression;
-  Expression **expressions;
-  size_t expression_count;
-} MemberExpression;
 
 typedef struct {
   Expression expression;
@@ -185,12 +175,6 @@ typedef struct {
 } ForBlockDefinition;
 
 typedef struct {
-  BlockDefinition block_definition;
-  Expression *identifier_expression;
-  Block *block;
-} ClassBlockDefinition;
-
-typedef struct {
   Expression expression;
   Block *block;
   Expression *identifier;
@@ -215,7 +199,6 @@ typedef enum {
   INDEX_EXPRESSION_PARSER_LIMITER,
   IF_BLOCK_EXPRESSION_PARSER_LIMITER,
   FOR_BLOCK_EXPRESSION_PARSER_LIMITER,
-  CLASS_BLOCK_EXPRESSION_PARSER_LIMITER,
 } ParserLimiter;
 
 
@@ -288,9 +271,6 @@ Expression *parse_prefix_expression(Lexer *lexer, ParserLimiter limiter);
 Expression *parse_array_expression(Lexer *lexer, Expression *left);
 
 
-Expression *parse_member_expression(Lexer *lexer, Expression *identifier);
-
-
 Expression *parse_index_expression(Lexer *lexer, Expression *left);
 
 
@@ -313,9 +293,6 @@ BlockDefinition *parse_if_block_definition(Lexer *lexer, ParserLimiter limiter);
 
 
 BlockDefinition *parse_for_block_definition(Lexer *lexer, ParserLimiter limiter);
-
-
-BlockDefinition *parse_class_block_definition(Lexer *lexer, ParserLimiter limiter);
 
 
 BlockDefinition *parse_block_definition(Lexer *lexer, ParserLimiter limiter);

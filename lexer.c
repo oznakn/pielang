@@ -38,9 +38,7 @@ bool is_identifier_char(char c) {
 
 
 char _next_char(Lexer *lexer) {
-  char c = (char) fgetc(lexer->file);
-
-  return c;
+  return lexer->content[lexer->cursor++];
 }
 
 
@@ -57,10 +55,11 @@ char next_char(Lexer *lexer) {
 }
 
 
-Lexer *new_lexer(FILE *file) {
+Lexer *new_lexer(char *content) {
   Lexer *lexer = malloc(sizeof(Lexer));
 
-  lexer->file = file;
+  lexer->content = content;
+  lexer->cursor = 0;
   lexer->next_char = _next_char(lexer);
   lexer->next_token = _next_token(lexer);
 
@@ -68,23 +67,26 @@ Lexer *new_lexer(FILE *file) {
 }
 
 
-void update_lexer(Lexer *lexer, FILE *file) {
-  lexer->file = file;
+void update_lexer(Lexer *lexer, char *content) {
+  lexer->content = content;
+  lexer->cursor = 0;
   lexer->next_char = _next_char(lexer);
   lexer->next_token = _next_token(lexer);
 }
 
 
 void free_lexer(Lexer *lexer) {
-  // free(lexer->file); // todo check later my dear
   free(lexer);
 }
 
 
-void skip_whitespace(Lexer *lexer, bool aggressive) {
+void skip_whitespace(Lexer *lexer) {
+  if (peek_char(lexer) == '#') while(peek_char(lexer) != '\n') next_char(lexer);
+
   while (peek_char(lexer) == ' ' ||
-    peek_char(lexer) == '\r' ||
-      peek_char(lexer) == '\t' || (aggressive || peek_char(lexer) == '\n')) next_char(lexer);
+        peek_char(lexer) == '\r' ||
+        peek_char(lexer) == '\t' ||
+        peek_char(lexer) == '\n') next_char(lexer);
 }
 
 
@@ -194,7 +196,7 @@ Token parse_string_literal_token(Lexer *lexer, char c) {
 
 
 Token _next_token(Lexer *lexer) {
-  skip_whitespace(lexer, false);
+  skip_whitespace(lexer);
 
   switch (peek_char(lexer)) {
     case EOF:
@@ -205,7 +207,7 @@ Token _next_token(Lexer *lexer) {
     case '\n': {
       next_char(lexer);
 
-      skip_whitespace(lexer, false);
+      skip_whitespace(lexer);
 
       return (Token) {.token_type = EOL_TOKEN};
     }
@@ -222,14 +224,10 @@ Token _next_token(Lexer *lexer) {
       return parse_string_literal_token(lexer, '\'');
     }
 
-      /* case '"': { // TODO
-        return parse_string_literal_token(lexer, '"');
-      } */
-
-    case '.': {
+    case '"': {
       next_char(lexer);
 
-      return (Token) {.token_type = MEMBER_TOKEN};
+      return parse_string_literal_token(lexer, '"');
     }
 
     case ',': {
@@ -491,12 +489,6 @@ Token _next_token(Lexer *lexer) {
         free(s);
 
         return (Token) {.token_type = IN_TOKEN};
-      }
-
-      if (strcmp(s, "class") == 0) {
-        free(s);
-
-        return (Token) {.token_type = CLASS_TOKEN};
       }
 
       if (strcmp(s, "async") == 0) {

@@ -15,7 +15,6 @@ typedef enum {
   ValueTypeStringValue,
   ValueTypeFunctionValue,
   ValueTypeSystemFunctionValue,
-  ValueTypeObjectValue,
   ValueTypeTupleValue,
   ValueTypeListValue,
 } ValueType;
@@ -75,21 +74,6 @@ struct SystemFunctionValue {
   SystemFunctionCallback *callback;
 };
 
-struct Class;
-
-struct ObjectValue {
-  struct Value value;
-  struct Class *class;
-  struct Scope *scope;
-};
-
-typedef struct Value *(SystemClassFunction)(struct ObjectValue *);
-
-struct Class {
-  char *class_name;
-  struct Scope *scope;
-};
-
 struct Variable {
   char *variable_name;
   struct Value *value;
@@ -105,8 +89,6 @@ typedef struct TupleValue TupleValue;
 typedef struct ListValue ListValue;
 typedef struct FunctionValue FunctionValue;
 typedef struct SystemFunctionValue SystemFunctionValue;
-typedef struct Class Class;
-typedef struct ObjectValue ObjectValue;
 typedef struct Variable Variable;
 
 
@@ -158,18 +140,6 @@ Value *new_tuple_value(Value **items, size_t length, bool has_finished);
 
 
 Value *new_list_value(Value **items, size_t length, bool has_finished);
-
-
-Class *new_class(char *class_name, Scope *scope);
-
-
-Variable *object_value_set_variable(ObjectValue *object_value, char *name, Value *value);
-
-
-Variable *object_value_get_variable(ObjectValue *object_value, char *name);
-
-
-Value *new_object_value(Class *class);
 
 
 

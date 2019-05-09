@@ -31,7 +31,6 @@ void printf_expression(Expression *expression, unsigned int alignment) {
       else if (infix_expression->operator == MOD_OP) { printf(" %% "); }
       else if (infix_expression->operator == EXPONENT_OP) { printf(" ^ "); }
       else if (infix_expression->operator == ASSIGN_OP) { printf(" = "); }
-      else if (infix_expression->operator == MEMBER_OP) { printf(" . "); }
       else if (infix_expression->operator == CHECK_EQUALITY_OP) { printf(" == "); }
       else if (infix_expression->operator == CHECK_NOT_EQUALITY_OP) { printf(" != "); }
       else if (infix_expression->operator == CHECK_SMALLER_OP) { printf(" < "); }
@@ -64,22 +63,6 @@ void printf_expression(Expression *expression, unsigned int alignment) {
       break;
     }
 
-
-    case ExpressionTypeMemberExpression: {
-      MemberExpression *member_expression = (MemberExpression *)expression;
-
-      printf(" (");
-      for (size_t i = 0; i < member_expression->expression_count; i++) {
-        printf_expression(member_expression->expressions[i], alignment);
-
-        if (i < member_expression->expression_count - 1) {
-          printf(".");
-        }
-      }
-      printf(") ");
-
-      break;
-    }
 
     case ExpressionTypeIndexExpression: {
       IndexExpression *index_expression = (IndexExpression *)expression;
@@ -209,16 +192,6 @@ void printf_block(Block *block, unsigned int alignment) {
 
 void printf_block_definition(BlockDefinition *block_definition, unsigned int alignment) {
   switch (block_definition->block_definition_type) {
-    case BlockDefinitionTypeClassBlock: {
-      ClassBlockDefinition *class_block_definition = (ClassBlockDefinition *)block_definition;
-
-      printf("class ");
-      printf_expression(class_block_definition->identifier_expression, 0);
-      printf_block(class_block_definition->block, alignment);
-
-      break;
-    }
-
     case BlockDefinitionTypeIfElseGroupBlock: {
       IfElseGroupBlockDefinition *if_else_group_block_definition = (IfElseGroupBlockDefinition *)block_definition;
 
@@ -400,19 +373,6 @@ void free_expression(Expression *expression) {
       break;
     }
 
-    case ExpressionTypeMemberExpression: {
-      MemberExpression *member_expression = (MemberExpression *)expression;
-
-      for (size_t i = 0; i < member_expression->expression_count; i++) {
-        free_expression(member_expression->expressions[i]);
-      }
-
-      free(member_expression->expressions);
-      free(member_expression);
-
-      break;
-    }
-
     case ExpressionTypeFunctionExpression: {
       FunctionExpression *function_expression = (FunctionExpression *)expression;
 
@@ -553,9 +513,6 @@ void free_ast(AST *ast) {
 
 Operator token_to_operator(Token token) {
   switch (token.token_type) {
-    case MEMBER_TOKEN:
-      return MEMBER_OP;
-
     case EQUAL_TOKEN:
       return ASSIGN_OP;
 
@@ -717,10 +674,6 @@ unsigned short get_operator_precedence(Operator operator, bool next) {
       break;
     }
 
-    case MEMBER_OP: {
-      result = MEMBER_PRECEDENCE;
-      break;
-    }
 
     case IN_OP: {
       result = IN_OP_PRECEDENCE;
@@ -772,9 +725,6 @@ bool has_finished(Token token, ParserLimiter limiter) {
 
     case INDEX_EXPRESSION_PARSER_LIMITER:
       return token.token_type == R_BRACKET_TOKEN;
-
-    case CLASS_BLOCK_EXPRESSION_PARSER_LIMITER:
-      return token.token_type == L_BRACE_TOKEN;
 
     case IF_BLOCK_EXPRESSION_PARSER_LIMITER:
     case FOR_BLOCK_EXPRESSION_PARSER_LIMITER:
@@ -987,41 +937,6 @@ Expression *parse_array_expression(Lexer *lexer, Expression *left) {
 }
 
 
-Expression *parse_member_expression(Lexer *lexer, Expression *left) {
-  MemberExpression *member_expression = NULL;
-
-  if (left->expression_type != ExpressionTypeMemberExpression) {
-    member_expression = malloc(sizeof(MemberExpression));
-
-    member_expression->expression = (Expression){.expression_type = ExpressionTypeMemberExpression};
-    member_expression->expression_count = 1;
-    member_expression->expressions = malloc(member_expression->expression_count * sizeof(Expression *));
-
-    member_expression->expressions[0] = left;
-  } else {
-    member_expression = (MemberExpression *)left;
-  }
-
-  if (has_finished(peek_token(lexer), DEFAULT_EXPRESSION_PARSER_LIMITER)) return (Expression *)member_expression;
-
-  Expression *right = parse_expression(lexer, MEMBER_PRECEDENCE, DEFAULT_EXPRESSION_PARSER_LIMITER);
-
-  if (right != NULL) {
-    Expression **tmp = realloc(member_expression->expressions, sizeof(Expression *) * (++member_expression->expression_count));
-
-    if (tmp == NULL) {
-      free_expression(left);
-      return NULL;
-    }
-
-    member_expression->expressions = tmp;
-
-    member_expression->expressions[member_expression->expression_count - 1] = right;
-  }
-
-  return (Expression *)member_expression;
-}
-
 
 Expression *parse_index_expression(Lexer *lexer, Expression *identifier) {
   if (peek_token(lexer).token_type != L_BRACKET_TOKEN) return parser_error();
@@ -1067,10 +982,6 @@ Expression *parse_infix_expression(Lexer *lexer, ParserLimiter limiter, Expressi
   }
   else if (curr_token.token_type == L_BRACKET_TOKEN) {
     return parse_index_expression(lexer, left);
-  }
-  else if (curr_token.token_type == MEMBER_TOKEN) {
-    next_token(lexer);
-    return parse_member_expression(lexer, left);
   }
   else if (curr_token.token_type == COMMA_TOKEN) {
     next_token(lexer);
@@ -1277,29 +1188,6 @@ BlockDefinition *parse_if_block_definition(Lexer *lexer, ParserLimiter limiter) 
 }
 
 
-BlockDefinition *parse_class_block_definition(Lexer *lexer, ParserLimiter limiter) {
-  next_token(lexer);
-
-  Expression *identifier_expression = parse_expression(lexer, 0, CLASS_BLOCK_EXPRESSION_PARSER_LIMITER);
-
-  if (peek_token(lexer).token_type != L_BRACE_TOKEN) return parser_error();
-  next_token(lexer);
-
-  Block *block = parse_block(lexer, limiter);
-
-  if (peek_token(lexer).token_type != R_BRACE_TOKEN) return parser_error();
-  next_token(lexer);
-
-  ClassBlockDefinition *class_block_definition = malloc(sizeof(ClassBlockDefinition));
-
-  class_block_definition->block_definition = (BlockDefinition) {.block_definition_type = BlockDefinitionTypeClassBlock};
-  class_block_definition->identifier_expression = identifier_expression;
-  class_block_definition->block = block;
-
-  return (BlockDefinition *) class_block_definition;
-}
-
-
 BlockDefinition *parse_for_block_definition(Lexer *lexer, ParserLimiter limiter) {
   next_token(lexer);
 
@@ -1363,9 +1251,6 @@ BlockDefinition *parse_block_definition(Lexer *lexer, ParserLimiter limiter) {
   }
   else if (token.token_type == FOR_TOKEN) {
     return parse_for_block_definition(lexer, limiter);
-  }
-  else if (token.token_type == CLASS_TOKEN) {
-    return parse_class_block_definition(lexer, limiter);
   }
 
   return NULL;

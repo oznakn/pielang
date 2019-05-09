@@ -4,8 +4,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+
 char *copy_string(char *s);
 
+char *create_string_from_char(char c);
 
 char *create_string_from_buffer(char *buffer, size_t buffer_length);
 

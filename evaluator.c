@@ -9,57 +9,67 @@
 #include "scope.h"
 #include "value.h"
 #include "system.h"
+#include "utils.h"
+
+size_t normalize_index(size_t index, size_t length) {
+  if (index >= length) {
+    index = index % length;
+  }
+  else if (index < 0) {
+    index = length + (index % length);
+  }
+
+  return index;
+}
 
 
 Value *_evaluate_or_apply_index_operation(Scope *scope, IndexExpression *index_expression, Value *assign_value) {
-  Value **items;
-  size_t items_length;
+  Value *result_value = new_null_value();
 
   Value *index_expression_left_value = evaluate_expression(scope, index_expression->left_expression);
   Value *index_expression_right_value = evaluate_expression(scope, index_expression->right_expression);
 
-  if ((index_expression_left_value->value_type != ValueTypeTupleValue &&
-       index_expression_left_value->value_type != ValueTypeListValue) ||
-      index_expression_right_value->value_type != ValueTypeIntegerValue) return new_null_value();
+  IntegerValue *right_integer_value = (IntegerValue *) index_expression_right_value;
 
-  IntegerValue *index_expression_right_integer_value = (IntegerValue *) index_expression_right_value;
+  if (index_expression_left_value->value_type == ValueTypeStringValue) {
+    if (assign_value != NULL) return new_null_value();
 
-  if (index_expression_left_value->value_type == ValueTypeListValue) {
-    items = ((ListValue *) index_expression_left_value)->items;
-    items_length = ((ListValue *) index_expression_left_value)->length;
+    StringValue *string_value = (StringValue *) index_expression_left_value;
+
+    char *s = create_string_from_char(string_value->string_value[right_integer_value->integer_value]);
+
+    result_value = new_string_value(s, 1);
   }
-  else {
-    items = ((TupleValue *) index_expression_left_value)->items;
-    items_length = ((TupleValue *) index_expression_left_value)->length;
+  else if (index_expression_left_value->value_type == ValueTypeTupleValue) {
+    if (assign_value != NULL) return new_null_value();
+
+    TupleValue *tuple_value = (TupleValue *) index_expression_left_value;
+
+    result_value = tuple_value->items[normalize_index(right_integer_value->integer_value, tuple_value->length)];
+  }
+  else if (index_expression_left_value->value_type == ValueTypeListValue) {
+    ListValue *list_value = (ListValue *) index_expression_left_value;
+
+    size_t index = normalize_index(right_integer_value->integer_value, list_value->length);
+
+    if (assign_value == NULL) {
+      result_value = list_value->items[index];
+    }
+    else {
+      Value *old_value = list_value->items[index];
+      list_value->items[index] = assign_value;
+
+      old_value->linked_variable_count--;
+      assign_value->linked_variable_count++;
+
+      free_value(old_value);
+    }
   }
 
-  size_t index_of_item = index_expression_right_integer_value->integer_value;
-
-  if (index_of_item >= items_length) {
-    index_of_item = index_of_item % items_length;
-  }
-  else if (index_of_item < 0) {
-    index_of_item = items_length + (index_of_item % items_length);
-  }
-
-  if (assign_value == NULL) {
-    free_value(index_expression_left_value);
-    free_value(index_expression_right_value);
-
-    return items[index_of_item];
-  }
-
-  Value *old_value = items[index_of_item];
-  items[index_of_item] = assign_value;
-
-  old_value->linked_variable_count--;
-  assign_value->linked_variable_count++;
-
-  free_value(old_value);
   free_value(index_expression_left_value);
   free_value(index_expression_right_value);
 
-  return new_null_value();
+  return result_value;
 }
 
 
@@ -169,37 +179,36 @@ Value *apply_addition_operation(Value *left_value, Value *right_value) {
     size_t left_array_item_length, right_array_item_length;
 
     if (left_value->value_type == ValueTypeListValue) {
-      ListValue *list_value = (ListValue *) left_value;
-
-      left_array_items = list_value->items;
-      left_array_item_length = list_value->length;
+      left_array_items = ((ListValue *) left_value)->items;
+      left_array_item_length = ((ListValue *) left_value)->length;
     }
     else {
-      TupleValue *tuple_value = (TupleValue *) left_value;
-
-      left_array_items = tuple_value->items;
-      left_array_item_length = tuple_value->length;
+      left_array_items = ((TupleValue *) left_value)->items;
+      left_array_item_length = ((TupleValue *) left_value)->length;
     }
 
     if (right_value->value_type == ValueTypeListValue) {
-      ListValue *list_value = (ListValue *) right_value;
-
-      right_array_items = list_value->items;
-      right_array_item_length = list_value->length;
+      right_array_items = ((ListValue *) right_value)->items;
+      right_array_item_length = ((ListValue *) right_value)->length;
     }
     else {
-      TupleValue *tuple_value = (TupleValue *) right_value;
-
-      right_array_items = tuple_value->items;
-      right_array_item_length = tuple_value->length;
+      right_array_items = ((TupleValue *) right_value)->items;
+      right_array_item_length = ((TupleValue *) right_value)->length;
     }
 
     result_items = malloc((left_array_item_length + right_array_item_length) * sizeof(Value *));
 
-    memcpy(result_items, left_array_items, left_array_item_length * sizeof(Value *));
-    memcpy(&result_items[left_array_item_length], right_array_items, right_array_item_length * sizeof(Value *));
+    for (int i = 0; i < left_array_item_length; i++) {
+      result_items[i] = left_array_items[i];
+      result_items[i]->linked_variable_count++;
+    }
 
-    return new_tuple_value(result_items, left_array_item_length + right_array_item_length, true);
+    for (int i = 0; i < right_array_item_length; i++) {
+      result_items[i + left_array_item_length] = right_array_items[i];
+      result_items[i + left_array_item_length]->linked_variable_count++;
+    }
+
+    return new_list_value(result_items, left_array_item_length + right_array_item_length, true);
   }
 
   return new_null_value();
@@ -747,26 +756,6 @@ Value *evaluate_expression(Scope *scope, Expression *expression) {
 
     case ExpressionTypeCallExpression: {
       return evaluate_call_expression(scope, (CallExpression *) expression);
-    }
-
-    case ExpressionTypeMemberExpression: {
-      MemberExpression *member_expression = (MemberExpression *) expression;
-
-      Scope *current_scope = scope;
-      Value *value = NULL;
-
-      for (size_t i = 0; i < member_expression->expression_count; i++) {
-        value = evaluate_expression(current_scope, member_expression->expressions[i]);
-
-        if (value->value_type == ValueTypeObjectValue) {
-          current_scope = ((ObjectValue *) value)->scope;
-        }
-        else {
-          break;
-        }
-      }
-
-      return value;
     }
 
     case ExpressionTypeFunctionExpression: {

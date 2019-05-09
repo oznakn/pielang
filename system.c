@@ -174,6 +174,31 @@ Value *system_function_number(TupleValue *parameter_values) {
 }
 
 
+Value *system_function_len(TupleValue *parameter_values) {
+  if (parameter_values->length == 0) return new_null_value();
+
+  Value *value = parameter_values->items[0];
+
+  if (value->value_type == ValueTypeStringValue) {
+    StringValue *string_value = (StringValue *) value;
+
+    return new_integer_value(string_value->length);
+  }
+  else if (value->value_type == ValueTypeTupleValue) {
+    TupleValue *tuple_value = (TupleValue *) value;
+
+    return new_integer_value(tuple_value->length);
+  }
+  else if (value->value_type == ValueTypeListValue) {
+    ListValue *list_value = (ListValue *) value;
+
+    return new_integer_value(list_value->length);
+  }
+
+  return new_null_value();
+}
+
+
 void build_system_function(Scope *scope, char *name, Value *value) {
   Variable *variable = scope_set_variable(scope, name, value, true);
 
@@ -187,5 +212,6 @@ void build_main_scope(Scope *scope) {
   build_system_function(scope, "max", new_system_function_value(system_function_max));
   build_system_function(scope, "input", new_system_function_value(system_function_input));
   build_system_function(scope, "number", new_system_function_value(system_function_number));
+  build_system_function(scope, "len", new_system_function_value(system_function_len));
 }
 

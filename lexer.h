@@ -49,7 +49,6 @@ typedef enum {
   FLOAT_TOKEN,
   BOOL_TOKEN,
   STRING_LITERAL_TOKEN,
-  MEMBER_TOKEN,
   COMMA_TOKEN,
   EQUAL_TOKEN,
   PLUS_TOKEN,
@@ -88,7 +87,6 @@ typedef enum {
   IF_TOKEN,
   ELSE_TOKEN,
   FOR_TOKEN,
-  CLASS_TOKEN,
   FUNCTION_TOKEN,
   IN_TOKEN,
 } TokenType;
@@ -99,18 +97,19 @@ typedef struct {
 } Token;
 
 typedef struct {
-  FILE *file;
   Token curr_token;
   Token next_token;
+  char *content;
+  size_t cursor;
   char curr_char;
   char next_char;
 } Lexer;
 
 
-Lexer *new_lexer(FILE *file);
+Lexer *new_lexer(char *content);
 
 
-void update_lexer(Lexer *lexer, FILE *file);
+void update_lexer(Lexer *lexer, char* content);
 
 
 void free_lexer(Lexer *lexer);

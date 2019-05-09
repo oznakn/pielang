@@ -57,7 +57,7 @@ char *convert_to_string(Value *value) {
 
       TupleValue *tuple_value = (TupleValue *) value;
 
-      strcpy(buffer, "T(");
+      strcpy(buffer, "(");
 
       for (size_t i = 0; i < tuple_value->length; i++) {
         StringValue *string_value = (StringValue *) convert_to_string_value(tuple_value->items[i]);
@@ -188,9 +188,6 @@ long long int convert_to_integer(Value *value) {
 }
 
 
-
-
-
 Value *new_null_value() {
   static Value *value;
 
@@ -310,36 +307,13 @@ Value *new_tuple_value(Value **items, size_t length, bool has_finished) {
 Value *new_list_value(Value **items, size_t length, bool has_finished) {
   ListValue *list_value = malloc(sizeof(ListValue));
 
-  list_value->value = (Value){.value_type =ValueTypeListValue};
+  list_value->value = (Value){.value_type = ValueTypeListValue};
   list_value->items = items;
   list_value->length = length;
   list_value->has_finished = has_finished;
 
   return (Value *)list_value;
 }
-
-
-Class *new_class(char *class_name, Scope *scope) {
-  Class *class = malloc(sizeof(Class));
-
-  class->class_name = class_name;
-  class->scope = new_scope(scope, NULL, ScopeTypeNormalScope);
-
-  return class;
-}
-
-
-Value *new_object_value(Class *class) {
-  ObjectValue *object_value = malloc(sizeof(ObjectValue));
-
-  object_value->value = (Value) {.value_type = ValueTypeObjectValue};
-  object_value->class = class;
-  object_value->scope = new_scope(class->scope, NULL, ScopeTypeNormalScope);
-
-  return (Value *) object_value;
-}
-
-
 
 
 
@@ -440,16 +414,6 @@ Variable *variable_map_get(HashTable *variable_map, char *variable_name) {
 }
 
 
-Variable *object_value_set_variable(ObjectValue *object_value, char *name, Value *value) {
-  return scope_set_variable(object_value->scope, name, value, true);
-}
-
-
-Variable *object_value_get_variable(ObjectValue *object_value, char *name) {
-  return scope_get_variable(object_value->scope, name);
-}
-
-
 void free_variable_map(HashTable *variable_map) {
   free_hash_table(variable_map);
 }
@@ -529,14 +493,6 @@ void free_value(Value *value) {
 
         free(list_value->items);
         free(list_value);
-        break;
-      }
-
-      case ValueTypeObjectValue: {
-        ObjectValue *object_value = (ObjectValue *)value;
-
-        free_scope(object_value->scope);
-        free(object_value);
         break;
       }
     }

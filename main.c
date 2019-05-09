@@ -17,6 +17,8 @@ void run_repl() {
 
   build_main_scope(scope);
 
+  linenoiseSetMultiLine(1);
+
   while ((s = linenoise(">> ")) != NULL) {
     if (lexer == NULL) {
       lexer = new_lexer(s);

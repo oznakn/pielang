@@ -141,6 +141,15 @@ Value *apply_index_operation(Scope *scope, IndexExpression *index_expression, Va
 }
 
 
+Value *apply_range_operation(Value *left_value, Value *right_value) {
+  if (left_value->value_type == ValueTypeIntegerValue && right_value->value_type == ValueTypeIntegerValue) {
+    return new_generator_value(GeneratorValueTypeNumber, left_value, right_value);
+  }
+
+  return new_null_value();
+}
+
+
 Value *apply_addition_operation(Value *left_value, Value *right_value) {
   if (left_value->value_type == ValueTypeStringValue || right_value->value_type == ValueTypeStringValue) {
     char *s1 = convert_to_string(left_value);
@@ -550,7 +559,6 @@ Value *evaluate_infix_expression(Scope *scope, InfixExpression *infix_expression
 
       scope_set_variable(scope, identifier, result_value, false);
 
-      if (left_value != NULL) free_value(left_value);
       free_value(right_value);
 
       return new_null_value();
@@ -610,6 +618,11 @@ Value *evaluate_infix_expression(Scope *scope, InfixExpression *infix_expression
 
     case MOD_OP: {
       result_value = apply_mod_operation(left_value, right_value);
+      break;
+    }
+
+    case RANGE_OP: {
+      result_value = apply_range_operation(left_value, right_value);
       break;
     }
 
@@ -841,22 +854,52 @@ bool evaluate_block_definition(Scope *scope, BlockDefinition *block_definition) 
         free_value(evaluate_expression(block_scope, for_block_definition->pre_expression));
       }
 
-      Value *condition_value = evaluate_expression(block_scope, for_block_definition->condition);
+      if (for_block_definition->condition->expression_type == ExpressionTypeInfixExpression && (((InfixExpression *) for_block_definition->condition)->operator == IN_OP)) {
+        InfixExpression *in_infix_expression = (InfixExpression *) for_block_definition->condition;
 
-      while (convert_to_bool(condition_value)) {
-        free_value(condition_value);
+        char *identifier = ((StringLiteral *) in_infix_expression->left_expression->literal)->string_literal;
 
-        free_value(evaluate_scope(block_scope));
+        Value *right_value = evaluate_expression(block_scope, in_infix_expression->right_expression);
+        GeneratorValue *generator_value;
 
-        if (for_block_definition->post_expression != NULL) {
-          free_value(evaluate_expression(block_scope, for_block_definition->post_expression));
+        if (right_value->value_type == ValueTypeGeneratorValue) {
+          generator_value = (GeneratorValue *) right_value;
+          right_value = NULL;
+        }
+        else {
+          generator_value = (GeneratorValue *) convert_to_generator_value(right_value);
         }
 
-        condition_value = evaluate_expression(block_scope, for_block_definition->condition);
-      }
+        Value *for_block_value;
 
-      free_value(condition_value);
-      free_scope(block_scope);
+        while ((for_block_value = fetch_value_from_generator_value(generator_value))->value_type != ValueTypeNullValue) {
+          scope_set_variable(block_scope, identifier, for_block_value, false);
+
+          free_value(evaluate_scope(block_scope));
+        }
+
+        free_value((Value *) generator_value);
+        if (right_value != NULL) free_value(right_value);
+        free_scope(block_scope);
+      }
+      else {
+        Value *condition_value = evaluate_expression(block_scope, for_block_definition->condition);
+
+        while (convert_to_bool(condition_value)) {
+          free_value(condition_value);
+
+          free_value(evaluate_scope(block_scope));
+
+          if (for_block_definition->post_expression != NULL) {
+            free_value(evaluate_expression(block_scope, for_block_definition->post_expression));
+          }
+
+          condition_value = evaluate_expression(block_scope, for_block_definition->condition);
+        }
+
+        free_value(condition_value);
+        free_scope(block_scope);
+      }
 
       return true;
     }

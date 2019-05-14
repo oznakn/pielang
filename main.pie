@@ -1,2 +1,5 @@
-print(len([1, 2, 3, 4]),
-len([1, 2, 3, 5, 4]))
+items = ['ozan', 'akin', '20', (1, 2)]
+
+for item in 12..2356 {
+    print (item)
+}

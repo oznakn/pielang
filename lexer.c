@@ -37,6 +37,10 @@ bool is_identifier_char(char c) {
 }
 
 
+char _prev_char(Lexer *lexer) {
+  return lexer->content[--lexer->cursor];
+}
+
 char _next_char(Lexer *lexer) {
   return lexer->content[lexer->cursor++];
 }
@@ -46,6 +50,13 @@ char peek_char(Lexer *lexer) {
   return lexer->next_char;
 }
 
+
+char prev_char(Lexer *lexer) {
+  lexer->next_char = lexer->curr_char;
+  lexer->curr_char = _prev_char(lexer);
+
+  return lexer->curr_char;
+}
 
 char next_char(Lexer *lexer) {
   lexer->curr_char = lexer->next_char;
@@ -90,31 +101,57 @@ void skip_whitespace(Lexer *lexer) {
 }
 
 
-Token read_number_token(Lexer *lexer) {
+Token read_number_token(Lexer *lexer, bool is_float) {
   if (!is_digit(peek_char(lexer))) {
     return (Token) {.token_type = NULL_TOKEN};
   }
 
-  bool is_float = false;
-
   char buffer[MAX_BUFFER_SIZE];
   size_t buffer_length = 0;
+  bool has_already_one_dot = false;
+  char c;
 
-  while (is_number_char(peek_char(lexer))) {
-    if (peek_char(lexer) == '_') {
+  if (is_float == true) { // to have .243 numbers
+    buffer[buffer_length++] = '0';
+    buffer[buffer_length++] = '.';
+
+    has_already_one_dot = true;
+  }
+
+  while (is_number_char((c = peek_char(lexer)))) {
+    if (c == '_') {
         next_char(lexer);
+
         continue;
     }
-    else if (peek_char(lexer) == '.') {
-        is_float = true;
-    }
+    else if (c == '.') {
+        next_char(lexer);
 
-    buffer[buffer_length++] = next_char(lexer);
+        if (peek_char(lexer) == '.') {
+          prev_char(lexer);
+          break;
+        }
+
+        if (has_already_one_dot == false) {
+          is_float = true;
+          has_already_one_dot = true;
+        }
+        else {
+          prev_char(lexer);
+          break;
+        }
+
+        buffer[buffer_length++] = c;
+    }
+    else {
+      buffer[buffer_length++] = c;
+      next_char(lexer);
+    }
   }
 
   char *string = create_string_from_buffer(buffer, buffer_length);
 
-  if (is_float) {
+  if (is_float == true) {
     FloatLiteral *float_literal = malloc(sizeof(FloatLiteral));
 
     float_literal->literal = (Literal){.literal_type = LiteralTypeFloatLiteral};
@@ -228,6 +265,18 @@ Token _next_token(Lexer *lexer) {
       next_char(lexer);
 
       return parse_string_literal_token(lexer, '"');
+    }
+
+    case '.': {
+      next_char(lexer);
+
+      if (peek_char(lexer) == '.') {
+        next_char(lexer);
+
+        return (Token) {.token_type = RANGE_TOKEN};
+      }
+
+      return read_number_token(lexer, true);
     }
 
     case ',': {
@@ -416,7 +465,7 @@ Token _next_token(Lexer *lexer) {
 
     default: {
       if (is_digit(peek_char(lexer))) {
-        return read_number_token(lexer);
+        return read_number_token(lexer, false);
       }
 
       char *s = read_literal(lexer);
@@ -461,7 +510,7 @@ Token _next_token(Lexer *lexer) {
         return (Token) {.token_type = IMPORT_TOKEN};
       }
 
-      if (strcmp(s, "fun") == 0) {
+      if (strcmp(s, "fn") == 0) {
         free(s);
 
         return (Token) {.token_type = FUNCTION_TOKEN};

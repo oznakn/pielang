@@ -13,6 +13,7 @@
 #define EXPONENT_PRECEDENCE 8
 #define CALL_PRECEDENCE 9
 #define LIST_PRECEDENCE 10
+#define RANGE_PRECEDENCE 11
 
 #include "lexer.h"
 
@@ -42,6 +43,7 @@ typedef enum {
   CHECK_SMALLER_OP,
   CHECK_SMALLER_EQUAL_OP,
   IN_OP,
+  RANGE_OP,
   COMMA_OP,
   ASYNC_OP,
   AWAIT_OP,
@@ -77,7 +79,7 @@ typedef enum {
 } BlockDefinitionType;
 
 typedef enum {
-  ArrayExpressionTypeList,
+  ArrayExpressionTypeList = 1,
   ArrayExpressionTypeTuple,
 } ArrayExpressionType;
 
@@ -158,7 +160,6 @@ typedef struct {
   Block *block;
 } ElseBlockDefinition;
 
-
 typedef struct {
   BlockDefinition block_definition;
   size_t if_block_definitions_length;
@@ -181,6 +182,7 @@ typedef struct {
   char **arguments;
   size_t argument_count;
 } FunctionExpression;
+
 
 typedef struct {
   Statement statement;
@@ -254,9 +256,6 @@ void *parser_error();
 
 
 Expression *eval_token(Token token);
-
-
-Expression *force_tuple(Expression *expression);
 
 
 Expression *parse_grouped_expression(Lexer *lexer);

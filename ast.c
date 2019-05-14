@@ -438,7 +438,7 @@ void free_block_definition(BlockDefinition *block_definition) {
       free_expression(if_block_definition->condition);
       if (if_block_definition->pre_expression != NULL) free_expression(if_block_definition->pre_expression);
       free_block(if_block_definition->block);
-      free(block_definition);
+      free(if_block_definition);
 
       break;
     }
@@ -454,7 +454,7 @@ void free_block_definition(BlockDefinition *block_definition) {
       if (for_block_definition->pre_expression != NULL) free_expression(for_block_definition->pre_expression);
       if (for_block_definition->post_expression != NULL) free_expression(for_block_definition->post_expression);
       free_block(for_block_definition->block);
-      free(block_definition);
+      free(for_block_definition);
 
       break;
     }
@@ -597,6 +597,9 @@ Operator token_to_operator(Token token) {
     case COMMA_TOKEN:
       return COMMA_OP;
 
+    case RANGE_TOKEN:
+      return RANGE_OP;
+
     case ASYNC_TOKEN:
       return ASYNC_OP;
 
@@ -677,6 +680,11 @@ unsigned short get_operator_precedence(Operator operator, bool next) {
 
     case IN_OP: {
       result = IN_OP_PRECEDENCE;
+      break;
+    }
+
+    case RANGE_OP: {
+      result = RANGE_PRECEDENCE;
       break;
     }
 
@@ -797,21 +805,21 @@ Expression *eval_token(Token token) {
 }
 
 
-Expression *force_tuple(Expression *expression) {
+Expression *force_array_expression(Expression *expression, ArrayExpressionType array_expression_type) {
   if (expression == NULL) {
     ArrayExpression *array_expression = malloc(sizeof(ArrayExpression));
 
     array_expression->expression = (Expression){.expression_type = ExpressionTypeArrayExpression};
     array_expression->expression_count = 0;
     array_expression->expressions = malloc(0);
-    array_expression->array_expression_type = ArrayExpressionTypeTuple;
+    array_expression->array_expression_type = array_expression_type;
     array_expression->has_finished = false;
 
     return (Expression *) array_expression;
   }
   else if (expression->expression_type == ExpressionTypeArrayExpression) {
     if (!((ArrayExpression *) expression)->has_finished) {
-      ((ArrayExpression *) expression)->array_expression_type = ArrayExpressionTypeTuple;
+      ((ArrayExpression *) expression)->array_expression_type = array_expression_type;
 
       return expression;
     }
@@ -821,7 +829,7 @@ Expression *force_tuple(Expression *expression) {
     array_expression->expression = (Expression){.expression_type = ExpressionTypeArrayExpression};
     array_expression->expression_count = 1;
     array_expression->expressions = malloc(sizeof(Expression *));
-    array_expression->array_expression_type = ArrayExpressionTypeTuple;
+    array_expression->array_expression_type = array_expression_type;
     array_expression->has_finished = false;
 
     array_expression->expressions[0] = expression;
@@ -834,12 +842,12 @@ Expression *force_tuple(Expression *expression) {
     array_expression->expression = (Expression){.expression_type = ExpressionTypeArrayExpression};
     array_expression->expression_count = 1;
     array_expression->expressions = malloc(sizeof(Expression *));
-    array_expression->array_expression_type = ArrayExpressionTypeTuple;
+    array_expression->array_expression_type = array_expression_type;
     array_expression->has_finished = false;
 
     array_expression->expressions[0] = expression;
 
-    return (Expression *)array_expression;
+    return (Expression *) array_expression;
   }
 }
 
@@ -867,9 +875,7 @@ Expression *parse_list_expression(Lexer *lexer) {
   if (peek_token(lexer).token_type != L_BRACKET_TOKEN) return parser_error();
   next_token(lexer);
 
-  Expression *result = parse_expression(lexer, 0, ARRAY_EXPRESSION_PARSER_LIMITER);
-
-  if (result->expression_type != ExpressionTypeArrayExpression) return parser_error();
+  Expression *result = force_array_expression(parse_expression(lexer, 0, ARRAY_EXPRESSION_PARSER_LIMITER), ArrayExpressionTypeList);
 
   ArrayExpression *array_expression = (ArrayExpression *)result;
   array_expression->array_expression_type = ArrayExpressionTypeList;
@@ -937,7 +943,6 @@ Expression *parse_array_expression(Lexer *lexer, Expression *left) {
 }
 
 
-
 Expression *parse_index_expression(Lexer *lexer, Expression *identifier) {
   if (peek_token(lexer).token_type != L_BRACKET_TOKEN) return parser_error();
   next_token(lexer);
@@ -964,7 +969,8 @@ Expression *parse_call_expression(Lexer *lexer, Expression *identifier) {
   CallExpression *call_expression = malloc(sizeof(CallExpression));
   call_expression->expression = (Expression){.expression_type = ExpressionTypeCallExpression};
   call_expression->identifier_expression = identifier;
-  call_expression->tuple_expression = force_tuple(parse_expression(lexer, 0, GROUPED_EXPRESSION_PARSER_LIMITER));
+  call_expression->tuple_expression = force_array_expression(
+    parse_expression(lexer, 0, GROUPED_EXPRESSION_PARSER_LIMITER), ArrayExpressionTypeTuple);
 
   if (peek_token(lexer).token_type != R_PARENTHESIS_TOKEN) return parser_error();
   next_token(lexer);
@@ -1010,7 +1016,8 @@ Expression *parse_function_expression(Lexer *lexer) {
   if (peek_token(lexer).token_type != L_PARENTHESIS_TOKEN) return parser_error();
   next_token(lexer);
 
-  ArrayExpression *arguments_expression = (ArrayExpression *) force_tuple(parse_expression(lexer, 0, GROUPED_EXPRESSION_PARSER_LIMITER));
+  ArrayExpression *arguments_expression = (ArrayExpression *) force_array_expression(
+    parse_expression(lexer, 0, GROUPED_EXPRESSION_PARSER_LIMITER), ArrayExpressionTypeTuple);
 
   if (peek_token(lexer).token_type != R_PARENTHESIS_TOKEN) return parser_error();
   next_token(lexer);

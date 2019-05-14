@@ -17,8 +17,13 @@ typedef enum {
   ValueTypeSystemFunctionValue,
   ValueTypeTupleValue,
   ValueTypeListValue,
+  ValueTypeGeneratorValue,
 } ValueType;
 
+typedef enum {
+  GeneratorValueTypeNumber = 1,
+  GeneratorValueTypeArray,
+} GeneratorValueType;
 
 struct Value {
   ValueType value_type;
@@ -74,6 +79,15 @@ struct SystemFunctionValue {
   SystemFunctionCallback *callback;
 };
 
+struct GeneratorValue {
+  struct Value value;
+  GeneratorValueType generator_value_type;
+  struct Value **target_values;
+  long long int start_value;
+  long long int end_value;
+  long long int index;
+};
+
 struct Variable {
   char *variable_name;
   struct Value *value;
@@ -89,6 +103,7 @@ typedef struct TupleValue TupleValue;
 typedef struct ListValue ListValue;
 typedef struct FunctionValue FunctionValue;
 typedef struct SystemFunctionValue SystemFunctionValue;
+typedef struct GeneratorValue GeneratorValue;
 typedef struct Variable Variable;
 
 
@@ -142,6 +157,14 @@ Value *new_tuple_value(Value **items, size_t length, bool has_finished);
 Value *new_list_value(Value **items, size_t length, bool has_finished);
 
 
+Value *new_generator_value(GeneratorValueType generator_value_type, Value *first_value, Value *second_value);
+
+
+Value *fetch_value_from_generator_value(GeneratorValue *generator_value);
+
+
+
+Value *convert_to_generator_value(Value *value);
 
 
 Value *convert_to_string_value(Value *value);

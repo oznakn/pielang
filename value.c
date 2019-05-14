@@ -107,6 +107,52 @@ char *convert_to_string(Value *value) {
       return copy_string(buffer);
     }
 
+    case ValueTypeGeneratorValue: {
+      char buffer[MAX_BUFFER_SIZE] = {0};
+
+      GeneratorValue *generator_value = (GeneratorValue *) value;
+
+      strcpy(buffer, "*[");
+
+      if (generator_value->generator_value_type == GeneratorValueTypeArray) {
+        for (long long int i = 0; i < generator_value->end_value; i++) {
+          char *s = convert_to_string(generator_value->target_values[i]);
+
+          strcat(buffer, s);
+
+          free(s);
+
+          if (i != generator_value->end_value - 1) {
+            strcat(buffer, ", ");
+          }
+        }
+      }
+      else if (generator_value->generator_value_type == GeneratorValueTypeNumber) {
+        if (generator_value->start_value < generator_value->end_value) {
+          for (long long int i = generator_value->start_value; i < generator_value->end_value; i++) {
+            sprintf(buffer + strlen(buffer), "%lli", i);
+
+            if (i != generator_value->end_value - 1) {
+              strcat(buffer, ", ");
+            }
+          }
+        }
+        else if (generator_value->start_value > generator_value->end_value) {
+          for (long long int i = generator_value->start_value; i > generator_value->end_value; i--) {
+            sprintf(buffer + strlen(buffer), "%lli", i);
+
+            if (i != generator_value->end_value + 1) {
+              strcat(buffer, ", ");
+            }
+          }
+        }
+      }
+
+      strcat(buffer, "]");
+
+      return copy_string(buffer);
+    }
+
     default: {
       return NULL;
     }
@@ -316,6 +362,90 @@ Value *new_list_value(Value **items, size_t length, bool has_finished) {
 }
 
 
+Value *new_generator_value(GeneratorValueType generator_value_type, Value *first_value, Value *second_value) {
+  if (generator_value_type == GeneratorValueTypeNumber) {
+    if (first_value->value_type == ValueTypeIntegerValue && second_value->value_type == ValueTypeIntegerValue) {
+      IntegerValue *left_integer_value = (IntegerValue *) first_value;
+      IntegerValue *right_integer_value = (IntegerValue *) second_value;
+
+      GeneratorValue *generator_value = malloc(sizeof(GeneratorValue));
+      generator_value->value = (Value) {.value_type = ValueTypeGeneratorValue};
+      generator_value->generator_value_type = GeneratorValueTypeNumber;
+      generator_value->start_value = left_integer_value->integer_value;
+      generator_value->end_value = right_integer_value->integer_value;
+      generator_value->target_values = NULL;
+      generator_value->index = left_integer_value->integer_value;
+
+      return (Value *) generator_value;
+    }
+  }
+  else if (generator_value_type == GeneratorValueTypeArray) {
+    if (first_value->value_type == ValueTypeTupleValue) {
+      TupleValue *tuple_value = (TupleValue *) first_value;
+
+      GeneratorValue *generator_value = malloc(sizeof(GeneratorValue));
+      generator_value->value = (Value) {.value_type = ValueTypeGeneratorValue};
+      generator_value->generator_value_type = GeneratorValueTypeArray;
+      generator_value->start_value = 0;
+      generator_value->end_value = tuple_value->length;
+      generator_value->target_values = tuple_value->items;
+      generator_value->index = 0;
+
+      return (Value *) generator_value;
+    }
+    if (first_value->value_type == ValueTypeListValue) {
+      ListValue *list_value = (ListValue *) first_value;
+
+      GeneratorValue *generator_value = malloc(sizeof(GeneratorValue));
+      generator_value->value = (Value) {.value_type = ValueTypeGeneratorValue};
+      generator_value->generator_value_type = GeneratorValueTypeArray;
+      generator_value->start_value = 0;
+      generator_value->end_value = list_value->length;
+      generator_value->target_values = list_value->items;
+      generator_value->index = 0;
+
+      return (Value *) generator_value;
+    }
+  }
+
+  return new_null_value();
+}
+
+
+Value *fetch_value_from_generator_value(GeneratorValue *generator_value) {
+  if (generator_value->generator_value_type == GeneratorValueTypeNumber) {
+    if (generator_value->start_value < generator_value->end_value && generator_value->index < generator_value->end_value) {
+      return new_integer_value(generator_value->index++);
+    }
+    else if (generator_value->start_value > generator_value->end_value && generator_value->index > generator_value->end_value) {
+      return new_integer_value(generator_value->index--);
+    }
+    else {
+      return new_null_value();
+    }
+  }
+  else if (generator_value->generator_value_type == GeneratorValueTypeArray) {
+    if (generator_value->index < generator_value->end_value) {
+      return generator_value->target_values[generator_value->index++];
+    }
+    else {
+      return new_null_value();
+    }
+  }
+
+  return new_null_value();
+}
+
+
+
+Value *convert_to_generator_value(Value *value) {
+  if (value->value_type == ValueTypeTupleValue || value->value_type == ValueTypeListValue) {
+    return new_generator_value(GeneratorValueTypeArray, value, NULL);
+  }
+
+  return new_null_value();
+}
+
 
 Value *convert_to_string_value(Value *value) {
   char *s = convert_to_string(value);
@@ -493,6 +623,13 @@ void free_value(Value *value) {
 
         free(list_value->items);
         free(list_value);
+        break;
+      }
+
+      case ValueTypeGeneratorValue: {
+        GeneratorValue *generator_value = (GeneratorValue *) value;
+
+        free(generator_value);
         break;
       }
     }

@@ -69,6 +69,7 @@ Variable *scope_set_variable(Scope *scope, char *name, Value *value, int create_
     if (!variable->is_readonly)  {
       Value *old_value = variable->value;
       old_value->linked_variable_count--;
+      free_value(old_value);
 
       variable->value = value;
       variable->value->linked_variable_count++;

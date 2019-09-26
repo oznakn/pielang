@@ -1,3 +1,6 @@
-items = [1,2,3,4]
+items = [1, 2, 3, 4, 5]
 
-items.push(5)
+for items {
+    item = items.pop(-1)
+    print(item)
+}

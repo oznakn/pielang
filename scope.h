@@ -3,9 +3,10 @@
 
 #include <stdlib.h>
 
+#include "hashtable.h"
 #include "bool.h"
 #include "ast.h"
-#include "hashtable.h"
+#include "value.h"
 
 struct Value;
 struct Variable;
@@ -17,7 +18,7 @@ typedef enum {
 
 typedef struct Scope {
   struct Scope *inherited_scope;
-  HashTable *variable_map;
+  HashTable **variable_maps;
   Block *block;
   ScopeType scope_type;
   struct Value *return_value;
@@ -33,10 +34,10 @@ void free_scope(Scope *scope);
 void scope_set_return_value(Scope *scope, struct Value *value);
 
 
-struct Variable *scope_get_variable(Scope *scope, char *name);
+struct Variable *scope_get_variable(Scope *scope, ValueType context_value_type, char *name);
 
 
-struct Variable *scope_set_variable(Scope *scope, char *name, struct Value *value, int create_new_if_even_exists) ;
+struct Variable *scope_set_variable(Scope *scope, ValueType context_value_type, char *name, struct Value *value, int create_new_if_even_exists) ;
 
 
 #endif //PIELANG_SCOPE_H

@@ -328,10 +328,11 @@ Value *new_function_value(Block *block, char **arguments, size_t argument_count)
 }
 
 
-Value *new_system_function_value(SystemFunctionCallback *callback) {
+Value *new_system_function_value(ValueType context_value_type, SystemFunctionCallback *callback) {
   SystemFunctionValue *system_function_value = malloc(sizeof(SystemFunctionValue));
 
   system_function_value->value = (Value) {.value_type = ValueTypeSystemFunctionValue};
+  system_function_value->context_value_type = context_value_type;
   system_function_value->callback = callback;
 
   return (Value *) system_function_value;
@@ -489,7 +490,7 @@ Value *copy_value(Value *value) {
     case ValueTypeTupleValue: {
       TupleValue *tuple_value = (TupleValue *) value;
 
-      Value **items = malloc(tuple_value->length * sizeof(Value *));
+      Value **items = calloc(tuple_value->length, sizeof(Value *));
 
       memcpy(items, tuple_value->items, tuple_value->length * sizeof(Value *));
 
@@ -499,7 +500,7 @@ Value *copy_value(Value *value) {
     case ValueTypeListValue: {
       ListValue *list_value = (ListValue *) value;
 
-      Value **items = malloc(list_value->length * sizeof(Value *));
+      Value **items = calloc(list_value->length, sizeof(Value *));
 
       memcpy(items, list_value->items, list_value->length * sizeof(Value *));
 

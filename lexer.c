@@ -101,27 +101,20 @@ void skip_whitespace(Lexer *lexer) {
 }
 
 
-Token read_number_token(Lexer *lexer, bool is_float) {
+Token read_number_token(Lexer *lexer) {
   if (!is_digit(peek_char(lexer))) {
     return (Token) {.token_type = NULL_TOKEN};
   }
 
+  bool is_float = false;
+
   char buffer[MAX_BUFFER_SIZE];
   size_t buffer_length = 0;
-  bool has_already_one_dot = false;
   char c;
-
-  if (is_float == true) { // to have .243 numbers
-    buffer[buffer_length++] = '0';
-    buffer[buffer_length++] = '.';
-
-    has_already_one_dot = true;
-  }
 
   while (is_number_char((c = peek_char(lexer)))) {
     if (c == '_') {
         next_char(lexer);
-
         continue;
     }
     else if (c == '.') {
@@ -132,14 +125,7 @@ Token read_number_token(Lexer *lexer, bool is_float) {
           break;
         }
 
-        if (has_already_one_dot == false) {
-          is_float = true;
-          has_already_one_dot = true;
-        }
-        else {
-          prev_char(lexer);
-          break;
-        }
+        is_float = true;
 
         buffer[buffer_length++] = c;
     }
@@ -276,7 +262,7 @@ Token _next_token(Lexer *lexer) {
         return (Token) {.token_type = RANGE_TOKEN};
       }
 
-      return read_number_token(lexer, true);
+      return (Token) {.token_type = MEMBER_TOKEN};
     }
 
     case ',': {
@@ -465,7 +451,7 @@ Token _next_token(Lexer *lexer) {
 
     default: {
       if (is_digit(peek_char(lexer))) {
-        return read_number_token(lexer, false);
+        return read_number_token(lexer);
       }
 
       char *s = read_literal(lexer);

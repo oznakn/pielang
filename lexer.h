@@ -89,6 +89,7 @@ typedef enum {
   ELSE_TOKEN,
   FOR_TOKEN,
   FUNCTION_TOKEN,
+  MEMBER_TOKEN,
   IN_TOKEN,
 } TokenType;
 

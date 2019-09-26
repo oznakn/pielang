@@ -5,7 +5,8 @@
 #include "lexer.h"
 #include "ast.h"
 #include "hashtable.h"
-#include "scope.h"
+
+#define VALUE_TYPE_COUNT 10
 
 typedef enum {
   ValueTypeNullValue = 0,
@@ -28,6 +29,7 @@ typedef enum {
 struct Value {
   ValueType value_type;
   size_t linked_variable_count;
+  struct Value *context_value;
 };
 
 struct BoolValue {
@@ -72,10 +74,11 @@ struct FunctionValue {
   size_t argument_count;
 };
 
-typedef struct Value *(SystemFunctionCallback)(struct TupleValue *);
+typedef struct Value *(SystemFunctionCallback)(struct Value *context_value, struct TupleValue *);
 
 struct SystemFunctionValue {
   struct Value value;
+  ValueType context_value_type;
   SystemFunctionCallback *callback;
 };
 
@@ -148,7 +151,7 @@ Value *new_string_value_from_literal(StringLiteral *literal);
 Value *new_function_value(Block *block, char **arguments, size_t argument_count);
 
 
-Value *new_system_function_value(SystemFunctionCallback *callback);
+Value *new_system_function_value(ValueType context_value_type, SystemFunctionCallback *callback);
 
 
 Value *new_tuple_value(Value **items, size_t length, bool has_finished);

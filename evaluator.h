@@ -9,7 +9,7 @@
 Value *evaluate_call_expression(Scope *scope, CallExpression *call_expression);
 
 
-Value *call_system_function(SystemFunctionValue *system_function_value, TupleValue *parameter_values);
+Value *call_system_function(Scope *scope, SystemFunctionValue *system_function_value, TupleValue *parameter_values);
 
 
 Value *call_function(Scope *scope, FunctionValue *function_value, TupleValue *parameter_values);

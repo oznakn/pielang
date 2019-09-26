@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+size_t normalize_index(long long int index, long long int length);
 
 char *copy_string(char *s);
 

@@ -11,18 +11,6 @@
 #include "system.h"
 #include "utils.h"
 
-size_t normalize_index(size_t index, size_t length) {
-  if (index >= length) {
-    index = index % length;
-  }
-  else if (index < 0) {
-    index = length + (index % length);
-  }
-
-  return index;
-}
-
-
 Value *_evaluate_or_apply_index_operation(Scope *scope, IndexExpression *index_expression, Value *assign_value) {
   Value *result_value = new_null_value();
 
@@ -73,8 +61,8 @@ Value *_evaluate_or_apply_index_operation(Scope *scope, IndexExpression *index_e
 }
 
 
-Value *call_system_function(SystemFunctionValue *system_function_value, TupleValue *parameter_values) {
-  return system_function_value->callback(parameter_values);
+Value *call_system_function(Scope *scope, SystemFunctionValue *system_function_value, TupleValue *parameter_values) {
+  return system_function_value->callback(system_function_value->value.context_value, parameter_values);
 }
 
 
@@ -93,7 +81,7 @@ Value *call_function(Scope *scope, FunctionValue *function_value, TupleValue *pa
       variable_value = parameter_values->items[i];
     }
 
-    scope_set_variable(function_scope, function_value->arguments[i], variable_value, true);
+    scope_set_variable(function_scope, ValueTypeNullValue, function_value->arguments[i], variable_value, true);
   }
 
   Value *result = evaluate_scope(function_scope);
@@ -513,7 +501,7 @@ Value *evaluate_call_expression(Scope *scope, CallExpression *call_expression) {
       result_value = call_function(scope, (FunctionValue *) identifier_value, (TupleValue *) parameter_values);
     }
     if (identifier_value->value_type == ValueTypeSystemFunctionValue) {
-      result_value = call_system_function((SystemFunctionValue *) identifier_value, (TupleValue *) parameter_values);
+      result_value = call_system_function(scope, (SystemFunctionValue *) identifier_value, (TupleValue *) parameter_values);
     }
   }
 
@@ -546,7 +534,7 @@ Value *evaluate_infix_expression(Scope *scope, InfixExpression *infix_expression
     if (infix_expression->left_expression->expression_type == ExpressionTypeIdentifierExpression) {
       char *identifier = ((StringLiteral *) infix_expression->left_expression->literal)->string_literal;
 
-      Variable *variable = scope_get_variable(scope, identifier);
+      Variable *variable = scope_get_variable(scope, ValueTypeNullValue, identifier);
 
       left_value = new_null_value();
 
@@ -557,7 +545,7 @@ Value *evaluate_infix_expression(Scope *scope, InfixExpression *infix_expression
       right_value = evaluate_expression(scope, infix_expression->right_expression);
       result_value = apply_assign_operation(left_value, right_value, operator);
 
-      scope_set_variable(scope, identifier, result_value, false);
+      scope_set_variable(scope, ValueTypeNullValue, identifier, result_value, false);
 
       free_value(right_value);
 
@@ -580,6 +568,21 @@ Value *evaluate_infix_expression(Scope *scope, InfixExpression *infix_expression
     }
 
     return new_null_value();
+  }
+  else if (operator == MEMBER_OP) {
+    left_value = evaluate_expression(scope, infix_expression->left_expression);
+
+    char *identifier = ((StringLiteral *) infix_expression->right_expression->literal)->string_literal;
+
+    Variable *variable = scope_get_variable(scope, left_value->value_type, identifier);
+
+    free_value(left_value);
+
+    if (variable == NULL) return new_null_value();
+
+    variable->value->context_value = left_value;
+
+    return variable->value;
   }
 
   left_value = evaluate_expression(scope, infix_expression->left_expression);
@@ -740,7 +743,7 @@ Value *evaluate_expression(Scope *scope, Expression *expression) {
     case ExpressionTypeArrayExpression: {
       ArrayExpression *array_expression = (ArrayExpression *) expression;
 
-      Value **items = malloc(array_expression->expression_count * sizeof(Value *));
+      Value **items = calloc(array_expression->expression_count, sizeof(Value *));
 
       for (size_t i = 0; i < array_expression->expression_count; i++) {
         items[i] = evaluate_expression(scope, array_expression->expressions[i]);
@@ -758,7 +761,7 @@ Value *evaluate_expression(Scope *scope, Expression *expression) {
     case ExpressionTypeIdentifierExpression: {
       StringLiteral *string_literal = (StringLiteral *) expression->literal;
 
-      Variable *variable = scope_get_variable(scope, string_literal->string_literal);
+      Variable *variable = scope_get_variable(scope, ValueTypeNullValue, string_literal->string_literal);
 
       if (variable == NULL) {
         return new_null_value();
@@ -779,7 +782,7 @@ Value *evaluate_expression(Scope *scope, Expression *expression) {
       if (function_expression->identifier != NULL) {
         char *function_name = ((StringLiteral *) function_expression->identifier->literal)->string_literal;
 
-        scope_set_variable(scope, function_name, (Value *) function_value, false);
+        scope_set_variable(scope, ValueTypeNullValue, function_name, (Value *) function_value, false);
       }
 
       return (Value *) function_value;
@@ -791,7 +794,7 @@ Value *evaluate_expression(Scope *scope, Expression *expression) {
 
 // return value means if true move on
 bool evaluate_block_definition(Scope *scope, BlockDefinition *block_definition) {
-  Scope *block_scope;
+  Scope *block_scope = NULL;
 
   switch (block_definition->block_definition_type) {
     case BlockDefinitionTypeIfElseGroupBlock: {
@@ -873,7 +876,7 @@ bool evaluate_block_definition(Scope *scope, BlockDefinition *block_definition) 
         Value *for_block_value;
 
         while ((for_block_value = fetch_value_from_generator_value(generator_value))->value_type != ValueTypeNullValue) {
-          scope_set_variable(block_scope, identifier, for_block_value, false);
+          scope_set_variable(block_scope, ValueTypeNullValue, identifier, for_block_value, false);
 
           free_value(evaluate_scope(block_scope));
         }
@@ -888,7 +891,8 @@ bool evaluate_block_definition(Scope *scope, BlockDefinition *block_definition) 
         while (convert_to_bool(condition_value)) {
           free_value(condition_value);
 
-          free_value(evaluate_scope(block_scope));
+          Value *value = evaluate_scope(block_scope);
+          free_value(value);
 
           if (for_block_definition->post_expression != NULL) {
             free_value(evaluate_expression(block_scope, for_block_definition->post_expression));
@@ -971,7 +975,8 @@ void evaluate_ast(AST *ast) {
 
   build_main_scope(main_scope);
 
-  free_value(evaluate_scope(main_scope));
+  Value *value = evaluate_scope(main_scope);
 
+  free_value(value);
   free_scope(main_scope);
 }

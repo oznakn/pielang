@@ -1,10 +1,16 @@
-#include "utils.h"
-
 #include <string.h>
 #include <stdlib.h>
 
-#include "bool.h"
-#include "value.h"
+size_t normalize_index(long long int index, long long int length) {
+  if (index >= length) {
+    index = index % length;
+  }
+  else if (index < 0) {
+    index = (length + index) % length;
+  }
+
+  return index;
+}
 
 
 char *copy_string(char *s) {

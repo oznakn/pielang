@@ -87,6 +87,7 @@ void printf_expression(Expression *expression, unsigned int alignment) {
       else if (infix_expression->operator == CHECK_SMALLER_EQUAL_OP) { printf(" <= "); }
       else if (infix_expression->operator == CHECK_BIGGER_OP) { printf(" > "); }
       else if (infix_expression->operator == CHECK_BIGGER_EQUAL_OP) { printf(" >= "); }
+      else if (infix_expression->operator == MEMBER_OP) { printf(" . "); }
       else if (infix_expression->operator == IN_OP) { printf(" in "); }
       else if (infix_expression->operator == COMMA_OP) { printf(" , "); }
 
@@ -640,6 +641,9 @@ Operator token_to_operator(Token token) {
     case EXCLAMATION_TOKEN:
       return NOT_OP;
 
+    case MEMBER_TOKEN:
+      return MEMBER_OP;
+
     case IN_TOKEN:
       return IN_OP;
 
@@ -713,6 +717,11 @@ unsigned short get_operator_precedence(Operator operator, bool next) {
 
     case EXPONENT_OP: {
       result = EXPONENT_PRECEDENCE;
+      break;
+    }
+
+    case MEMBER_OP: {
+      result = MEMBER_PRECEDENCE;
       break;
     }
 

@@ -13,7 +13,7 @@
 #define BUFFER_SIZE 100000
 
 
-Value *system_function_print(TupleValue *parameter_values) {
+Value *system_function_print(Value *context_value, TupleValue *parameter_values) {
   if (parameter_values->length == 0) {
     return new_null_value();
   }
@@ -36,7 +36,7 @@ Value *system_function_print(TupleValue *parameter_values) {
 }
 
 
-Value *system_function_min(TupleValue *parameter_values) {
+Value *system_function_min(Value *context_value, TupleValue *parameter_values) {
   if (parameter_values->length == 0) {
     return new_null_value();
   }
@@ -80,7 +80,7 @@ Value *system_function_min(TupleValue *parameter_values) {
 }
 
 
-Value *system_function_max(TupleValue *parameter_values) {
+Value *system_function_max(Value *context_value, TupleValue *parameter_values) {
   if (parameter_values->length == 0) {
     return new_null_value();
   }
@@ -124,7 +124,7 @@ Value *system_function_max(TupleValue *parameter_values) {
 }
 
 
-Value *system_function_input(TupleValue *parameter_values) {
+Value *system_function_input(Value *context_value, TupleValue *parameter_values) {
   if (parameter_values->length > 0) {
     StringValue *string_value = (StringValue *) convert_to_string_value(parameter_values->items[0]);
 
@@ -151,7 +151,7 @@ Value *system_function_input(TupleValue *parameter_values) {
 }
 
 
-Value *system_function_number(TupleValue *parameter_values) {
+Value *system_function_number(Value *context_value, TupleValue *parameter_values) {
   if (parameter_values->length == 0) return new_null_value();
 
   Value *value = parameter_values->items[0];
@@ -174,7 +174,7 @@ Value *system_function_number(TupleValue *parameter_values) {
 }
 
 
-Value *system_function_len(TupleValue *parameter_values) {
+Value *system_function_len(Value *context_value, TupleValue *parameter_values) {
   if (parameter_values->length == 0) return new_null_value();
 
   Value *value = parameter_values->items[0];
@@ -199,19 +199,66 @@ Value *system_function_len(TupleValue *parameter_values) {
 }
 
 
+Value *system_function_list_push(Value *context_value, TupleValue *parameter_values) {
+  if (parameter_values->length == 0) return new_null_value();
+
+  ListValue *list_value = (ListValue *) context_value;
+
+  list_value->items = realloc(list_value->items, (list_value->length + parameter_values->length) * sizeof(Value *));
+
+  for (size_t i = 0; i < parameter_values->length; i++) {
+    list_value->items[list_value->length + i] = copy_value(parameter_values->items[i]);
+  }
+
+  list_value->length += parameter_values->length;
+
+  return new_null_value();
+}
+
+Value *system_function_list_pop(Value *context_value, TupleValue *parameter_values) {
+  Value *result_value = new_null_value();
+  ListValue *list_value = (ListValue *) context_value;
+  long long int mid;
+
+  if (parameter_values->length == 0) {
+    mid = -1;
+  }
+  else {
+    if (parameter_values->items[0]->value_type != ValueTypeIntegerValue) return result_value;
+    mid = normalize_index(((IntegerValue *) parameter_values->items[0])->integer_value, list_value->length);
+  }
+
+  if (list_value->length <= mid) return result_value;
+
+  result_value = list_value->items[mid];
+
+  for (size_t i = mid; i < list_value->length - 1; i++) {
+    list_value->items[i] = list_value->items[i + 1];
+  }
+
+  list_value->items = realloc(list_value->items, (list_value->length - 1) * sizeof(Value *));
+  list_value->length -= 1;
+
+  return result_value;
+}
+
 void build_system_function(Scope *scope, char *name, Value *value) {
-  Variable *variable = scope_set_variable(scope, name, value, true);
+  SystemFunctionValue *system_function_value = (SystemFunctionValue *) value;
+
+  Variable *variable = scope_set_variable(scope, system_function_value->context_value_type, name, value, true);
 
   variable->is_readonly = true;
 }
 
 
 void build_main_scope(Scope *scope) {
-  build_system_function(scope, "print", new_system_function_value(system_function_print));
-  build_system_function(scope, "min", new_system_function_value(system_function_min));
-  build_system_function(scope, "max", new_system_function_value(system_function_max));
-  build_system_function(scope, "input", new_system_function_value(system_function_input));
-  build_system_function(scope, "number", new_system_function_value(system_function_number));
-  build_system_function(scope, "len", new_system_function_value(system_function_len));
+  build_system_function(scope, "print", new_system_function_value(ValueTypeNullValue, system_function_print));
+  build_system_function(scope, "min", new_system_function_value(ValueTypeNullValue, system_function_min));
+  build_system_function(scope, "max", new_system_function_value(ValueTypeNullValue, system_function_max));
+  build_system_function(scope, "input", new_system_function_value(ValueTypeNullValue, system_function_input));
+  build_system_function(scope, "number", new_system_function_value(ValueTypeNullValue, system_function_number));
+  build_system_function(scope, "len", new_system_function_value(ValueTypeNullValue, system_function_len));
+  build_system_function(scope, "push", new_system_function_value(ValueTypeListValue, system_function_list_push));
+  build_system_function(scope, "pop", new_system_function_value(ValueTypeListValue, system_function_list_pop));
 }
 

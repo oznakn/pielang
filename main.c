@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <signal.h>
 
 #include "bool.h"
 #include "lexer.h"
@@ -8,6 +9,10 @@
 #include "linenoise.h"
 
 #define TEST_MODE true
+
+static void signal_handler(int signo) {
+  exit(EXIT_FAILURE);
+}
 
 void run_repl() {
   char *s;
@@ -32,6 +37,7 @@ void run_repl() {
     if (statement != NULL) {
       linenoiseHistoryAdd(s);
 
+	  printf_statement(statement, 0);
       evaluate_statement(scope, statement, true);
 
       free_statement(statement);
@@ -78,7 +84,7 @@ void run(char *filename) {
 
 #if TEST_MODE
 
-  // printf_ast(ast);
+  printf_ast(ast);
 
 #endif
 
@@ -91,6 +97,9 @@ void run(char *filename) {
 }
 
 int main(int argc, char **argv) {
+  signal(SIGUSR1, signal_handler);
+  signal(SIGSEGV, signal_handler);
+
 #if TEST_MODE
   run("../main.pie");
 #else

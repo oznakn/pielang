@@ -1,5 +1,3 @@
-items = ['ozan', 'akin', '20', (1, 2)]
+items = [1,2,3,4]
 
-for item in 12..2356 {
-    print (item)
-}
+items.push(5)
